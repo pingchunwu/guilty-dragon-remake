@@ -1,19 +1,19 @@
 import { useState } from "react";
-import { ITEM_KINDS, PLACEHOLDER_ITEMS, resolveEquipment, type ItemKind } from "@gdr/engine";
+import { ITEM_KINDS, resolveEquipment, type ItemKind } from "@gdr/engine";
+import type { Content } from "../game/content";
 import { GameError, type GameService, type PlayerState } from "../game/types";
 import { ITEM_KIND_LABEL, errorText, loadoutErrorText } from "../game/text";
 import { ItemTile } from "./ItemTile";
 
-const items = new Map(PLACEHOLDER_ITEMS.map((i) => [i.id, i]));
-
 interface Props {
+  content: Content;
   service: GameService;
   state: PlayerState;
   onState: (s: PlayerState) => void;
 }
 
 /** One loadout (armor, weapon, gear) used for both attack and defense battles. */
-export function Equipment({ service, state, onState }: Props) {
+export function Equipment({ content: { items }, service, state, onState }: Props) {
   const [open, setOpen] = useState<ItemKind | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);

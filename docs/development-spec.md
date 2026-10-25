@@ -170,7 +170,7 @@ Product decisions are marked **decided**; values the product owner has not set a
   - Gear has a slot but no effect yet (open).
   - Items come from a separate item gacha: one shared ticket for 10 item pulls; duplicates become shards and every 5 shards raise the item one level, like cards (decided). Item levels have no effect yet (open), and item odds are placeholders (equal weights).
   - Placeholder items: 6 per kind. Armor defense 20–35, weapon attack +10 to +60, gear no stats. Every player gets and equips the starter armor, weapon and gear (見習防具 20, 見習武器 +10, 見習飾品).
-- **Data:** card attack is stored in `card_definitions.attack`, and item stats in `item_definitions`, both generated from `packages/engine/src/catalog.ts`. The web app still bundles the same catalog; a test checks the database matches it.
+- **Data:** card attack is stored in `card_definitions.attack`, and item stats in `item_definitions`, both generated from `packages/engine/src/catalog.ts`. The web app loads card and item definitions (names, types/kinds, attack, defense) from these tables once per page load and keeps them in memory only, so the database is the source of truth for content; a test checks the database matches the catalog. Builds without Supabase settings fall back to the bundled catalog for guest play.
 - **Card attack:** the number on a card is its attack (decided). Placeholder values 40–100 per card.
 - **Hand** (decided): 8 cards. Cards not played stay in hand; after each phase the hand refills to 8 from the draw pile.
 - **Picking** (decided): each side plays exactly 5 cards per phase (the whole hand if it has fewer): a leader, which always counts, and 4 cards of any colour in the 4 spaces behind it. How fast a deck empties depends on the chain draws.

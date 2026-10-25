@@ -1,17 +1,16 @@
 import { useState } from "react";
-import { PLACEHOLDER_CARDS, PLACEHOLDER_ITEMS, type PullResult } from "@gdr/engine";
+import type { PullResult } from "@gdr/engine";
+import type { Content } from "../game/content";
 import { GameError, type GameService, type PlayerState } from "../game/types";
 import { errorText } from "../game/text";
 import { CardTile } from "./CardTile";
 import { ItemTile } from "./ItemTile";
 
-const cards = new Map(PLACEHOLDER_CARDS.map((c) => [c.id, c]));
-const items = new Map(PLACEHOLDER_ITEMS.map((i) => [i.id, i]));
-
 type Kind = "card" | "item";
 const KIND_LABEL: Record<Kind, string> = { card: "卡片", item: "裝備" };
 
 interface Props {
+  content: Content;
   service: GameService;
   state: PlayerState;
   onState: (s: PlayerState) => void;
@@ -22,7 +21,7 @@ function badge(r: PullResult): string {
   return r.leveledUp ? `升級 Lv ${r.level}` : "碎片 +1";
 }
 
-export function Gacha({ service, state, onState }: Props) {
+export function Gacha({ content: { cards, items }, service, state, onState }: Props) {
   const [kind, setKind] = useState<Kind>("card");
   const [results, setResults] = useState<{ kind: Kind; list: PullResult[] } | null>(null);
   const [busy, setBusy] = useState(false);

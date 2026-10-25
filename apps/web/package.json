@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc --noEmit -p . && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit -p ."
+    "typecheck": "tsc --noEmit -p .",
+    "test": "vitest run"
   },
   "dependencies": {
     "@gdr/engine": "0.0.0",
