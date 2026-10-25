@@ -32,6 +32,9 @@ export function errorText(code: string): string {
       return "登入已過期，請重新登入。";
     case "NO_ACTIVE_POOL":
       return "目前沒有開放的卡池。";
+    case "CONTENT_MISSING":
+    case "CONTENT_INVALID":
+      return "卡片資料有誤，請稍後再試。";
     case "IDEMPOTENCY_KEY_REUSED":
       return "抽卡請求重複，請再按一次。";
     default:

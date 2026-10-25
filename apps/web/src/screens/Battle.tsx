@@ -1,7 +1,5 @@
 import { useState } from "react";
 import {
-  PLACEHOLDER_CARDS,
-  PLACEHOLDER_ITEMS,
   RULES_V0,
   deckCardIds,
   defenseOf,
@@ -17,13 +15,11 @@ import {
   type SideId,
   type SideResult,
 } from "@gdr/engine";
+import type { Content } from "../game/content";
 import type { PlayerState } from "../game/types";
 import { TYPE_LABEL } from "../game/text";
 import { CardTile } from "./CardTile";
 
-const cards = new Map(PLACEHOLDER_CARDS.map((c) => [c.id, c]));
-const items = new Map(PLACEHOLDER_ITEMS.map((i) => [i.id, i]));
-const cardName = (id: string) => cards.get(id)?.name ?? id;
 const SIDE_LABEL: Record<SideId, string> = { challenger: "你", defender: "對手" };
 
 function randomSeed(): [number, number, number, number] {
@@ -37,7 +33,8 @@ function randomSeed(): [number, number, number, number] {
  * the defender AI. Runs in the browser; nothing is saved and there are no
  * rewards. Friend PvP will resolve the same engine on the server.
  */
-export function Battle({ state: player }: { state: PlayerState }) {
+export function Battle({ content, state: player }: { content: Content; state: PlayerState }) {
+  const { cards, items } = content;
   const [battle, setBattle] = useState<BattleState | null>(null);
   const [last, setLast] = useState<PhaseResult | null>(null);
   const [picked, setPicked] = useState<string[]>([]);
@@ -121,7 +118,7 @@ export function Battle({ state: player }: { state: PlayerState }) {
         ))}
       </div>
 
-      {last && <PhaseSummary result={last} />}
+      {last && <PhaseSummary result={last} cards={cards} />}
 
       {over ? (
         <div className="panel stack">
@@ -221,7 +218,8 @@ function HpBar({ label, hp, equipment }: { label: string; hp: number; equipment:
   );
 }
 
-function PhaseSummary({ result }: { result: PhaseResult }) {
+function PhaseSummary({ result, cards }: { result: PhaseResult; cards: Content["cards"] }) {
+  const cardName = (id: string) => cards.get(id)?.name ?? id;
   const line = (id: SideId, s: SideResult) =>
     result.kind === "deck_out" && !s.ranOut ? (
       <li key={id}>

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { RULES_V0 } from "@gdr/engine";
+import { loadContent, type Content } from "./game/content";
 import { createGuestService } from "./game/guestService";
 import { createAccountService, supabase } from "./game/supabase";
 import { errorText } from "./game/text";
@@ -28,6 +29,21 @@ export function App() {
   const [state, setState] = useState<PlayerState | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("collection");
+  const [content, setContent] = useState<Content | null>(null);
+  const [contentError, setContentError] = useState<string | null>(null);
+
+  const fetchContent = useCallback(async () => {
+    setContentError(null);
+    try {
+      setContent(await loadContent(supabase));
+    } catch (e) {
+      setContentError(errorText(e instanceof GameError ? e.code : "UNKNOWN"));
+    }
+  }, []);
+
+  useEffect(() => {
+    void fetchContent();
+  }, [fetchContent]);
 
   useEffect(() => {
     if (!supabase) return;
@@ -80,10 +96,20 @@ export function App() {
         )}
       </header>
 
-      {!authReady && <p className="muted">載入中…</p>}
-      {authReady && !service && <SignIn client={supabase} onGuest={() => setService(createGuestService())} />}
+      {contentError && (
+        <div className="panel stack">
+          <p className="error">{contentError}</p>
+          <button type="button" onClick={fetchContent}>
+            重試
+          </button>
+        </div>
+      )}
+      {(!authReady || (!content && !contentError)) && <p className="muted">載入中…</p>}
+      {authReady && content && !service && (
+        <SignIn client={supabase} onGuest={() => setService(createGuestService(content))} />
+      )}
 
-      {service && (
+      {service && content && (
         <>
           <div className="panel row between small">
             <span>{service.mode === "guest" ? "訪客試玩（不保存）" : session?.user.email}</span>
@@ -100,14 +126,14 @@ export function App() {
           {!state && !loadError && <p className="muted">載入玩家資料…</p>}
           {state && (
             <main>
-              {tab === "collection" && <Collection state={state} />}
-              {tab === "deck" && <DeckEditor service={service} state={state} onState={setState} />}
-              {tab === "equipment" && <Equipment service={service} state={state} onState={setState} />}
+              {tab === "collection" && <Collection content={content} state={state} />}
+              {tab === "deck" && <DeckEditor content={content} service={service} state={state} onState={setState} />}
+              {tab === "equipment" && <Equipment content={content} service={service} state={state} onState={setState} />}
               {/* Kept mounted so switching tabs doesn't lose a battle in progress. */}
               <div hidden={tab !== "battle"}>
-                <Battle state={state} />
+                <Battle content={content} state={state} />
               </div>
-              {tab === "gacha" && <Gacha service={service} state={state} onState={setState} />}
+              {tab === "gacha" && <Gacha content={content} service={service} state={state} onState={setState} />}
             </main>
           )}
           <nav className="tabs">

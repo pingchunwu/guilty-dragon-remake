@@ -1,8 +1,6 @@
 import {
-  PLACEHOLDER_CARDS,
   PLACEHOLDER_DEFAULT_DECK,
   PLACEHOLDER_ITEM_POOL,
-  PLACEHOLDER_ITEMS,
   PLACEHOLDER_POOL,
   PLACEHOLDER_STARTER_LOADOUT,
   RULES_V0,
@@ -14,10 +12,8 @@ import {
   type Collection,
   type Pool,
 } from "@gdr/engine";
+import type { Content } from "./content";
 import { GameError, type GameService, type PlayerState } from "./types";
-
-const cards = new Map(PLACEHOLDER_CARDS.map((c) => [c.id, c]));
-const items = new Map(PLACEHOLDER_ITEMS.map((i) => [i.id, i]));
 
 function randomSeed(): [number, number, number, number] {
   const seed = new Uint32Array(4);
@@ -26,7 +22,7 @@ function randomSeed(): [number, number, number, number] {
 }
 
 /** Guest preview: in-memory only, gone on reload (guest progress is never saved). */
-export function createGuestService(): GameService {
+export function createGuestService({ cards, items }: Content): GameService {
   const collection: Collection = Object.fromEntries(
     Object.values(PLACEHOLDER_DEFAULT_DECK)
       .flat()

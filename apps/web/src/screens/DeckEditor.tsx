@@ -1,11 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { DECK_SLOTS, PLACEHOLDER_CARDS, RULES_V0, validateDeck, type Deck, type DeckSlot } from "@gdr/engine";
+import { DECK_SLOTS, RULES_V0, validateDeck, type Deck, type DeckSlot } from "@gdr/engine";
+import type { Content } from "../game/content";
 import { GameError, type DeckKind, type GameService, type PlayerState } from "../game/types";
 import { SLOT_LABEL, deckErrorText, errorText } from "../game/text";
 import { CardTile } from "./CardTile";
 
-const cards = new Map(PLACEHOLDER_CARDS.map((c) => [c.id, c]));
-const cardName = (id: string) => cards.get(id)?.name ?? id;
 
 const SLOT_HINT: Record<DeckSlot, string> = {
   heavy: "只能放重裝",
@@ -21,12 +20,14 @@ interface Selection {
 }
 
 interface Props {
+  content: Content;
   service: GameService;
   state: PlayerState;
   onState: (s: PlayerState) => void;
 }
 
-export function DeckEditor({ service, state, onState }: Props) {
+export function DeckEditor({ content: { cards }, service, state, onState }: Props) {
+  const cardName = (id: string) => cards.get(id)?.name ?? id;
   const [kind, setKind] = useState<DeckKind>("attack");
   const [draft, setDraft] = useState<Deck>(state.decks.attack);
   const [selected, setSelected] = useState<Selection | null>(null);
@@ -102,7 +103,7 @@ export function DeckEditor({ service, state, onState }: Props) {
         const editing = selected?.slot === slot ? selected : null;
         const current = editing ? ids[editing.index] : undefined;
         const candidates = editing
-          ? PLACEHOLDER_CARDS.filter((c) => owned.has(c.id) && !inDeck.has(c.id) && (slot === "free" || c.type === slot))
+          ? [...cards.values()].filter((c) => owned.has(c.id) && !inDeck.has(c.id) && (slot === "free" || c.type === slot))
           : [];
 
         return (

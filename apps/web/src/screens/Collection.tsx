@@ -1,34 +1,83 @@
 import { useState } from "react";
-import { PLACEHOLDER_CARDS, type CardType } from "@gdr/engine";
+import { ITEM_KINDS, type CardType, type ItemKind } from "@gdr/engine";
+import type { Content } from "../game/content";
 import type { PlayerState } from "../game/types";
-import { TYPE_LABEL } from "../game/text";
+import { ITEM_KIND_LABEL, TYPE_LABEL } from "../game/text";
 import { CardTile } from "./CardTile";
+import { ItemTile } from "./ItemTile";
 
-export function Collection({ state }: { state: PlayerState }) {
-  const [filter, setFilter] = useState<CardType | "all">("all");
-  const cards = PLACEHOLDER_CARDS.filter((c) => filter === "all" || c.type === filter);
-  const ownedCount = PLACEHOLDER_CARDS.filter((c) => state.cards[c.id]).length;
+type View = "card" | "item";
+const VIEW_LABEL: Record<View, string> = { card: "卡片", item: "裝備" };
+
+export function Collection({ content, state }: { content: Content; state: PlayerState }) {
+  const [view, setView] = useState<View>("card");
+  const [cardFilter, setCardFilter] = useState<CardType | "all">("all");
+  const [itemFilter, setItemFilter] = useState<ItemKind | "all">("all");
+  const allCards = [...content.cards.values()];
+  const allItems = ITEM_KINDS.flatMap((kind) => [...content.items.values()].filter((i) => i.kind === kind));
+  const owned = view === "card" ? allCards.filter((c) => state.cards[c.id]) : allItems.filter((i) => state.items[i.id]);
+  const total = view === "card" ? allCards.length : allItems.length;
 
   return (
     <section className="stack">
       <div className="row between">
         <h2>收藏</h2>
         <span className="muted">
-          {ownedCount}/{PLACEHOLDER_CARDS.length}
+          {owned.length}/{total}
         </span>
       </div>
       <div className="chips">
-        {(["all", "heavy", "light", "magic"] as const).map((f) => (
-          <button key={f} type="button" className={filter === f ? "chip active" : "chip"} onClick={() => setFilter(f)}>
-            {f === "all" ? "全部" : TYPE_LABEL[f]}
+        {(["card", "item"] as const).map((v) => (
+          <button key={v} type="button" className={view === v ? "chip active" : "chip"} onClick={() => setView(v)}>
+            {VIEW_LABEL[v]}
           </button>
         ))}
       </div>
-      <div className="grid">
-        {cards.map((c) => (
-          <CardTile key={c.id} card={c} owned={state.cards[c.id]} />
-        ))}
-      </div>
+      {view === "card" ? (
+        <>
+          <div className="chips">
+            {(["all", "heavy", "light", "magic"] as const).map((f) => (
+              <button
+                key={f}
+                type="button"
+                className={cardFilter === f ? "chip active" : "chip"}
+                onClick={() => setCardFilter(f)}
+              >
+                {f === "all" ? "全部" : TYPE_LABEL[f]}
+              </button>
+            ))}
+          </div>
+          <div className="grid">
+            {allCards
+              .filter((c) => cardFilter === "all" || c.type === cardFilter)
+              .map((c) => (
+                <CardTile key={c.id} card={c} owned={state.cards[c.id]} />
+              ))}
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="chips">
+            {(["all", ...ITEM_KINDS] as const).map((f) => (
+              <button
+                key={f}
+                type="button"
+                className={itemFilter === f ? "chip active" : "chip"}
+                onClick={() => setItemFilter(f)}
+              >
+                {f === "all" ? "全部" : ITEM_KIND_LABEL[f]}
+              </button>
+            ))}
+          </div>
+          <div className="grid">
+            {allItems
+              .filter((i) => state.items[i.id] && (itemFilter === "all" || i.kind === itemFilter))
+              .map((i) => (
+                <ItemTile key={i.id} item={i} owned={state.items[i.id]} />
+              ))}
+          </div>
+        </>
+      )}
     </section>
   );
 }
