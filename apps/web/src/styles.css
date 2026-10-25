@@ -240,13 +240,29 @@ p.error {
   border-color: var(--accent);
 }
 
-.slot-header {
-  display: flex;
-  justify-content: space-between;
-  background: none;
-  border: none;
-  padding: 0;
-  font-weight: 600;
+.card-selected {
+  outline: 3px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.card-empty {
+  place-content: center;
+  text-align: center;
+  font-size: 1.6rem;
+  color: var(--muted);
+  border-style: dashed;
+  background: transparent;
+}
+
+.picker {
+  padding: 12px;
+  border-radius: 10px;
+  background: var(--bg);
+  border: 1px solid var(--accent);
+}
+
+.picker button.small {
+  padding: 6px 10px;
 }
 
 .sticky-actions {
@@ -258,6 +274,10 @@ p.error {
   border-radius: 12px;
   background: var(--panel);
   border: 1px solid var(--line);
+}
+
+.sticky-actions[hidden] {
+  display: none;
 }
 
 .tabs {

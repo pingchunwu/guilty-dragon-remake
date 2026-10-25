@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { DECK_SLOTS, PLACEHOLDER_CARDS, RULES_V0, validateDeck, type Deck, type DeckSlot } from "@gdr/engine";
 import { GameError, type DeckKind, type GameService, type PlayerState } from "../game/types";
 import { SLOT_LABEL, deckErrorText, errorText } from "../game/text";
@@ -6,6 +6,19 @@ import { CardTile } from "./CardTile";
 
 const cards = new Map(PLACEHOLDER_CARDS.map((c) => [c.id, c]));
 const cardName = (id: string) => cards.get(id)?.name ?? id;
+
+const SLOT_HINT: Record<DeckSlot, string> = {
+  heavy: "只能放重裝",
+  light: "只能放輕裝",
+  magic: "只能放魔裝",
+  free: "可放任何類型",
+};
+
+/** A position being edited: a filled card, or an empty spot when index >= slot length. */
+interface Selection {
+  slot: DeckSlot;
+  index: number;
+}
 
 interface Props {
   service: GameService;
@@ -16,34 +29,42 @@ interface Props {
 export function DeckEditor({ service, state, onState }: Props) {
   const [kind, setKind] = useState<DeckKind>("attack");
   const [draft, setDraft] = useState<Deck>(state.decks.attack);
-  const [slot, setSlot] = useState<DeckSlot>("heavy");
+  const [selected, setSelected] = useState<Selection | null>(null);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const pickerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (selected) pickerRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [selected]);
 
   const owned = useMemo(() => new Set(Object.keys(state.cards)), [state.cards]);
   const errors = validateDeck(draft, cards, RULES_V0, owned);
   const inDeck = new Set(Object.values(draft).flat());
   const dirty = JSON.stringify(draft) !== JSON.stringify(state.decks[kind]);
-  const candidates = PLACEHOLDER_CARDS.filter(
-    (c) => owned.has(c.id) && !inDeck.has(c.id) && (slot === "free" || c.type === slot),
-  );
 
   function switchKind(next: DeckKind) {
     setKind(next);
     setDraft(state.decks[next]);
+    setSelected(null);
     setMessage(null);
   }
 
-  const remove = (s: DeckSlot, id: string) => {
-    setDraft({ ...draft, [s]: draft[s].filter((x) => x !== id) });
-    setSlot(s);
+  function toggle(slot: DeckSlot, index: number) {
+    setSelected(selected?.slot === slot && selected.index === index ? null : { slot, index });
     setMessage(null);
-  };
-  const add = (id: string) => {
-    if (draft[slot].length >= RULES_V0.slotSize) return;
-    setDraft({ ...draft, [slot]: [...draft[slot], id] });
-    setMessage(null);
-  };
+  }
+
+  /** Puts `id` at the selected position (replacing a card there), or removes it when `id` is null. */
+  function apply(id: string | null) {
+    if (!selected) return;
+    const list = [...draft[selected.slot]];
+    if (id === null) list.splice(selected.index, 1);
+    else if (selected.index < list.length) list[selected.index] = id;
+    else list.push(id);
+    setDraft({ ...draft, [selected.slot]: list });
+    setSelected(null);
+  }
 
   async function save() {
     setSaving(true);
@@ -73,45 +94,91 @@ export function DeckEditor({ service, state, onState }: Props) {
           </button>
         ))}
       </div>
+      <p className="muted small">點一張卡可替換或移除；點「＋」空位可加入卡片。</p>
 
-      {DECK_SLOTS.map((s) => (
-        <div key={s} className={`panel slot${slot === s ? " slot-active" : ""}`}>
-          <button type="button" className="slot-header" onClick={() => setSlot(s)}>
-            <span>{SLOT_LABEL[s]}欄</span>
-            <span className="muted">
-              {draft[s].length}/{RULES_V0.slotSize}
-            </span>
-          </button>
-          <div className="grid compact">
-            {draft[s].map((id) => {
-              const card = cards.get(id);
-              return card ? (
-                <CardTile key={id} card={card} owned={state.cards[id]} onClick={() => remove(s, id)} badge="移除" />
-              ) : null;
-            })}
+      {DECK_SLOTS.map((slot) => {
+        const ids = draft[slot];
+        const empties = Math.max(0, RULES_V0.slotSize - ids.length);
+        const editing = selected?.slot === slot ? selected : null;
+        const current = editing ? ids[editing.index] : undefined;
+        const candidates = editing
+          ? PLACEHOLDER_CARDS.filter((c) => owned.has(c.id) && !inDeck.has(c.id) && (slot === "free" || c.type === slot))
+          : [];
+
+        return (
+          <div key={slot} className={`panel slot${editing ? " slot-active" : ""}`}>
+            <div className="row between">
+              <strong>
+                {SLOT_LABEL[slot]}欄 <span className="muted small">{SLOT_HINT[slot]}</span>
+              </strong>
+              <span className={ids.length === RULES_V0.slotSize ? "muted" : "error"}>
+                {ids.length}/{RULES_V0.slotSize}
+              </span>
+            </div>
+            <div className="grid compact">
+              {ids.map((id, index) => {
+                const card = cards.get(id);
+                const isSelected = editing?.index === index;
+                return card ? (
+                  <CardTile
+                    key={id}
+                    card={card}
+                    owned={state.cards[id]}
+                    selected={isSelected}
+                    onClick={() => toggle(slot, index)}
+                  />
+                ) : null;
+              })}
+              {Array.from({ length: empties }, (_, i) => {
+                const index = ids.length + i;
+                return (
+                  <button
+                    key={`empty-${index}`}
+                    type="button"
+                    className={`card card-empty${editing?.index === index ? " card-selected" : ""}`}
+                    onClick={() => toggle(slot, index)}
+                    aria-label={`加入${SLOT_LABEL[slot]}欄`}
+                  >
+                    ＋
+                  </button>
+                );
+              })}
+            </div>
+
+            {editing && (
+              <div className="picker stack" ref={pickerRef}>
+                <div className="row between">
+                  <strong className="small">
+                    {current ? `替換「${cardName(current)}」` : `加入${SLOT_LABEL[slot]}欄`}
+                  </strong>
+                  <div className="row">
+                    {current && (
+                      <button type="button" className="small" onClick={() => apply(null)}>
+                        移除這張
+                      </button>
+                    )}
+                    <button type="button" className="small" onClick={() => setSelected(null)}>
+                      取消
+                    </button>
+                  </div>
+                </div>
+                {candidates.length === 0 ? (
+                  <p className="muted small">沒有其他可放進這欄的卡。抽卡可以取得更多卡片。</p>
+                ) : (
+                  <div className="grid compact">
+                    {candidates.map((c) => (
+                      <CardTile key={c.id} card={c} owned={state.cards[c.id]} onClick={() => apply(c.id)} />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
-        </div>
-      ))}
+        );
+      })}
 
-      <div className="panel stack">
-        <div className="row between">
-          <strong>加入{SLOT_LABEL[slot]}欄</strong>
-          <span className="muted small">點欄位標題切換</span>
-        </div>
-        {draft[slot].length >= RULES_V0.slotSize ? (
-          <p className="muted">此欄已滿，先移除一張再加入。</p>
-        ) : candidates.length === 0 ? (
-          <p className="muted">沒有可加入的卡。</p>
-        ) : (
-          <div className="grid compact">
-            {candidates.map((c) => (
-              <CardTile key={c.id} card={c} owned={state.cards[c.id]} onClick={() => add(c.id)} badge="加入" />
-            ))}
-          </div>
-        )}
-      </div>
-
-      <div className="sticky-actions">
+      {/* Hidden while picking so it never covers the picker. */}
+      <div className="sticky-actions" hidden={!!selected}>
         {errors.length > 0 && (
           <ul className="error small">
             {errors.slice(0, 3).map((e, i) => (
@@ -121,7 +188,14 @@ export function DeckEditor({ service, state, onState }: Props) {
         )}
         {message && <p className="small">{message}</p>}
         <div className="row">
-          <button type="button" disabled={!dirty || saving} onClick={() => setDraft(state.decks[kind])}>
+          <button
+            type="button"
+            disabled={!dirty || saving}
+            onClick={() => {
+              setDraft(state.decks[kind]);
+              setSelected(null);
+            }}
+          >
             還原
           </button>
           <button type="button" className="primary grow" disabled={!dirty || errors.length > 0 || saving} onClick={save}>

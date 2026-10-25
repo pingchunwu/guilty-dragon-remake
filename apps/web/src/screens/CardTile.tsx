@@ -6,10 +6,11 @@ interface Props {
   owned?: OwnedCard | undefined;
   onClick?: () => void;
   badge?: string | undefined;
+  selected?: boolean;
 }
 
-export function CardTile({ card, owned, onClick, badge }: Props) {
-  const className = `card card-${card.type}${owned ? "" : " card-locked"}`;
+export function CardTile({ card, owned, onClick, badge, selected }: Props) {
+  const className = `card card-${card.type}${owned ? "" : " card-locked"}${selected ? " card-selected" : ""}`;
   const body = (
     <>
       <span className="card-type">{TYPE_LABEL[card.type]}</span>
