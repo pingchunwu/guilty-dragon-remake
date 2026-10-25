@@ -42,7 +42,7 @@ This document captures the product and engineering decisions that future impleme
 |---|---|
 | Browser app | React + TypeScript + Vite, installable PWA |
 | Visual/game UI for v1 | React, HTML/CSS/SVG; no game engine required for card selection and deck screens |
-| Server logic (decided 2026-10-25) | Supabase only: PostgreSQL functions (RPC) + row-level security. No NestJS/Vercel API in v1 for collection, decks, tickets, or gacha. Where battle resolution runs is decided with the battle work. |
+| Server logic (decided 2026-10-25) | Supabase only: PostgreSQL functions (RPC) + row-level security. No NestJS/Vercel API in v1 for collection, decks, tickets, or gacha. Battle resolution (decided 2026-10-26): a Supabase Edge Function `pvp` that runs the same TypeScript engine (see §6b). |
 | Database and email identity | Supabase PostgreSQL and Supabase Auth |
 | Hosting | Vercel (or any static host) for the frontend; Supabase for data, auth, and server logic |
 | Source control / deploy trigger | GitHub connected to Vercel |
@@ -186,6 +186,24 @@ Product decisions are marked **decided**; values the product owner has not set a
 - **Ending** (decided): the battle ends only when a side reaches 0 HP. There is no safety cap; instead, balance must keep armor below the lowest card attack so every won phase deals damage. The engine test suite enforces this for the placeholder content.
 - **Balance (open):** a phase typically counts about 5 cards for ×1.5, so attacks of 300–800 are common. At 3000 HP, 2,000 simulated AI-vs-AI battles with starter equipment averaged 8.7 phases (at most 13), with about 2 deck-outs per battle. Card attack values (placeholder), HP, the combo cap, or the chain limits need tuning before this feels right.
 
+## 6b. Friend PvP (decided 2026-10-26)
+
+Product decisions (asked 2026-10-26):
+
+- **Finding opponents:** any registered player can be challenged. Players can also add friends by friend code (8 characters, one-directional); friends are listed first.
+- **Names:** a player's shown name defaults to their account email and can be changed in the game (1–20 characters; clearing it goes back to the email). Consequence: every player can see other players' emails until they set a name.
+- **Rewards:** none. A battle only produces a win/loss record.
+- **Open battles:** one unfinished battle per challenger. Abandoning is a loss: the player cannot leave the battle screen (tabs and sign-out are hidden) except by surrendering, and not acting for 60 seconds in a phase is a loss by timeout. Reloading returns to the battle.
+- **Defender:** no notification; the PvP screen lists finished battles for both the challenger and the defender (who, win/loss, phase, end reason, HP).
+
+Implementation:
+
+- The `pvp` Edge Function (`supabase/functions/pvp`) verifies the caller's access token and handles `start` (snapshot both decks with card levels, card definitions and equipment, server seed, `startBattle`) and `play` (check phase number, `resolvePhase` with the defender AI). It bundles `packages/engine` into `supabase/functions/_shared/engine.js` (`npm run gen:engine`; a test checks the bundle is current).
+- It writes only through service-role database functions (`pvp_prepare`, `pvp_create`, `pvp_load`, `pvp_record_phase`). `pvp_battles` (summary) is readable by both participants; `pvp_battle_secrets` (seed, snapshot, engine state) and `pvp_phases` (per-phase selection and raw result, the audit record) are not readable by players. Each phase applies once (`PHASE_CONFLICT` otherwise).
+- Players get a sanitized view (`pvp_view`): own hand, draw-pile counts, HP, equipment, the last phase result and the shown cards. It never includes the seed, RNG state, draw-pile order or the defender's hand, also not the hand a defender keeps in a one-sided deck-out.
+- Name, friends, surrender and lobby are ordinary RPCs (`pvp_lobby`, `pvp_set_name`, `pvp_add_friend`, `pvp_remove_friend`, `pvp_surrender`).
+- **Provisional:** the server accepts an action up to 5 seconds after the 60-second deadline for network delay (`game_config.pvp_grace_seconds`); timeouts are applied lazily on the next request.
+
 ## 7. Open decisions — do not invent during implementation
 
 Resolve these before locking battle-engine behavior or pool data:
@@ -216,8 +234,8 @@ Product decisions added after the 2026-10-25 review (not engine-blocking, but ne
 - **Original cards vs. recreated cards:** the art direction requires original characters, but rule research plans to transcribe the original game's skills card by card, which would rebuild its card list. Decide between (a) reusing the original's mechanics and effect families with a newly designed card set, or (b) recreating original cards' stats and skills. Also decide whether "Guilty Dragon" appears in the public project/game name.
 - **Collection sizing:** first-pool card count (must be well above 32), the 32 distinct cards in the default deck, and whether one card may sit in both the attack and defense decks.
 - **New-player state:** starting ticket count; whether the default deck becomes both attack and defense deck; whether a player with no saved defense deck can be challenged.
-- **Battle rewards:** what a win/loss grants (tickets, shards, nothing); whether the defender gets anything or is notified; limits on repeat-challenge rewards.
-- **Abandon, expiry, and rerolls:** a challenger can create a challenge, view the opening hand, abandon, and recreate it to reroll. Decide whether abandoning counts as a loss, the cap on concurrent open challenges per opponent, and when unfinished challenges expire and with what result.
+- ~~**Battle rewards**~~ — decided 2026-10-26: no rewards; defenders see a history list, no notification (see §6b).
+- ~~**Abandon, expiry, and rerolls**~~ — decided 2026-10-26: one unfinished battle at a time; surrender is a loss; 60 s without acting is a loss by timeout (see §6b).
 - **Guest play:** which deck a guest uses, who they fight, and whether the engine runs in the browser (engine shipped as a shared package) or through unauthenticated API routes (needs abuse/usage limits).
 
 The original-game sources summarized in the product research are community-maintained and may describe older versions. Preserve source URLs, dates/version, and confidence notes when adding rule data.

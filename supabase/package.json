@@ -6,13 +6,17 @@
   "description": "Database migrations and SQL tests (run against PGlite, no Docker needed).",
   "scripts": {
     "gen:seed": "tsx scripts/gen-placeholder-content.ts",
-    "test": "vitest run"
+    "test": "vitest run",
+    "gen:engine": "tsx scripts/bundle-engine.ts",
+    "typecheck": "tsc --noEmit -p ."
   },
   "dependencies": {
     "@gdr/engine": "0.0.0"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.11",
+    "@types/node": "24.19.2",
+    "esbuild": "0.28.2",
     "supabase": "^2.122.0",
     "tsx": "4.23.15"
   }

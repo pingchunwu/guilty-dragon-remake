@@ -14,9 +14,13 @@ const KNOWN_ERRORS = [
   "NO_ACTIVE_POOL",
   "CONFIG_MISSING",
   "IDEMPOTENCY_KEY_REUSED",
+  "NAME_TOO_LONG",
+  "FRIEND_NOT_FOUND",
+  "FRIEND_IS_SELF",
+  "NO_ACTIVE_BATTLE",
 ];
 
-async function call<T>(client: SupabaseClient, fn: string, args?: Record<string, unknown>): Promise<T> {
+export async function call<T>(client: SupabaseClient, fn: string, args?: Record<string, unknown>): Promise<T> {
   let result;
   try {
     result = await client.rpc(fn, args);

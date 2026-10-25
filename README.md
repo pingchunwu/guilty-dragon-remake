@@ -15,7 +15,7 @@ packages/engine/  Deterministic rule code: deck validation, seeded RNG, ten-pull
 supabase/         SQL migrations (schema, RLS, database functions) and their tests (PGlite, no Docker)
 ```
 
-Server logic runs entirely in Supabase: players can only read their own rows, and every write goes through a database function (`sync_player`, `draw_ten`, `save_deck`) that checks the signed-in user. Battle is not built yet; see the open decisions in the spec.
+Server logic runs entirely in Supabase: players can only read their own rows, and every write goes through a database function (`sync_player`, `draw_ten`, `save_deck`) that checks the signed-in user. Friend PvP battles are resolved by the `pvp` Supabase Edge Function, which runs the same engine (`packages/engine`, bundled into `supabase/functions/_shared/engine.js` by `npm run gen:engine`).
 
 All cards, odds, the default deck and the starting ticket count are **placeholders** (`packages/engine/src/catalog.ts` and `economy.ts`). After changing them, run `npm run gen:seed` to regenerate the content migration.
 
@@ -36,6 +36,6 @@ With no Supabase settings the app runs in guest mode only: everything works in m
 ## Connecting Supabase
 
 1. Create a Supabase project.
-2. Apply the migrations in `supabase/migrations/` in order (Supabase CLI `supabase db push`, or paste them into the SQL editor).
+2. Apply the migrations in `supabase/migrations/` in order (Supabase CLI `supabase db push`, or paste them into the SQL editor), then deploy the PvP function with `npx supabase functions deploy pvp --use-api`. Run `npm run gen:engine` and redeploy it whenever the engine changes.
 3. In Authentication → Emails: set up a custom SMTP provider (the built-in sender is heavily rate-limited and locks the templates), then add the sign-in code `{{ .Token }}` to both the **Magic Link** and **Confirm signup** templates. The code length is a Supabase setting (this project uses 8 digits). With Resend's `onboarding@resend.dev` sender, mail only reaches your own Resend account address; verify a domain before inviting friends.
 4. Copy `.env.example` to `apps/web/.env.local` and fill in the project URL and anon/publishable key. Never commit real values.

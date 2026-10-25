@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { RULES_V0 } from "@gdr/engine";
 import { loadContent, type Content } from "./game/content";
 import { createGuestService } from "./game/guestService";
+import { createPvpService } from "./game/pvp";
 import { createAccountService, supabase } from "./game/supabase";
 import { errorText } from "./game/text";
 import { GameError, type GameService, type PlayerState } from "./game/types";
@@ -11,6 +12,7 @@ import { Collection } from "./screens/Collection";
 import { DeckEditor } from "./screens/DeckEditor";
 import { Equipment } from "./screens/Equipment";
 import { Gacha } from "./screens/Gacha";
+import { Pvp } from "./screens/Pvp";
 import { SignIn } from "./screens/SignIn";
 
 type Tab = "collection" | "deck" | "equipment" | "battle" | "gacha";
@@ -44,6 +46,17 @@ export function App() {
   useEffect(() => {
     void fetchContent();
   }, [fetchContent]);
+
+  // A friend battle on screen hides practice; an unfinished one also locks navigation.
+  const [pvpBattle, setPvpBattle] = useState({ shown: false, locked: false });
+  const pvp = useMemo(() => (service?.mode === "account" && supabase ? createPvpService(supabase) : null), [service]);
+  const onPvpBattle = useCallback((shown: boolean, locked: boolean) => {
+    setPvpBattle({ shown, locked });
+    if (locked) setTab("battle");
+  }, []);
+  useEffect(() => {
+    if (!pvp) setPvpBattle({ shown: false, locked: false });
+  }, [pvp]);
 
   useEffect(() => {
     if (!supabase) return;
@@ -89,7 +102,7 @@ export function App() {
           <h1>Guilty Dragon Remake</h1>
           <p className="muted small">開發版 · 規則 {RULES_V0.ruleVersion} · 卡片為佔位內容</p>
         </div>
-        {service && (
+        {service && !pvpBattle.locked && (
           <button type="button" className="link" onClick={signOut}>
             {service.mode === "guest" ? "離開試玩" : "登出"}
           </button>
@@ -131,18 +144,23 @@ export function App() {
               {tab === "equipment" && <Equipment content={content} service={service} state={state} onState={setState} />}
               {/* Kept mounted so switching tabs doesn't lose a battle in progress. */}
               <div hidden={tab !== "battle"}>
-                <Battle content={content} state={state} />
+                {pvp && <Pvp pvp={pvp} state={state} onBattle={onPvpBattle} />}
+                <div hidden={pvpBattle.shown}>
+                  <Battle content={content} state={state} />
+                </div>
               </div>
               {tab === "gacha" && <Gacha content={content} service={service} state={state} onState={setState} />}
             </main>
           )}
-          <nav className="tabs">
-            {TABS.map((t) => (
-              <button key={t.id} type="button" className={tab === t.id ? "active" : ""} onClick={() => setTab(t.id)}>
-                {t.label}
-              </button>
-            ))}
-          </nav>
+          {!pvpBattle.locked && (
+            <nav className="tabs">
+              {TABS.map((t) => (
+                <button key={t.id} type="button" className={tab === t.id ? "active" : ""} onClick={() => setTab(t.id)}>
+                  {t.label}
+                </button>
+              ))}
+            </nav>
+          )}
         </>
       )}
     </div>
