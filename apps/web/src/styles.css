@@ -1,9 +1,16 @@
 :root {
   --bg: #14101f;
   --panel: #211a33;
+  --panel-2: #2c2344;
+  --line: #3b3058;
   --text: #f1ecff;
   --muted: #a99fc4;
   --accent: #d9b45a;
+  --accent-ink: #1b1408;
+  --error: #ff8a8a;
+  --heavy: #c4623d;
+  --light: #3f9a7a;
+  --magic: #7b4fd6;
   color-scheme: dark;
   font-family: system-ui, "Noto Sans TC", "PingFang TC", sans-serif;
 }
@@ -18,10 +25,57 @@ body {
   color: var(--text);
 }
 
+button,
+input {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  border: 1px solid var(--line);
+  background: var(--panel-2);
+  border-radius: 10px;
+  padding: 10px 14px;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+button.primary {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: var(--accent);
+  font-weight: 600;
+}
+
+button.link {
+  background: none;
+  border: none;
+  padding: 4px;
+  color: var(--accent);
+}
+
+input {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--bg);
+}
+
+hr {
+  border: none;
+  border-top: 1px solid var(--line);
+  width: 100%;
+}
+
 .shell {
-  max-width: 480px;
+  max-width: 520px;
   margin: 0 auto;
-  padding: max(24px, env(safe-area-inset-top)) 16px 32px;
+  padding: max(16px, env(safe-area-inset-top)) 16px 96px;
   display: grid;
   gap: 16px;
 }
@@ -29,25 +83,203 @@ body {
 h1 {
   margin: 0;
   color: var(--accent);
-  font-size: 1.6rem;
+  font-size: 1.4rem;
 }
 
 h2 {
-  margin: 0 0 8px;
-  font-size: 1.1rem;
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+p {
+  margin: 0;
 }
 
 .panel {
   background: var(--panel);
   border-radius: 12px;
-  padding: 16px;
+  padding: 14px;
 }
 
-.panel ul {
-  margin: 0;
-  padding-left: 1.2em;
+.stack {
+  display: grid;
+  gap: 12px;
+}
+
+.row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.between {
+  justify-content: space-between;
+}
+
+.grow {
+  flex: 1;
+}
+
+.field {
+  display: grid;
+  gap: 6px;
 }
 
 .muted {
   color: var(--muted);
+}
+
+.small {
+  font-size: 0.85rem;
+}
+
+.big {
+  font-size: 1.6rem;
+  color: var(--accent);
+}
+
+.error {
+  color: var(--error);
+  margin: 0;
+  padding-left: 1.1em;
+}
+
+p.error {
+  padding-left: 0;
+}
+
+.chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.chip {
+  padding: 6px 14px;
+  border-radius: 999px;
+}
+
+.chip.active {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: var(--accent);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 8px;
+}
+
+.grid.compact {
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+}
+
+.card {
+  position: relative;
+  display: grid;
+  align-content: start;
+  gap: 4px;
+  min-height: 96px;
+  padding: 8px;
+  border-radius: 10px;
+  border: 2px solid var(--line);
+  background: var(--panel-2);
+  text-align: left;
+}
+
+.card-heavy {
+  border-color: var(--heavy);
+}
+
+.card-light {
+  border-color: var(--light);
+}
+
+.card-magic {
+  border-color: var(--magic);
+}
+
+.card-locked {
+  opacity: 0.35;
+  filter: grayscale(0.8);
+}
+
+.card-type {
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+
+.card-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.card-level {
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+
+.card-badge {
+  justify-self: start;
+  margin-top: auto;
+  font-size: 0.7rem;
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.slot {
+  display: grid;
+  gap: 10px;
+  border: 2px solid transparent;
+}
+
+.slot-active {
+  border-color: var(--accent);
+}
+
+.slot-header {
+  display: flex;
+  justify-content: space-between;
+  background: none;
+  border: none;
+  padding: 0;
+  font-weight: 600;
+}
+
+.sticky-actions {
+  position: sticky;
+  bottom: 72px;
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+}
+
+.tabs {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 16px max(8px, env(safe-area-inset-bottom));
+  background: var(--panel);
+  border-top: 1px solid var(--line);
+}
+
+.tabs button {
+  flex: 1;
+  max-width: 160px;
+}
+
+.tabs button.active {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: var(--accent);
 }

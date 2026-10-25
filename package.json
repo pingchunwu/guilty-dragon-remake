@@ -3,13 +3,15 @@
   "private": true,
   "workspaces": [
     "apps/*",
-    "packages/*"
+    "packages/*",
+    "supabase"
   ],
   "scripts": {
     "dev": "npm run dev -w @gdr/web",
     "build": "npm run build -w @gdr/engine && npm run build -w @gdr/web",
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "test": "npm run test --workspaces --if-present"
+    "test": "npm run test --workspaces --if-present",
+    "gen:seed": "npm run gen:seed -w @gdr/supabase"
   },
   "devDependencies": {
     "typescript": "7.0.2",

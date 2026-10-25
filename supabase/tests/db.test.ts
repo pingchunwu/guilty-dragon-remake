@@ -1,0 +1,174 @@
+import { readdirSync, readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { PGlite, type Transaction } from "@electric-sql/pglite";
+import { beforeEach, describe, expect, it } from "vitest";
+import { PLACEHOLDER_CARDS, PLACEHOLDER_DEFAULT_DECK, RULES_V0, validateDeck, type Deck } from "@gdr/engine";
+
+const migrationsDir = fileURLToPath(new URL("../migrations/", import.meta.url));
+
+// Minimal stand-in for what Supabase provides: roles, auth.users and auth.uid().
+const SUPABASE_STUB = `
+  create role anon nologin;
+  create role authenticated nologin;
+  create schema auth;
+  create table auth.users (id uuid primary key);
+  create function auth.uid() returns uuid language sql stable as
+    $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
+  grant usage on schema auth, public to anon, authenticated;
+  grant execute on function auth.uid() to anon, authenticated;
+  alter default privileges in schema public grant all on tables to anon, authenticated;
+  alter default privileges in schema public grant all on functions to anon, authenticated;
+`;
+
+const ALICE = "00000000-0000-0000-0000-00000000000a";
+const BOB = "00000000-0000-0000-0000-00000000000b";
+
+let db: PGlite;
+
+beforeEach(async () => {
+  db = new PGlite();
+  await db.exec(SUPABASE_STUB);
+  for (const file of readdirSync(migrationsDir).filter((f) => f.endsWith(".sql")).sort()) {
+    await db.exec(readFileSync(migrationsDir + file, "utf8"));
+  }
+  await db.exec(`insert into auth.users (id) values ('${ALICE}'), ('${BOB}')`);
+});
+
+/** Runs `fn` as the authenticated role with the given user ID (or none). */
+async function as<T>(uid: string | null, fn: (tx: Transaction) => Promise<T>, role = "authenticated"): Promise<T> {
+  return db.transaction(async (tx) => {
+    await tx.exec(`set local role ${role}`);
+    await tx.query(`select set_config('request.jwt.claim.sub', $1, true)`, [uid ?? ""]);
+    return fn(tx);
+  });
+}
+
+async function rpc<T = any>(uid: string | null, sql: string, params: unknown[] = []): Promise<T> {
+  return as(uid, async (tx) => {
+    const res = await tx.query<{ r: T }>(`select ${sql} as r`, params);
+    return res.rows[0]!.r;
+  });
+}
+
+const sync = (uid: string) => rpc(uid, "public.sync_player()");
+const draw = (uid: string, key: string) => rpc(uid, "public.draw_ten($1)", [key]);
+const saveDeck = (uid: string, kind: string, deck: Deck) =>
+  rpc(uid, "public.save_deck($1::public.deck_kind, $2::jsonb)", [kind, JSON.stringify(deck)]);
+
+describe("auth", () => {
+  it("rejects anonymous callers", async () => {
+    await expect(rpc(null, "public.sync_player()", [])).rejects.toThrow(/NOT_AUTHENTICATED/);
+    await expect(as(null, (tx) => tx.query("select public.sync_player()"), "anon")).rejects.toThrow(/permission denied/);
+  });
+
+  it("does not expose internal helpers", async () => {
+    await expect(rpc(ALICE, "public.player_state($1)", [ALICE])).rejects.toThrow(/permission denied/);
+  });
+});
+
+describe("sync_player", () => {
+  it("grants the default deck and starting tickets exactly once", async () => {
+    const first = await sync(ALICE);
+    expect(first.tickets).toBe(1);
+    expect(Object.keys(first.cards)).toHaveLength(32);
+    expect(first.decks).toEqual({ attack: PLACEHOLDER_DEFAULT_DECK, defense: PLACEHOLDER_DEFAULT_DECK });
+
+    const second = await sync(ALICE);
+    expect(second).toEqual(first);
+  });
+
+  it("accrues one ticket per missed Taipei day", async () => {
+    await sync(ALICE);
+    await db.exec(`update public.players set last_ticket_date = last_ticket_date - 3 where id = '${ALICE}'`);
+    expect((await sync(ALICE)).tickets).toBe(4);
+    expect((await sync(ALICE)).tickets).toBe(4);
+  });
+});
+
+describe("draw_ten", () => {
+  it("spends one ticket for ten results and replays the same key without charging", async () => {
+    await sync(ALICE);
+    const first = await draw(ALICE, "key-00000001");
+    expect(first.results).toHaveLength(10);
+    expect(first.state.tickets).toBe(0);
+    expect(first.replayed).toBe(false);
+
+    const retry = await draw(ALICE, "key-00000001");
+    expect(retry.results).toEqual(first.results);
+    expect(retry.state.tickets).toBe(0);
+    expect(retry.replayed).toBe(true);
+
+    await expect(draw(ALICE, "key-00000002")).rejects.toThrow(/INSUFFICIENT_TICKETS/);
+  });
+
+  it("requires a synced player", async () => {
+    await expect(draw(BOB, "key-00000001")).rejects.toThrow(/PLAYER_NOT_FOUND/);
+  });
+
+  it("turns duplicates into shards and levels up every 5", async () => {
+    await sync(ALICE);
+    // Force the pool to a single card Alice already owns.
+    await db.exec(`update public.pool_entries set weight = case when card_id = 'ph-heavy-01' then 1 else 0 end`);
+    const { results, state } = await draw(ALICE, "key-00000001");
+    expect(results.every((r: any) => r.cardId === "ph-heavy-01" && !r.isNew)).toBe(true);
+    expect(results.filter((r: any) => r.leveledUp)).toHaveLength(2);
+    expect(state.cards["ph-heavy-01"]).toEqual({ level: 3, shards: 0 });
+  });
+
+  it("adds new cards to the collection", async () => {
+    await sync(ALICE);
+    await db.exec(`update public.pool_entries set weight = case when card_id = 'ph-magic-16' then 1 else 0 end`);
+    const { results, state } = await draw(ALICE, "key-00000001");
+    expect(results[0]).toEqual({ cardId: "ph-magic-16", isNew: true, level: 1, shards: 0, leveledUp: false });
+    expect(state.cards["ph-magic-16"]).toEqual({ level: 2, shards: 4 });
+  });
+});
+
+describe("save_deck", () => {
+  it("saves a valid deck", async () => {
+    await sync(ALICE);
+    const deck = { ...PLACEHOLDER_DEFAULT_DECK, free: [...PLACEHOLDER_DEFAULT_DECK.free].reverse() };
+    expect(await saveDeck(ALICE, "defense", deck)).toEqual({ ok: true, errors: [] });
+    expect((await sync(ALICE)).decks.defense).toEqual(deck);
+  });
+
+  it("reports the same errors as the engine validator", async () => {
+    await sync(ALICE);
+    const deck: Deck = {
+      heavy: [...PLACEHOLDER_DEFAULT_DECK.heavy.slice(0, 7), "ph-magic-01"],
+      light: PLACEHOLDER_DEFAULT_DECK.light.slice(0, 7),
+      magic: [...PLACEHOLDER_DEFAULT_DECK.magic.slice(0, 7), "ph-magic-16"],
+      free: [...PLACEHOLDER_DEFAULT_DECK.free.slice(0, 7), "nope"],
+    };
+    const owned = new Set((Object.values(PLACEHOLDER_DEFAULT_DECK) as string[][]).flat());
+    const cards = new Map(PLACEHOLDER_CARDS.map((c) => [c.id, c]));
+    const expected = validateDeck(deck, cards, RULES_V0, owned);
+
+    const result = await saveDeck(ALICE, "attack", deck);
+    expect(result.ok).toBe(false);
+    expect(result.errors).toEqual(expect.arrayContaining(expected));
+    expect(result.errors).toHaveLength(expected.length);
+    expect((await sync(ALICE)).decks.attack).toEqual(PLACEHOLDER_DEFAULT_DECK);
+  });
+});
+
+describe("row-level security", () => {
+  it("only shows a player their own rows and blocks direct writes", async () => {
+    await sync(ALICE);
+    await sync(BOB);
+    const visible = await as(ALICE, (tx) => tx.query<{ n: number }>("select count(distinct player_id)::int as n from public.player_cards"));
+    expect(visible.rows[0]!.n).toBe(1);
+
+    await expect(
+      as(ALICE, (tx) => tx.query("update public.players set tickets = 999 where id = $1", [ALICE])),
+    ).rejects.toThrow(/permission denied/);
+    await expect(
+      as(ALICE, (tx) => tx.query("insert into public.player_cards (player_id, card_id) values ($1, 'ph-magic-16')", [ALICE])),
+    ).rejects.toThrow(/permission denied/);
+  });
+
+  it("lets anyone read public card content", async () => {
+    const res = await as(null, (tx) => tx.query<{ n: number }>("select count(*)::int as n from public.card_definitions"), "anon");
+    expect(res.rows[0]!.n).toBe(PLACEHOLDER_CARDS.length);
+  });
+});

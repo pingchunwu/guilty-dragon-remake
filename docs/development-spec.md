@@ -42,12 +42,14 @@ This document captures the product and engineering decisions that future impleme
 |---|---|
 | Browser app | React + TypeScript + Vite, installable PWA |
 | Visual/game UI for v1 | React, HTML/CSS/SVG; no game engine required for card selection and deck screens |
-| API | Node.js + TypeScript + NestJS, deployed as Vercel Functions |
+| Server logic (decided 2026-10-25) | Supabase only: PostgreSQL functions (RPC) + row-level security. No NestJS/Vercel API in v1 for collection, decks, tickets, or gacha. Where battle resolution runs is decided with the battle work. |
 | Database and email identity | Supabase PostgreSQL and Supabase Auth |
-| Hosting | Vercel for the static frontend and Node API; Supabase for data and auth |
+| Hosting | Vercel (or any static host) for the frontend; Supabase for data, auth, and server logic |
 | Source control / deploy trigger | GitHub connected to Vercel |
 
-Use a TypeScript LTS-compatible toolchain and pin versions when scaffolding. The API may use NestJS modules for `players`, `cards`, `gacha`, `decks`, `challenges`, and `battle`. Select the PostgreSQL driver/ORM and migration tool during implementation; keep SQL migrations checked into the repository.
+Use a TypeScript LTS-compatible toolchain and pin versions when scaffolding. Keep SQL migrations checked into the repository under `supabase/migrations/`. Database functions that change player state run as `security definer`, derive the player from `auth.uid()`, and are the only write path; tables are read-only (own rows) to the `authenticated` role through RLS.
+
+Sections 3 and 4 below were written for a Vercel Functions API. Their principles (no in-memory state, never trust client values, idempotency, no caching of private data) still apply, now enforced inside Postgres functions.
 
 ### Engine decision: Godot and Phaser
 
@@ -161,9 +163,9 @@ Important constraints include one-time default-deck grant, unique card per const
 Resolve these before locking battle-engine behavior or pool data:
 
 - Starting HP, HP maximum, per-phase damage formula, healing cap, draw/phase tie handling, and simultaneous zero-HP handling.
-- **Attack model:** do both sides damage each other every phase, or does each phase pick one attacker? The original's Final Blow rule ("the trigger becomes the attacker") suggests the latter. This decides the damage formula and engine structure.
-- **Guaranteed battle end:** a tied Final Blow ties again after an unchanged deck reset, and attack ≤ defense or healing ≥ damage can also stall. Decide a phase cap and how a capped battle is judged, a replacement for the FB tie rule, and/or stalemate detection.
-- **Weapons:** the original FB formula uses "total of three weapons' attack" and the skill catalogue has weapon-attack effects, but the deck model (4 slots × 8 unit cards) and data model have no weapons. Decide whether weapons/equipment exist; if not, how the FB formula and weapon skills are rewritten.
+- **Attack model — decided 2026-10-25:** each phase both sides compute an attack value; the side with the higher attack wins the phase and is the only one that attacks. Damage = winner's attack − loser's defense. Still open: equal-attack phases, whether damage has a floor (e.g. 0 or 1), and where a side's defense value comes from.
+- **Guaranteed battle end — decided 2026-10-25:** a phase cap; when it is reached, the side with the higher remaining HP percentage wins, and an exact tie is a draw. Still open: the cap number, and the FB-tie rule (a tied FB still repeats until the cap).
+- **Weapons — decided 2026-10-25:** each player has 3 weapon slots outside the 32-card deck, as in the original. Still open: how weapons are obtained (same pool as cards or separate), their stats and effects, and whether attack and defense loadouts are separate.
 - **Type, colour, and attribute:** Heavy/Light/Magic are slot types; the docs also use a three-way attribute counter system and "same-colour" supports. Define whether these are one concept, and if not, which one support selection, counters, and slot validation each use.
 - Exact relationship between five starting cards and the reported original-game limit of leader plus four support cards; recommended initial interpretation is deal five and allow up to five selected cards, with skill-drawn cards outside the starting hand count. Risk: with five cards and a same-colour support rule, the best play is often "take every card of the biggest colour", which removes most decisions. Confirm in rule walkthroughs that five cards still leaves real choices, or revert to eight.
 - **Defender AI information and goal:** the server receives challenger picks before running the AI. Decide whether the AI may see them (recommended: no; it decides only from its own hand and public state). If the attack model includes defense, decide whether "maximize current-phase attack" becomes another goal such as net damage.
@@ -173,9 +175,13 @@ Resolve these before locking battle-engine behavior or pool data:
 - Final Blow behavior and whether/when a non-tie Final Blow resets a deck; available community sources are incomplete. Any temporary rule must be explicitly marked as a new-game decision and versioned.
 - HP/score tie-breakers and deterministic defender-AI tie-break order. Initial defender strategy is versioned maximum current-phase attack value.
 - Pool rarity, odds, guarantees, card-level cap, shard economy, and any multi-pool schedule.
-- Whether Supabase Auth uses email OTP/magic link or another email sign-in flow.
-- Exact API database library/ORM, migration tool, and Vercel monorepo project layout.
-- Whether NestJS is worth its cold-start cost on Vercel Functions for a small API in front of Supabase, versus lightweight route handlers and/or Postgres functions (e.g. for the atomic draw transaction).
+- Email sign-in flow. **Provisional implementation:** a 6-digit email code (OTP) rather than a magic link, because a link opened from email lands in the browser, not an installed PWA. Confirm or change.
+- ~~Whether to use NestJS on Vercel~~ — decided 2026-10-25: Supabase only (see §2).
+
+Provisional placeholder values used by the first implementation (clearly marked in code and data; replace when decided):
+
+- Starting tickets: 1. Default deck: one 32-card placeholder deck saved as both the attack and defense deck.
+- Pool: placeholder cards with equal draw weights; no rarity, no level cap.
 
 Product decisions added after the 2026-10-25 review (not engine-blocking, but needed before the matching delivery step):
 

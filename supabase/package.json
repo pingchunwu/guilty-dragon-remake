@@ -1,0 +1,18 @@
+{
+  "name": "@gdr/supabase",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Database migrations and SQL tests (run against PGlite, no Docker needed).",
+  "scripts": {
+    "gen:seed": "tsx scripts/gen-placeholder-content.ts",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@gdr/engine": "0.0.0"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.5.11",
+    "tsx": "4.23.15"
+  }
+}

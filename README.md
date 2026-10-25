@@ -10,20 +10,32 @@ Planning lives in [`docs/`](docs/):
 ## Layout
 
 ```text
-apps/web/         React + TypeScript + Vite PWA
-packages/engine/  Deterministic rule code (deck validation, seeded RNG); no UI or transport
+apps/web/         React + TypeScript + Vite PWA (sign-in, collection, deck editor, gacha)
+packages/engine/  Deterministic rule code: deck validation, seeded RNG, ten-pull, shards, Taipei dates
+supabase/         SQL migrations (schema, RLS, database functions) and their tests (PGlite, no Docker)
 ```
 
-The API (`apps/api`) is not scaffolded yet: whether to use NestJS on Vercel Functions is still an open decision (spec §7).
+Server logic runs entirely in Supabase: players can only read their own rows, and every write goes through a database function (`sync_player`, `draw_ten`, `save_deck`) that checks the signed-in user. Battle is not built yet; see the open decisions in the spec.
+
+All cards, odds, the default deck and the starting ticket count are **placeholders** (`packages/engine/src/catalog.ts` and `economy.ts`). After changing them, run `npm run gen:seed` to regenerate the content migration.
 
 ## Commands
 
 ```bash
 npm install
 npm run dev        # web app dev server
-npm test           # engine tests
+npm test           # engine + database tests
 npm run typecheck
 npm run build
 ```
 
-Copy `.env.example` to `.env.local` for local settings. Never commit real secrets.
+## Running without Supabase
+
+With no Supabase settings the app runs in guest mode only: everything works in memory and is lost on reload.
+
+## Connecting Supabase
+
+1. Create a Supabase project.
+2. Apply the migrations in `supabase/migrations/` in order (Supabase CLI `supabase db push`, or paste them into the SQL editor).
+3. In Authentication → Email: set up a custom SMTP provider (the built-in sender is heavily rate-limited), and edit the Magic Link email template to show the 6-digit code with `{{ .Token }}`.
+4. Copy `.env.example` to `apps/web/.env.local` and fill in the project URL and anon/publishable key. Never commit real values.
