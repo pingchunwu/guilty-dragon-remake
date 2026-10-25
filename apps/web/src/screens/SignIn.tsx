@@ -8,7 +8,7 @@ interface Props {
 
 /**
  * Email sign-in. The email carries a link (handled by supabase-js on return)
- * and, once the template includes {{ .Token }}, a 6-digit code. The code is
+ * and, once the template includes {{ .Token }}, a code (its length is a Supabase setting). The code is
  * preferred because a link opened from email lands in the browser, not an
  * installed PWA; editing the template requires custom SMTP.
  */

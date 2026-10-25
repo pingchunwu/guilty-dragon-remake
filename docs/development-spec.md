@@ -175,7 +175,7 @@ Resolve these before locking battle-engine behavior or pool data:
 - Final Blow behavior and whether/when a non-tie Final Blow resets a deck; available community sources are incomplete. Any temporary rule must be explicitly marked as a new-game decision and versioned.
 - HP/score tie-breakers and deterministic defender-AI tie-break order. Initial defender strategy is versioned maximum current-phase attack value.
 - Pool rarity, odds, guarantees, card-level cap, shard economy, and any multi-pool schedule.
-- Email sign-in flow. **Provisional implementation:** a 6-digit email code (OTP) rather than a magic link, because a link opened from email lands in the browser, not an installed PWA. Confirm or change.
+- Email sign-in flow. **Provisional implementation:** an email code (OTP; length set in Supabase, currently 8 digits) as the main path, because a link opened from email lands in the browser, not an installed PWA. The same email also carries a sign-in link, which the app accepts. Custom SMTP (Resend) is configured; a verified sending domain is still needed before friends can receive codes.
 - ~~Whether to use NestJS on Vercel~~ — decided 2026-10-25: Supabase only (see §2).
 
 Provisional placeholder values used by the first implementation (clearly marked in code and data; replace when decided):

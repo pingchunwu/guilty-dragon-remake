@@ -37,5 +37,5 @@ With no Supabase settings the app runs in guest mode only: everything works in m
 
 1. Create a Supabase project.
 2. Apply the migrations in `supabase/migrations/` in order (Supabase CLI `supabase db push`, or paste them into the SQL editor).
-3. In Authentication → Email: set up a custom SMTP provider (the built-in sender is heavily rate-limited), and edit the Magic Link email template to show the 6-digit code with `{{ .Token }}`.
+3. In Authentication → Emails: set up a custom SMTP provider (the built-in sender is heavily rate-limited and locks the templates), then add the sign-in code `{{ .Token }}` to both the **Magic Link** and **Confirm signup** templates. The code length is a Supabase setting (this project uses 8 digits). With Resend's `onboarding@resend.dev` sender, mail only reaches your own Resend account address; verify a domain before inviting friends.
 4. Copy `.env.example` to `apps/web/.env.local` and fill in the project URL and anon/publishable key. Never commit real values.
