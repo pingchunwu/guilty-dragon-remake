@@ -373,5 +373,6 @@ function useCountdown(battle: PvpBattle, onExpired?: () => void): number {
   useEffect(() => {
     if (expired) expiredRef.current?.();
   }, [expired]);
-  return Math.ceil(left / 1000);
+  // `now` can lag a fresh response by one tick; never show more than the whole turn.
+  return Math.min(Math.ceil(left / 1000), Math.round((deadline - Date.parse(battle.serverNow)) / 1000));
 }
