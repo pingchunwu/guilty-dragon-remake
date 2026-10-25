@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Card Art Samples</title>
+<style>
+  :root {
+    --bg: #14121a; --ink: #f3ead7; --muted: #b8ad98; --gold: #d8b46a; --gold-dark: #7a5a22;
+    --heavy: #c2412f; --heavy-deep: #4a130d;
+    --light: #3f9a5b; --light-deep: #10331c;
+    --magic: #5a63d6; --magic-deep: #191c4d;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: radial-gradient(circle at 50% 0, #2a2433, var(--bg) 60%); color: var(--ink);
+         font-family: "Noto Serif TC", "Yu Mincho", serif; padding: 32px 16px 48px; min-height: 100vh; }
+  h1 { text-align: center; font-weight: 600; letter-spacing: .08em; margin: 0 0 6px; }
+  p.sub { text-align: center; color: var(--muted); margin: 0 0 32px; font-size: 14px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 28px; max-width: 1180px; margin: 0 auto; }
+
+  .card { --c: var(--heavy); --d: var(--heavy-deep);
+          position: relative; aspect-ratio: 63 / 88; border-radius: 14px; padding: 9px;
+          background: linear-gradient(145deg, var(--gold), var(--gold-dark) 40%, var(--gold) 60%, var(--gold-dark));
+          box-shadow: 0 10px 30px #0009, 0 0 0 1px #000 inset; }
+  .card.light { --c: var(--light); --d: var(--light-deep); }
+  .card.magic { --c: var(--magic); --d: var(--magic-deep); }
+  .inner { position: relative; height: 100%; border-radius: 8px; overflow: hidden; background: var(--d);
+           border: 2px solid var(--c); }
+  .inner img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 20%; }
+  .inner img.missing { display: none; }
+  .ph { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); font-size: 13px; }
+
+  .top { position: absolute; top: 0; left: 0; right: 0; padding: 8px 10px 22px; display: flex; align-items: center; gap: 8px;
+         background: linear-gradient(var(--d) 30%, transparent); }
+  .type { flex: none; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center;
+          background: radial-gradient(circle at 35% 30%, #fff6, var(--c) 45%, var(--d)); border: 2px solid var(--gold);
+          font-size: 15px; font-weight: 700; text-shadow: 0 1px 2px #000; }
+  .name { font-size: 15px; font-weight: 700; letter-spacing: .04em; text-shadow: 0 1px 3px #000; line-height: 1.2; }
+  .name small { display: block; font-size: 10px; font-weight: 400; color: var(--muted); letter-spacing: .1em; }
+
+  .bottom { position: absolute; left: 0; right: 0; bottom: 0; padding: 26px 10px 9px;
+            background: linear-gradient(transparent, var(--d) 55%); display: flex; align-items: flex-end; gap: 8px; }
+  .skill { flex: 1; font-size: 11px; line-height: 1.45; color: var(--ink); border-top: 1px solid var(--gold-dark); padding-top: 6px; }
+  .skill b { color: var(--gold); font-weight: 600; }
+  .atk { flex: none; min-width: 54px; text-align: center; padding: 4px 6px 3px; border-radius: 6px;
+         background: linear-gradient(var(--c), var(--d)); border: 2px solid var(--gold); }
+  .atk small { display: block; font-size: 9px; letter-spacing: .15em; color: var(--muted); }
+  .atk span { font-size: 24px; font-weight: 800; line-height: 1; text-shadow: 0 2px 2px #000; }
+</style>
+</head>
+<body>
+<h1>卡牌美術樣稿</h1>
+<p class="sub">Original characters · Animagine XL 4.0 + anime-screencap-xl LoRA (local ComfyUI) · frame is a layout draft</p>
+<div class="grid" id="grid"></div>
+<script>
+  // ?dir=art-v2 switches between generated batches.
+  const dir = new URLSearchParams(location.search).get("dir") || "art";
+  const T = { heavy: "重", light: "輕", magic: "魔" };
+  const L = { heavy: "重裝", light: "輕裝", magic: "魔裝" };
+  const cards = [
+    { id: "heavy-1", type: "heavy", name: "緋鎧騎士 艾莉榭", atk: 95, skill: "<b>領導</b>：同色支援每張攻擊 +10" },
+    { id: "heavy-2", type: "heavy", name: "鐵壁戰槌 葛倫", atk: 80, skill: "<b>領導</b>：本階段防禦 +20" },
+    { id: "light-1", type: "light", name: "森語射手 菲歐拉", atk: 70, skill: "<b>領導</b>：額外抽 1 張同色牌" },
+    { id: "light-2", type: "light", name: "疾風雙刃 凱", atk: 65, skill: "<b>領導</b>：連擊 +1" },
+    { id: "magic-1", type: "magic", name: "星詠魔導 希兒薇", atk: 85, skill: "<b>領導</b>：最終傷害 ×1.1" },
+    { id: "magic-2", type: "magic", name: "靈龍召喚師 澪", atk: 75, skill: "<b>領導</b>：回復 HP 40" },
+  ];
+  document.getElementById("grid").innerHTML = cards.map(c => `
+    <div class="card ${c.type}">
+      <div class="inner">
+        <div class="ph">${dir}/${c.id}.png</div>
+        <img src="${dir}/${c.id}.png" alt="${c.name}" onerror="this.classList.add('missing')">
+        <div class="top"><div class="type">${T[c.type]}</div>
+          <div class="name"><small>${L[c.type]}</small>${c.name}</div></div>
+        <div class="bottom"><div class="skill">${c.skill}</div>
+          <div class="atk"><small>ATK</small><span>${c.atk}</span></div></div>
+      </div>
+    </div>`).join("");
+</script>
+</body>
+</html>
