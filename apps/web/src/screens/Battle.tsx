@@ -2,6 +2,7 @@ import { useState } from "react";
 import {
   RULES_V0,
   deckCardIds,
+  levelsOf,
   resolvePhase,
   resolveEquipment,
   startBattle,
@@ -33,12 +34,13 @@ export function Battle({ content, state: player }: { content: Content; state: Pl
 
   function start() {
     // One loadout for attack and defense, so both sides wear the same here.
-    const equipment = resolveEquipment(player.loadout, items);
+    const equipment = resolveEquipment(player.loadout, items, levelsOf(player.items));
+    const levels = levelsOf(player.cards);
     setBattle(
       startBattle(
         randomSeed(),
-        { deck: deckCardIds(player.decks.attack), equipment },
-        { deck: deckCardIds(player.decks.defense), equipment },
+        { deck: deckCardIds(player.decks.attack), equipment, levels },
+        { deck: deckCardIds(player.decks.defense), equipment, levels },
         RULES_V0,
       ),
     );
@@ -61,6 +63,8 @@ export function Battle({ content, state: player }: { content: Content; state: Pl
             <li>計入的張數越多連擊加成越高（最高 ×1.5）。</li>
             <li>重裝剋輕裝、輕裝剋魔裝、魔裝剋重裝（領導卡相剋 ×1.2）。</li>
             <li>裝備的武器攻擊每階段都加在倍率之後（牌庫耗盡時加在手牌總和上）。</li>
+            <li>只有領導卡的技能會發動，技能等級就是卡片等級（重複抽到升級，上限依技能）。</li>
+            <li>防具、武器每級 +10%（上限 Lv 10）。</li>
             <li>攻擊較高的一方造成「攻擊－對方防具」傷害；相同則無傷害。</li>
             <li>牌庫抽完後的下一階段：用手牌總和結算，之後洗牌重置。</li>
           </ul>

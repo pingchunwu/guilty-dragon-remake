@@ -1,7 +1,11 @@
 import { useState } from "react";
 import {
   RULES_V0,
+  SKILL_BY_ID,
+  cardSkill,
+  chargeTypes,
   defenseOf,
+  levelsOf,
   previewAttack,
   requiredPicks,
   type CardDefinition,
@@ -11,9 +15,10 @@ import {
   type Selection,
   type SideId,
   type SideResult,
+  type SkillUse,
   weaponAttackOf,
 } from "@gdr/engine";
-import { TYPE_LABEL } from "../game/text";
+import { TYPE_LABEL, skillEffectText } from "../game/text";
 import { CardTile } from "./CardTile";
 
 /** Battle UI shared by practice and friend PvP. */
@@ -43,6 +48,25 @@ export function HpBar({ label, hp, equipment }: { label: string; hp: number; equ
   );
 }
 
+const skillName = (id: string) => SKILL_BY_ID.get(id)?.name ?? id;
+
+/** 「連擊 Lv 2」, 「模仿→連擊 Lv 2」, or the skill crossed out when a shield cancelled it. */
+function SkillTag({ use }: { use: SkillUse }) {
+  const name = `${use.via ? `${skillName(use.via)}→` : ""}${skillName(use.id)} Lv ${use.level}`;
+  const skill = SKILL_BY_ID.get(use.id);
+  return use.blocked ? (
+    <span className="tag tag-off" title="被對方的護盾無效">
+      {name} 無效
+    </span>
+  ) : (
+    <span className="tag tag-skill" title={skill ? skillEffectText(skill, use.level) : undefined}>
+      {name}
+    </span>
+  );
+}
+
+const signed = (n: number) => (n >= 0 ? `+${n}` : `−${-n}`);
+
 export function PhaseSummary({ result, cards, labels }: { result: PhaseResult; cards: CardMap; labels: SideLabels }) {
   const cardName = (id: string) => cards.get(id)?.name ?? id;
   const line = (id: SideId, s: SideResult) =>
@@ -57,12 +81,17 @@ export function PhaseSummary({ result, cards, labels }: { result: PhaseResult; c
           {result.kind === "normal" && (
             <span className="muted">
               {" "}
-              （{s.played.length} 張計入，連擊 ×{s.combo}
+              （{s.played.length} 張計入，連擊 {s.comboCount} ×{s.combo}
               {s.blocks > 0 && `，阻擋 ${s.blocks} 格`}）
             </span>
           )}
-          {s.advantage && <span className="tag">相剋 ×{RULES_V0.advantageMultiplier}</span>}
+          {s.skill && <SkillTag use={s.skill} />}
+          {s.advantage && <span className="tag">相剋 ×{s.advantageMultiplier}</span>}
           {s.weaponAttack > 0 && <span className="tag">武器 +{s.weaponAttack}</span>}
+          {s.skillAttack !== 0 && <span className="tag">技能攻擊 {signed(s.skillAttack)}</span>}
+          {s.healed > 0 && <span className="tag">回復 {s.healed}</span>}
+          {s.hpCost > 0 && <span className="tag">消耗 HP {s.hpCost}</span>}
+          {s.hpDamageTaken > 0 && <span className="tag">受到技能傷害 {s.hpDamageTaken}</span>}
           {s.ranOut && <span className="tag">牌庫耗盡</span>}
         </span>
         {result.kind === "normal" ? (
@@ -70,12 +99,14 @@ export function PhaseSummary({ result, cards, labels }: { result: PhaseResult; c
             {s.chain.map((step, i) => (
               <span
                 key={step.card}
-                className={`chain-step card-${cards.get(step.card)?.type}${step.counted ? "" : " chain-blocked"}`}
-                title={step.counted ? "計入" : "阻擋"}
+                className={`chain-step card-${cards.get(step.card)?.type}${step.counted ? "" : " chain-blocked"}${
+                  step.purged ? " chain-purged" : ""
+                }`}
+                title={step.counted ? "計入" : step.purged ? "被肅清移除" : "阻擋"}
               >
                 {i === 0 ? "領 " : step.from === "draw" ? "抽 " : ""}
                 {cards.get(step.card)?.attack}
-                {!step.counted && " ✕"}
+                {!step.counted && (step.purged ? " ↺" : " ✕")}
               </span>
             ))}
           </span>
@@ -147,9 +178,12 @@ interface HandPickerProps {
 export function HandPicker({ hand, cards, owned, drawPile, busy, onPlay }: HandPickerProps) {
   const [picked, setPicked] = useState<string[]>([]);
   const leader = picked[0];
-  const leaderType = leader ? cards.get(leader)!.type : null;
-  const preview = previewAttack(picked, cards, RULES_V0);
-  const pickedCounted = picked.filter((id) => cards.get(id)!.type === leaderType).length;
+  const leaderCard = leader ? cards.get(leader)! : null;
+  const levels = levelsOf(owned);
+  const counts = leaderCard ? chargeTypes(leaderCard, levels) : new Set<CardDefinition["type"]>();
+  const leaderSkill = leaderCard ? cardSkill(leaderCard, levels) : null;
+  const preview = previewAttack(picked, cards, RULES_V0, counts);
+  const pickedCounted = picked.filter((id) => counts.has(cards.get(id)!.type)).length;
   const required = requiredPicks(hand, RULES_V0);
 
   function toggle(id: string) {
@@ -166,9 +200,15 @@ export function HandPicker({ hand, cards, owned, drawPile, busy, onPlay }: HandP
       </div>
       <p className="muted small">
         {leader
-          ? `再選 ${required - picked.length} 張（共 ${required} 張）；${TYPE_LABEL[leaderType!]}以外的卡會擋住一格。點領導卡可重選。`
-          : `點一張卡作為領導卡，共要出 ${required} 張。`}
+          ? `再選 ${required - picked.length} 張（共 ${required} 張）；${[...counts].map((t) => TYPE_LABEL[t]).join("、")}以外的卡會擋住一格。點領導卡可重選。`
+          : `點一張卡作為領導卡，共要出 ${required} 張。只有領導卡的技能會發動。`}
       </p>
+      {leaderSkill && (
+        <p className="small">
+          領導技能：<strong>{leaderSkill.skill.name} Lv {leaderSkill.level}</strong>（
+          {skillEffectText(leaderSkill.skill, leaderSkill.level)}）
+        </p>
+      )}
       <div className="grid compact">
         {hand.map((id) => {
           const card = cards.get(id)!;
@@ -179,7 +219,7 @@ export function HandPicker({ hand, cards, owned, drawPile, busy, onPlay }: HandP
               card={card}
               owned={owned[id]}
               selected={index >= 0}
-              badge={index === 0 ? "領導" : index > 0 ? (card.type === leaderType ? `支援 ${index}` : `阻擋 ${index}`) : undefined}
+              badge={index === 0 ? "領導" : index > 0 ? (counts.has(card.type) ? `支援 ${index}` : `阻擋 ${index}`) : undefined}
               onClick={() => toggle(id)}
             />
           );
@@ -188,7 +228,7 @@ export function HandPicker({ hand, cards, owned, drawPile, busy, onPlay }: HandP
       <div className="row between">
         <span className="small">
           {picked.length > 0
-            ? `選牌攻擊 ${preview}（同色 ${pickedCounted} 張${picked.length > pickedCounted ? `，阻擋 ${picked.length - pickedCounted} 格` : ""}）`
+            ? `選牌攻擊 ${preview}（計入 ${pickedCounted} 張${picked.length > pickedCounted ? `，阻擋 ${picked.length - pickedCounted} 格` : ""}）`
             : "尚未選牌"}
         </span>
         <button
@@ -200,7 +240,7 @@ export function HandPicker({ hand, cards, owned, drawPile, busy, onPlay }: HandP
           出牌
         </button>
       </div>
-      <p className="muted small">連鎖抽牌和相剋加成在出牌後計算。</p>
+      <p className="muted small">連鎖抽牌、技能和相剋加成在出牌後計算。</p>
     </div>
   );
 }

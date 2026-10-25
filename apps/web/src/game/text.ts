@@ -1,8 +1,69 @@
-import type { CardType, DeckError, DeckSlot, ItemDefinition, ItemKind, LoadoutError } from "@gdr/engine";
+import {
+  skillValue,
+  type CardType,
+  type DeckError,
+  type DeckSlot,
+  type ItemDefinition,
+  type ItemKind,
+  type LoadoutError,
+  type SkillDefinition,
+} from "@gdr/engine";
 
 export const TYPE_LABEL: Record<CardType, string> = { heavy: "重裝", light: "輕裝", magic: "魔裝" };
 export const SLOT_LABEL: Record<DeckSlot, string> = { ...TYPE_LABEL, free: "自由" };
 export const ITEM_KIND_LABEL: Record<ItemKind, string> = { armor: "防具", weapon: "武器", gear: "飾品" };
+
+const WHO = { self: "", enemy: "敵方" } as const;
+
+/** What a skill does at a level, e.g. 「連擊數 +2」. */
+export function skillEffectText(skill: SkillDefinition, level: number): string {
+  const v = skillValue(skill, level);
+  const e = skill.effect;
+  switch (e.kind) {
+    case "combo":
+      return e.target === "self" ? `連擊數 +${v}` : `敵方連擊數 −${v}（最低 ×1.0）`;
+    case "power":
+      return `${WHO[e.target]}攻擊 ${e.target === "self" ? "+" : "−"}${v}${e.unit === "pct" ? "%" : ""}`;
+    case "reckless":
+      return `攻擊 +${v}%，自身防禦 −${Math.floor(v / 4)}%`;
+    case "defense":
+      return `${WHO[e.target]}防禦 ${e.target === "self" ? "+" : "−"}${v}%`;
+    case "guard":
+      return `本階段受到的傷害 −${v}`;
+    case "heal":
+      return e.unit === "flat" ? `回復 ${v} HP` : `回復最大 HP 的 ${v}%`;
+    case "hpDamage":
+      return `${e.unit === "flat" ? `敵方 HP −${v}` : `敵方目前 HP −${v}%`}（不會低於 1）`;
+    case "hpCost":
+      return `消耗 ${v} HP，${e.ratio >= 1 ? "全部" : "一半"}加到攻擊`;
+    case "finalDamage":
+      return `贏下階段時傷害 +${v}${e.unit === "pct" ? "%" : ""}`;
+    case "finalBlowGuard":
+      return `牌庫耗盡的傷害 −${v}${e.unit === "pct" ? "%" : ""}（在手牌中就有效）`;
+    case "element":
+      return { balance: "雙方都沒有相剋加成", surpass: `自身總有相剋加成 ×1.2`, slump: "取消對方的相剋加成" }[e.mode];
+    case "discard":
+      return `其餘手牌丟掉 ${v} 張（異色優先）${e.redraw ? "並補抽" : ""}`;
+    case "elitism":
+      return `${v} 張異色手牌洗回牌庫並重抽`;
+    case "draws":
+      return `${WHO[e.target]}連鎖抽牌上限 ${e.target === "self" ? "+" : "−"}${v}`;
+    case "board":
+      return `每張${e.colour === "same" ? "同色支援" : "阻擋的異色卡"}攻擊 +${v}`;
+    case "shuffle": {
+      const who = { self: "", enemy: "對手的", both: "雙方的" }[e.target];
+      return e.scope === "hand" ? `${who}其餘手牌洗回牌庫並重抽` : `${who}手牌、棄牌和牌庫全部洗牌並重抽`;
+    }
+    case "purge":
+      return `格子全被擋住時移除 ${v} 張阻擋卡，繼續抽牌`;
+    case "charge":
+      return e.types.length === 3 ? "所有顏色都能併入攻擊" : `${e.types.map((t) => TYPE_LABEL[t]).join("、")}也能併入攻擊`;
+    case "shield":
+      return "使對方領導卡的技能無效";
+    case "mimic":
+      return "改用對方領導卡的技能（以本卡等級）";
+  }
+}
 
 export function itemStatText(item: ItemDefinition): string {
   if (item.kind === "armor") return `防禦 ${item.defense}`;

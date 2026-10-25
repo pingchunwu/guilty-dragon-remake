@@ -5,6 +5,9 @@ import {
   PLACEHOLDER_ITEMS,
   PLACEHOLDER_STARTER_LOADOUT,
   RULES_V0,
+  SKILLS,
+  cardMaxLevel,
+  deckCardIds,
   validateDeck,
   validateLoadout,
   type Deck,
@@ -71,31 +74,48 @@ describe("draw_ten", () => {
     await expect(draw(BOB, "key-00000001")).rejects.toThrow(/PLAYER_NOT_FOUND/);
   });
 
-  it("turns duplicates into shards and levels up every 5", async () => {
+  it("levels up once per duplicate up to the skill's cap, then keeps shards", async () => {
     await sync(ALICE);
-    // Force the pool to a single card Alice already owns.
-    await db.exec(`update public.pool_entries set weight = case when card_id = 'ph-heavy-01' then 1 else 0 end`);
+    // Force the pool to a single card Alice already owns, with a level cap of 3.
+    const owned = deckCardIds(PLACEHOLDER_DEFAULT_DECK);
+    const card = PLACEHOLDER_CARDS.find((c) => owned.includes(c.id) && cardMaxLevel(c) === 3)!;
+    await db.exec(`update public.pool_entries set weight = case when card_id = '${card.id}' then 1 else 0 end`);
     const { results, state } = await draw(ALICE, "key-00000001");
-    expect(results.every((r: any) => r.id === "ph-heavy-01" && !r.isNew)).toBe(true);
+    expect(results.every((r: any) => r.id === card.id && !r.isNew)).toBe(true);
     expect(results.filter((r: any) => r.leveledUp)).toHaveLength(2);
-    expect(state.cards["ph-heavy-01"]).toEqual({ level: 3, shards: 0 });
+    expect(state.cards[card.id]).toEqual({ level: 3, shards: 8 });
   });
 
   it("adds new cards to the collection", async () => {
     await sync(ALICE);
-    await db.exec(`update public.pool_entries set weight = case when card_id = 'ph-magic-16' then 1 else 0 end`);
+    const owned = deckCardIds(PLACEHOLDER_DEFAULT_DECK);
+    const card = PLACEHOLDER_CARDS.find((c) => !owned.includes(c.id) && cardMaxLevel(c) === 10)!;
+    await db.exec(`update public.pool_entries set weight = case when card_id = '${card.id}' then 1 else 0 end`);
     const { results, state } = await draw(ALICE, "key-00000001");
-    expect(results[0]).toEqual({ id: "ph-magic-16", isNew: true, level: 1, shards: 0, leveledUp: false });
-    expect(state.cards["ph-magic-16"]).toEqual({ level: 2, shards: 4 });
+    expect(results[0]).toEqual({ id: card.id, isNew: true, level: 1, shards: 0, leveledUp: false });
+    expect(state.cards[card.id]).toEqual({ level: 10, shards: 0 });
+  });
+
+  it("caps item levels at 10", async () => {
+    await sync(ALICE);
+    await db.exec(`update public.item_pool_entries set weight = case when item_id = 'ph-weapon-01' then 1 else 0 end;
+                   update public.player_items set level = 9 where item_id = 'ph-weapon-01'`);
+    const { state } = await drawItems(ALICE, "key-00000002");
+    expect(state.items["ph-weapon-01"]).toEqual({ level: 10, shards: 9 });
   });
 });
 
 describe("content", () => {
-  it("stores card attack and item stats from the engine catalog", async () => {
-    const cards = await db.query<{ id: string; attack: number }>("select id, attack from public.card_definitions order by id");
-    expect(Object.fromEntries(cards.rows.map((r) => [r.id, r.attack]))).toEqual(
-      Object.fromEntries(PLACEHOLDER_CARDS.map((c) => [c.id, c.attack])),
+  it("stores cards, skills and item stats from the engine catalog", async () => {
+    const cards = await db.query("select id, name, type, attack, rarity, skill_id as skill from public.card_definitions");
+    expect(cards.rows).toEqual(expect.arrayContaining([...PLACEHOLDER_CARDS]));
+    expect(cards.rows).toHaveLength(PLACEHOLDER_CARDS.length);
+    const skills = await db.query<{ id: string; max_level: number }>("select id, max_level from public.skill_definitions");
+    expect(Object.fromEntries(skills.rows.map((r) => [r.id, r.max_level]))).toEqual(
+      Object.fromEntries(SKILLS.map((k) => [k.id, k.maxLevel])),
     );
+    const active = await db.query("select id from public.card_pools where active");
+    expect(active.rows).toEqual([{ id: "pool-v1" }]);
     const items = await db.query("select id, name, kind::text as kind, attack, defense from public.item_definitions order by id");
     expect(items.rows).toEqual(expect.arrayContaining([...PLACEHOLDER_ITEMS]));
     expect(items.rows).toHaveLength(PLACEHOLDER_ITEMS.length);

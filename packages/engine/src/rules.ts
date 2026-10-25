@@ -26,7 +26,7 @@ export interface RuleConfig {
 }
 
 export const RULES_V0: RuleConfig = {
-  ruleVersion: "0.5.0-draft",
+  ruleVersion: "0.6.0-draft",
   rng: "sfc32",
   deckSize: 32,
   slotSize: 8,

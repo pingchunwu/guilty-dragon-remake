@@ -1,3 +1,5 @@
+import type { Rarity } from "./skills";
+
 /** Unit card types. A card's type decides which non-Free slot it may occupy. */
 export type CardType = "heavy" | "light" | "magic";
 
@@ -8,7 +10,8 @@ export const DECK_SLOTS: readonly DeckSlot[] = ["heavy", "light", "magic", "free
 
 /**
  * Card definition. Type doubles as the card's colour (supports, advantage).
- * Draw values and skills are still open. See docs/development-spec.md §6a.
+ * Level is the skill level; it does not change attack. Draw values are not
+ * used (every leader may chain-draw the same). See docs/development-spec.md §6a.
  */
 export interface CardDefinition {
   /** Stable ID, independent of display/translated names. */
@@ -16,6 +19,9 @@ export interface CardDefinition {
   name: string;
   type: CardType;
   attack: number;
+  rarity: Rarity;
+  /** Skill ID (skills.ts); it fires only when this card leads. */
+  skill: string | null;
 }
 
 /** Equipment kinds; a player equips one of each (docs/development-spec.md §6a). */
@@ -26,7 +32,8 @@ export const ITEM_KINDS: readonly ItemKind[] = ["armor", "weapon", "gear"];
 /**
  * Equipment, separate from the deck. Armor defense reduces damage taken in a
  * lost phase; weapon attack is added to every phase's attack after the
- * multipliers. Gear has no battle effect yet (open decision).
+ * multipliers. Both grow 10% per item level. Gear has no battle effect yet
+ * (open decision).
  */
 export interface ItemDefinition {
   id: string;

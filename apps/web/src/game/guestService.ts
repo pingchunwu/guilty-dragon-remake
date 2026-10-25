@@ -3,8 +3,10 @@ import {
   PLACEHOLDER_ITEM_POOL,
   PLACEHOLDER_POOL,
   PLACEHOLDER_STARTER_LOADOUT,
+  ITEM_MAX_LEVEL,
   RULES_V0,
   STARTING_TICKETS,
+  cardMaxLevel,
   createRng,
   drawTen,
   validateDeck,
@@ -45,7 +47,11 @@ export function createGuestService({ cards, items }: Content): GameService {
     const replay = draws.get(key);
     if (replay) return { results: replay, state };
     if (state.tickets < 1) throw new GameError("INSUFFICIENT_TICKETS");
-    const drawn = drawTen(state[field], pool, createRng(randomSeed()));
+    const maxLevel = (id: string) => {
+      const card = cards.get(id);
+      return field === "items" ? ITEM_MAX_LEVEL : card ? cardMaxLevel(card) : 1;
+    };
+    const drawn = drawTen(state[field], pool, createRng(randomSeed()), maxLevel);
     state = { ...state, tickets: state.tickets - 1, [field]: drawn.collection };
     draws.set(key, drawn.results);
     return { results: drawn.results, state };

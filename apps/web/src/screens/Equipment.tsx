@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ITEM_KINDS, resolveEquipment, type ItemKind } from "@gdr/engine";
+import { ITEM_KINDS, levelsOf, resolveEquipment, type ItemKind } from "@gdr/engine";
 import type { Content } from "../game/content";
 import { GameError, type GameService, type PlayerState } from "../game/types";
 import { ITEM_KIND_LABEL, errorText, loadoutErrorText } from "../game/text";
@@ -17,7 +17,7 @@ export function Equipment({ content: { items }, service, state, onState }: Props
   const [open, setOpen] = useState<ItemKind | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const equipped = resolveEquipment(state.loadout, items);
+  const equipped = resolveEquipment(state.loadout, items, levelsOf(state.items));
 
   async function equip(kind: ItemKind, itemId: string | null) {
     const loadout = { ...state.loadout, [kind]: itemId };

@@ -50,7 +50,7 @@ function playOut(seed: [number, number, number, number], rules = RULES_V0) {
 
 /** A tiny card set where every number is easy to check by hand. */
 function fixture(defs: [string, CardDefinition["type"], number][]): Cards {
-  return new Map(defs.map(([id, type, attack]) => [id, { id, name: id, type, attack }]));
+  return new Map(defs.map(([id, type, attack]) => [id, { id, name: id, type, attack, rarity: "N", skill: null }]));
 }
 
 /** `n` cards named prefix1..prefixN of one colour. */
@@ -60,7 +60,7 @@ const many = (prefix: string, type: CardDefinition["type"], n: number, attack = 
 const ids = (prefix: string, n: number) => Array.from({ length: n }, (_, i) => `${prefix}${i + 1}`);
 
 function side(hand: string[], drawPile: string[]): SideState {
-  return { hp: 1000, equipment, drawPile, hand, discard: [], ranOut: false };
+  return { hp: 1000, equipment, levels: {}, drawPile, hand, discard: [], ranOut: false };
 }
 
 function stateWith(challenger: SideState, defender: SideState): BattleState {

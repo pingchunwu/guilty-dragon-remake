@@ -22,12 +22,12 @@ This document captures the product and engineering decisions that future impleme
 
 - A deck has 32 cards in four 8-card slots: Heavy, Light, Magic, and Free.
 - Cards in a non-Free slot must match its type. A slot cannot contain duplicate copies of the same card name.
-- Each battle phase starts with five cards in hand (a new-game simplification; the old game is reported to have dealt eight).
+- Each battle phase starts with eight cards in hand (see §6a).
 - One daily draw ticket is granted, tickets accumulate, and one ticket buys ten draws. The initial release has one pool.
 - A first-time signed-in player receives a default deck once.
-- Duplicate cards become shards; five shards raise that card by one level.
+- Each duplicate raises that card (or item) one level (decided 2026-10-26; it took five shards before). A card's level is its skill level and stops at its skill's max level (1, 3, 5 or 10); items stop at level 10. Duplicates past the cap are kept as spare shards. Existing shards were converted into levels by migration `20261026000200`.
 - Consequence: a player owns at most one copy of each card, so every deck needs 32 distinct cards (at least 8 distinct cards of each constrained type). The duplicate-name slot rule cannot trigger under this model. The default deck and the first pool must be sized for this (pool size is **TBD**, see §7).
-- The pool's rarity configuration, odds, level cap, and upgrade balancing remain TBD.
+- Cards have the original game's rarity tiers N, N+, R, R+, SR, SR+ (decided 2026-10-26). Rarity sets a placeholder attack range and draw weight; real odds and balancing remain TBD.
 
 ### Explicitly deferred
 
@@ -158,7 +158,7 @@ Candidate entities/tables; refine columns and constraints with migrations before
 
 Important constraints include one-time default-deck grant, unique card per constrained deck slot, unique `(player_id, idempotency_key)` for draws, and unique phase/action application so duplicate requests cannot resolve a phase twice.
 
-## 6a. Battle rules, version `0.5.0-draft` (decided 2026-10-25)
+## 6a. Battle rules, version `0.6.0-draft` (decided 2026-10-25, skills and levels 2026-10-26)
 
 Product decisions are marked **decided**; values the product owner has not set are marked **placeholder** or **provisional** and live in `packages/engine` so they can change under a new rule version.
 
@@ -168,10 +168,23 @@ Product decisions are marked **decided**; values the product owner has not set a
   - Armor defense is subtracted from damage taken in a lost phase.
   - Weapon attack is added to the phase's attack after the combo and advantage multipliers (decided). Provisional: it is also added to deck-out hand totals, since it applies "every phase".
   - Gear has a slot but no effect yet (open).
-  - Items come from a separate item gacha: one shared ticket for 10 item pulls; duplicates become shards and every 5 shards raise the item one level, like cards (decided). Item levels have no effect yet (open), and item odds are placeholders (equal weights).
-  - Placeholder items: 6 per kind. Armor defense 20–35, weapon attack +10 to +60, gear no stats. Every player gets and equips the starter armor, weapon and gear (見習防具 20, 見習武器 +10, 見習飾品).
+  - Items come from a separate item gacha: one shared ticket for 10 item pulls; each duplicate raises the item one level, up to 10 (decided). Each level past 1 adds 10% of the item's base attack and defense, rounded down (decided 2026-10-26), so level 10 is ×1.9. Item odds are placeholders (equal weights).
+  - Placeholder items: 6 per kind. Armor defense 14–29, weapon attack +10 to +60, gear no stats. Every player gets and equips the starter armor, weapon and gear (見習防具 14, 見習武器 +10, 見習飾品).
 - **Data:** card attack is stored in `card_definitions.attack`, and item stats in `item_definitions`, both generated from `packages/engine/src/catalog.ts`. The web app loads card and item definitions (names, types/kinds, attack, defense) from these tables once per page load and keeps them in memory only, so the database is the source of truth for content; a test checks the database matches the catalog. Builds without Supabase settings fall back to the bundled catalog for guest play.
-- **Card attack:** the number on a card is its attack (decided). Placeholder values 40–100 per card.
+- **Card attack:** the number on a card is its attack (decided). A card's level does not change it (decided 2026-10-26). Placeholder values by rarity: N 30–45, N+ 35–55, R 45–65, R+ 50–72, SR 60–85, SR+ 70–100.
+- **Skills** (decided 2026-10-26): every card has one skill; only the leader's skill fires, at the leader card's level. The skill list recreates the original game's community skill table ([wikiwiki guildra スキル](https://wikiwiki.jp/guildra/%E3%82%B9%E3%82%AD%E3%83%AB), last edited 2014) in `packages/engine/src/skills.ts`, mirrored to `skill_definitions`: combo up/down, attack up/down (flat and %), 不惜身命, defense up and armor break, damage guard, healing, direct damage, HP-for-attack, final damage up, final-blow guard, the three 武技 colour skills, hand discard/redraw and 選民主義, chain draw up/down, board power (共闘/同郷), shuffles, 肅清, cross-colour charge, 護盾 and 模仿. Event-only (Phantom, GvG), synthesis and sale skills are left out because those systems don't exist here.
+  - Values (decided): percentages as in the original; flat values ÷10 to fit HP 3000 (e.g. パワーアップ1 = +2 attack per level, 癒しの水1 = +5 HP per level). Max levels as in the original.
+  - Resolution order (provisional; the original's full order is not documented):
+    1. Settle skills: a 護盾 cancels the other leader's skill unless it is also a shield; then an uncancelled 模仿 becomes the other leader's skill (not a shield or mimic) at the mimic card's level, capped at that skill's max.
+    2. Leader-time hand and deck effects, challenger first. Discard/redraw act on the hand cards that were not picked (other colours first, then lowest attack). 選民主義 returns other-colour hand cards to the deck and redraws. Shuffles return the rest of the hand (and, for "all", the discard pile) to the deck and redraw as many.
+    3. Chains, with the draw cap changed by draw skills and extra colours merging for charge skills. 肅清 fires once when all 4 spaces are blocked, removing the earliest blockers and drawing into the freed spaces.
+    4. Colour multipliers: natural advantage, then 天秤 (both 1.0), 凌駕 (own 1.2), 不調 (cancel the enemy's advantage).
+    5. Attack = floor((floor(sum × combo × colour) + weapon) × (100 + attack % up − enemy's % down) / 100) + flat up − enemy's flat down + board bonus + HP-for-attack gain, minimum 0. Combo count = counted cards + combo up − enemy's combo down, clamped to 1–5.
+    6. Defense = floor(armor × (100 + defense % − enemy's armor break − 不惜身命 penalty) / 100).
+    7. HP effects for each side in turn: heal (up to max HP), pay HP (not below 1; the full cost still becomes attack), direct damage to the enemy (not below 1; % is of current HP).
+    8. Phase damage = winner's attack − loser's defense, + winner's final damage (flat, and % of that damage), − loser's guard, minimum 0.
+  - Deck-out phases use no skills, except that the receiving side's strongest 一縷希望/守護神 held in its hand reduces the final-blow damage (provisional; the original fires them on Final Blow, which has no leader here).
+  - The defender AI still ignores skills (`ai 0.4.0`).
 - **Hand** (decided): 8 cards. Cards not played stay in hand; after each phase the hand refills to 8 from the draw pile.
 - **Picking** (decided): each side plays exactly 5 cards per phase (the whole hand if it has fewer): a leader, which always counts, and 4 cards of any colour in the 4 spaces behind it. How fast a deck empties depends on the chain draws.
 - **Chain** (decided, matching the original game's play video): the 4 spaces resolve in order. A card of the leader's colour merges into the attack, which frees its space, and one card is drawn from the deck into the end of the row. A card of another colour stays and blocks its space; it draws nothing. Drawn cards resolve the same way. The chain ends when all 4 spaces hold blockers, when 5 drawn cards have counted, or when the deck is empty, so there are never more than 4 blockers.
@@ -183,8 +196,8 @@ Product decisions are marked **decided**; values the product owner has not set a
   - Only one side runs out: its hand total hits the opponent directly, ignoring armor. Provisional: the opponent does not attack in that phase and keeps its hand; only the side that ran out reshuffles.
   - Both run out: compare hand totals; the higher total deals (total − loser's armor), equal deals nothing. Then both decks are reshuffled and reset.
   - A side that reshuffles puts its hand, discard and pile together, shuffles, and draws a fresh 8.
-- **Ending** (decided): the battle ends only when a side reaches 0 HP. There is no safety cap; instead, balance must keep armor below the lowest card attack so every won phase deals damage. The engine test suite enforces this for the placeholder content.
-- **Balance (open):** a phase typically counts about 5 cards for ×1.5, so attacks of 300–800 are common. At 3000 HP, 2,000 simulated AI-vs-AI battles with starter equipment averaged 8.7 phases (at most 13), with about 2 deck-outs per battle. Card attack values (placeholder), HP, the combo cap, or the chain limits need tuning before this feels right.
+- **Ending** (decided): the battle ends only when a side reaches 0 HP. There is no safety cap; instead, balance must keep base armor below the lowest card attack so most won phases deal damage (levels and defense skills can now push armor above a single card). Deck-out hits ignore armor, so battles still end; the engine tests play full battles with every placeholder card to check this.
+- **Balance (open):** a phase typically counts about 5 cards for ×1.5, so attacks of 300–800 are common. With skills (0.6.0-draft), 400 simulated AI-vs-AI battles with the default deck averaged 11.0 phases at level 1 and 10.6 with every card and item at max level (at most 17), with about 2.5 deck-outs per battle; random decks drawn from all 110 cards at max level averaged 8.9 phases. Card attack, skill values, HP, the combo cap, or the chain limits need tuning before this feels right.
 
 ## 6b. Friend PvP (decided 2026-10-26)
 
@@ -211,23 +224,23 @@ Resolve these before locking battle-engine behavior or pool data:
 - Starting HP, HP maximum, per-phase damage formula, healing cap, draw/phase tie handling, and simultaneous zero-HP handling.
 - **Attack model — decided 2026-10-25:** each phase both sides compute an attack value; the side with the higher attack wins the phase and is the only one that attacks. Damage = winner's attack − loser's defense. Still open: equal-attack phases, whether damage has a floor (e.g. 0 or 1), and where a side's defense value comes from.
 - ~~**Guaranteed battle end:** a phase cap~~ — replaced later on 2026-10-25: no phase cap; battles end by HP only, with balance keeping armor below card attack (see §6a).
-- ~~**Weapons:** 3 weapon slots~~ — replaced 2026-10-25 by one loadout of armor, weapon and gear (see §6a). Still open: the gear effect, item levels, item rarity/odds, and real item stats.
+- ~~**Weapons:** 3 weapon slots~~ — replaced 2026-10-25 by one loadout of armor, weapon and gear (see §6a). Still open: the gear effect, item rarity/odds, and real item stats. Item levels were decided 2026-10-26 (+10% per level, cap 10).
 - ~~**Type, colour, and attribute**~~ — decided: types are colours (see §6a). Original question: Heavy/Light/Magic are slot types; the docs also use a three-way attribute counter system and "same-colour" supports. Define whether these are one concept, and if not, which one support selection, counters, and slot validation each use.
 - ~~Hand size~~ — decided 2026-10-25: 8 cards with refill and a chain (see §6a). Original question: exact relationship between five starting cards and the reported original-game limit of leader plus four support cards; recommended initial interpretation is deal five and allow up to five selected cards, with skill-drawn cards outside the starting hand count. Risk: with five cards and a same-colour support rule, the best play is often "take every card of the biggest colour", which removes most decisions. Confirm in rule walkthroughs that five cards still leaves real choices, or revert to eight.
 - **Defender AI information and goal:** the server receives challenger picks before running the AI. Decide whether the AI may see them (recommended: no; it decides only from its own hand and public state). If the attack model includes defense, decide whether "maximize current-phase attack" becomes another goal such as net damage.
 - Multiplier rounding (×1.1, ×1.2, ×1.5, …) and whether HP/damage are always integers.
 - Card-zone movement at phase boundaries, hand/discard/deck recycling, and clearing versus destroying cards.
-- Full trigger ordering and all skill values/targets/limits, with source confidence recorded card by card.
+- Full trigger ordering and all skill values/targets/limits, with source confidence recorded card by card. A provisional order and the original values are implemented (see §6a).
 - Final Blow behavior and whether/when a non-tie Final Blow resets a deck; available community sources are incomplete. Any temporary rule must be explicitly marked as a new-game decision and versioned.
 - HP/score tie-breakers and deterministic defender-AI tie-break order. Initial defender strategy is versioned maximum current-phase attack value.
-- Pool rarity, odds, guarantees, card-level cap, shard economy, and any multi-pool schedule.
+- Pool odds, guarantees and any multi-pool schedule. Rarity tiers and level caps were decided 2026-10-26 (see §1, §6a).
 - Email sign-in flow. **Provisional implementation:** an email code (OTP; length set in Supabase, currently 8 digits) as the main path, because a link opened from email lands in the browser, not an installed PWA. The same email also carries a sign-in link, which the app accepts. Custom SMTP (Resend) is configured; a verified sending domain is still needed before friends can receive codes.
 - ~~Whether to use NestJS on Vercel~~ — decided 2026-10-25: Supabase only (see §2).
 
 Provisional placeholder values used by the first implementation (clearly marked in code and data; replace when decided):
 
 - Starting tickets: 1. Default deck: one 32-card placeholder deck saved as both the attack and defense deck.
-- Pool: placeholder cards with equal draw weights; no rarity, no level cap.
+- Pool (`pool-v1`): one placeholder card per skill (110 cards), draw weight per card by rarity: N 12, N+ 8, R 5, R+ 3, SR 2, SR+ 1.
 
 Product decisions added after the 2026-10-25 review (not engine-blocking, but needed before the matching delivery step):
 

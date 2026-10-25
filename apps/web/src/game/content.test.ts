@@ -4,7 +4,7 @@ import { PLACEHOLDER_CARDS, PLACEHOLDER_ITEMS } from "@gdr/engine";
 import { PLACEHOLDER_CONTENT, loadContent, parseContent } from "./content";
 import { GameError } from "./types";
 
-const card = { id: "c1", name: "卡", type: "heavy", attack: 50 };
+const card = { id: "c1", name: "卡", type: "heavy", attack: 50, rarity: "SR", skill_id: "rengeki" };
 const item = { id: "i1", name: "盾", kind: "armor", attack: 0, defense: 20 };
 
 /** Just enough of the client for `from(table).select(columns).order("id")`. */
@@ -30,13 +30,16 @@ const code = (p: Promise<unknown>) => p.then(() => "ok", (e: GameError) => e.cod
 describe("parseContent", () => {
   it("maps rows to definitions keyed by id", () => {
     const content = parseContent([card], [item]);
-    expect(content.cards.get("c1")).toEqual(card);
+    expect(content.cards.get("c1")).toEqual({ id: "c1", name: "卡", type: "heavy", attack: 50, rarity: "SR", skill: "rengeki" });
+    expect(parseContent([{ ...card, skill_id: null }], [item]).cards.get("c1")!.skill).toBeNull();
     expect(content.items.get("i1")).toEqual(item);
   });
 
   it("rejects malformed rows", () => {
     expect(() => parseContent([{ ...card, type: "fire" }], [item])).toThrow("CONTENT_INVALID");
     expect(() => parseContent([{ ...card, attack: "50" }], [item])).toThrow("CONTENT_INVALID");
+    expect(() => parseContent([{ ...card, rarity: "UR" }], [item])).toThrow("CONTENT_INVALID");
+    expect(() => parseContent([{ ...card, skill_id: "no-such-skill" }], [item])).toThrow("CONTENT_INVALID");
     expect(() => parseContent([card], [{ ...item, defense: null }])).toThrow("CONTENT_INVALID");
   });
 
@@ -60,7 +63,8 @@ describe("loadContent", () => {
 
     const up = fakeClient({ card_definitions: { data: [card] }, item_definitions: { data: [item] } });
     const content = await loadContent(up.client);
-    expect(content.cards.get("c1")).toEqual(card);
+    expect(content.cards.get("c1")).toEqual({ id: "c1", name: "卡", type: "heavy", attack: 50, rarity: "SR", skill: "rengeki" });
+    expect(parseContent([{ ...card, skill_id: null }], [item]).cards.get("c1")!.skill).toBeNull();
     expect(await loadContent(up.client)).toBe(content);
     expect(up.calls).toEqual(["card_definitions", "item_definitions"]);
   });

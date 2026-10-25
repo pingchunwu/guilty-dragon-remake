@@ -2,11 +2,14 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   ITEM_KINDS,
   PLACEHOLDER_CARDS,
+  RARITIES,
+  SKILL_BY_ID,
   PLACEHOLDER_ITEMS,
   type CardDefinition,
   type CardType,
   type ItemDefinition,
   type ItemKind,
+  type Rarity,
 } from "@gdr/engine";
 import { GameError } from "./types";
 
@@ -27,11 +30,19 @@ export const PLACEHOLDER_CONTENT: Content = {
 const isInt = (v: unknown): v is number => typeof v === "number" && Number.isInteger(v) && v >= 0;
 
 function toCard(row: Record<string, unknown>): CardDefinition {
-  const { id, name, type, attack } = row;
-  if (typeof id !== "string" || typeof name !== "string" || !CARD_TYPES.includes(type as CardType) || !isInt(attack)) {
+  const { id, name, type, attack, rarity, skill_id: skill } = row;
+  if (
+    typeof id !== "string" ||
+    typeof name !== "string" ||
+    !CARD_TYPES.includes(type as CardType) ||
+    !isInt(attack) ||
+    !RARITIES.includes(rarity as Rarity) ||
+    // A skill this build doesn't know would silently do nothing in battle.
+    (skill !== null && (typeof skill !== "string" || !SKILL_BY_ID.has(skill)))
+  ) {
     throw new GameError("CONTENT_INVALID");
   }
-  return { id, name, type: type as CardType, attack };
+  return { id, name, type: type as CardType, attack, rarity: rarity as Rarity, skill: skill as string | null };
 }
 
 function toItem(row: Record<string, unknown>): ItemDefinition {
@@ -78,7 +89,7 @@ let cached: Promise<Content> | null = null;
 export function loadContent(client: SupabaseClient | null): Promise<Content> {
   if (!client) return Promise.resolve(PLACEHOLDER_CONTENT);
   cached ??= Promise.all([
-    select(client, "card_definitions", "id, name, type, attack"),
+    select(client, "card_definitions", "id, name, type, attack, rarity, skill_id"),
     select(client, "item_definitions", "id, name, kind, attack, defense"),
   ]).then(([cards, items]) => parseContent(cards, items));
   cached.catch(() => {

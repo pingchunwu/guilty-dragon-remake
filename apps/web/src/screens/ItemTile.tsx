@@ -1,4 +1,4 @@
-import type { ItemDefinition, OwnedCard } from "@gdr/engine";
+import { ITEM_MAX_LEVEL, leveledItem, type ItemDefinition, type OwnedCard } from "@gdr/engine";
 import { ITEM_KIND_LABEL, itemStatText } from "../game/text";
 
 interface Props {
@@ -15,10 +15,11 @@ export function ItemTile({ item, owned, onClick, badge, selected }: Props) {
     <>
       <span className="card-type">{ITEM_KIND_LABEL[item.kind]}</span>
       <span className="card-name">{item.name}</span>
-      <span className="card-stat">{itemStatText(item)}</span>
+      <span className="card-stat">{itemStatText(leveledItem(item, owned?.level ?? 1))}</span>
       {owned && (
         <span className="card-level">
-          Lv {owned.level} · 碎片 {owned.shards}/5
+          Lv {owned.level}/{ITEM_MAX_LEVEL}
+          {owned.shards > 0 && ` · 多餘 ${owned.shards}`}
         </span>
       )}
       {badge && <span className="card-badge">{badge}</span>}

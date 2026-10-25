@@ -3,8 +3,116 @@
 var DECK_SLOTS = ["heavy", "light", "magic", "free"];
 var ITEM_KINDS = ["armor", "weapon", "gear"];
 
+var RARITIES = ["N", "N+", "R", "R+", "SR", "SR+"];
+var ALL_TYPES = ["heavy", "light", "magic"];
+var s = (id, name, original, maxLevel, timing, effect, value, perLevel = maxLevel > 1) => ({ id, name, original, maxLevel, timing, effect, value, perLevel });
+var tiers = (id, name, original, values, timing, effect, maxLevels = values.map(() => 10)) => values.map(
+  (value, i) => s(`${id}-${i + 1}`, `${name}${"\u2160\u2161\u2162\u2163"[i]}`, `${original}${i + 1}`, maxLevels[i], timing, effect, value, true)
+);
+var SKILLS = [
+  // Combo count
+  s("ranbu", "\u4E82\u821E", "\u4E71\u821E", 1, "leader", { kind: "combo", target: "self" }, 3),
+  s("swift", "\u75BE\u8DB3", "\u4FCA\u8DB3", 1, "leader", { kind: "combo", target: "self" }, 2),
+  s("rengeki", "\u9023\u64CA", "\u9023\u6483", 3, "leader", { kind: "combo", target: "self" }, 1),
+  s("assault", "\u5F37\u8972\u9023\u64CA", "\u5F37\u8972\u9023\u6483", 5, "leader", { kind: "combo", target: "self" }, 1),
+  s("pursuit", "\u8FFD\u64CA", "\u8FFD\u6483", 3, "afterCharge", { kind: "combo", target: "self" }, 1),
+  s("far-gaze", "\u9060\u671B", "\u9060\u3044\u76EE", 1, "endOfDraw", { kind: "combo", target: "enemy" }, 1),
+  s("mikiri", "\u770B\u7A7F", "\u898B\u5207\u308A", 3, "endOfDraw", { kind: "combo", target: "enemy" }, 1),
+  s("mind-eye", "\u5FC3\u773C", "\u5FC3\u773C", 5, "endOfDraw", { kind: "combo", target: "enemy" }, 1),
+  // Own attack up
+  s("iron-fist", "\u9435\u62F3", "\u30A2\u30A4\u30A2\u30F3\u30D5\u30A3\u30B9\u30C8", 1, "battle", { kind: "power", target: "self", unit: "flat" }, 30),
+  ...tiers("power-up", "\u529B\u91CF\u63D0\u5347", "\u30D1\u30EF\u30FC\u30A2\u30C3\u30D7", [2, 4, 6], "battle", { kind: "power", target: "self", unit: "flat" }),
+  s("gift-of-power", "\u529B\u91CF\u4E4B\u8CDC", "\u30AE\u30D5\u30C8\u30AA\u30D6\u30D1\u30EF\u30FC", 1, "battle", { kind: "power", target: "self", unit: "pct" }, 15),
+  ...tiers("power-gaze", "\u529B\u91CF\u51DD\u8996", "\u30D1\u30EF\u30FC\u30B2\u30A4\u30BA", [1, 2, 3], "battle", { kind: "power", target: "self", unit: "pct" }),
+  s("soul-breath", "\u9B42\u4E4B\u6C23\u606F", "\u9B42\u306E\u606F\u5439", 5, "battle", { kind: "power", target: "self", unit: "pct" }, 10),
+  s("reckless", "\u4E0D\u60DC\u8EAB\u547D", "\u4E0D\u501F\u8EAB\u547D", 3, "battle", { kind: "reckless" }, 60),
+  // Enemy attack down
+  s("belly-laugh", "\u6367\u8179\u5927\u7B11", "\u8179\u7B4B\u5D29\u58CA", 1, "battle", { kind: "power", target: "enemy", unit: "flat" }, 30),
+  ...tiers("weaken", "\u812B\u529B", "\u8131\u529B", [2, 4, 6], "battle", { kind: "power", target: "enemy", unit: "flat" }),
+  s("disarm", "\u6B66\u88DD\u89E3\u9664", "\u6B66\u88C5\u89E3\u9664", 1, "battle", { kind: "power", target: "enemy", unit: "pct" }, 15),
+  ...tiers("power-seal", "\u529B\u4E4B\u5C01\u5370", "\u529B\u306E\u5C01\u5370", [1, 2, 3], "battle", { kind: "power", target: "enemy", unit: "pct" }),
+  s("arms-curse", "\u6B66\u88DD\u5C01\u5492", "\u6B66\u88C5\u5C01\u5492", 1, "battle", { kind: "power", target: "enemy", unit: "pct" }, 100),
+  // Damage taken down
+  s("scout", "\u653B\u64CA\u8ABF\u67E5", "\u653B\u6483\u8ABF\u67FB", 1, "battle", { kind: "guard" }, 50),
+  ...tiers("guard", "\u9632\u8B77", "\u30AC\u30FC\u30C9", [5, 10, 15], "battle", { kind: "guard" }),
+  // Own defense up
+  s("silver-crown", "\u9280\u51A0\u7A74\u718A", "\u9280\u51A0\u7A74\u718A", 1, "battle", { kind: "defense", target: "self" }, 40),
+  s("watchful", "\u5B88\u671B\u4E4B\u5FC3", "\u898B\u5B88\u308B\u5FC3", 1, "battle", { kind: "defense", target: "self" }, 15),
+  ...tiers("hard-armor", "\u786C\u7532", "\u30CF\u30FC\u30C9\u30A2\u30FC\u30DE\u30FC", [1, 2, 3], "battle", { kind: "defense", target: "self" }),
+  s("soul-armor", "\u9B44\u4E4B\u7532\u5191", "\u9B44\u306E\u7532\u5191", 5, "battle", { kind: "defense", target: "self" }, 10),
+  // Healing
+  s("paw", "\u6CBB\u7652\u8089\u7403", "\u7652\u3057\u306E\u8089\u7403", 1, "battle", { kind: "heal", unit: "flat" }, 80),
+  ...tiers("healing-water", "\u6CBB\u7652\u4E4B\u6C34", "\u7652\u3057\u306E\u6C34", [5, 10, 15, 20], "battle", { kind: "heal", unit: "flat" }),
+  s("high-heal", "\u9AD8\u968E\u6CBB\u7642", "\u30CF\u30A4\u30D2\u30FC\u30EB", 1, "battle", { kind: "heal", unit: "pct" }, 15),
+  ...tiers("heal", "\u6CBB\u7642", "\u30D2\u30FC\u30EB", [1, 2, 3, 4], "battle", { kind: "heal", unit: "pct" }),
+  // Direct damage
+  s("prank", "\u60E1\u4F5C\u5287", "\u3044\u305F\u305A\u3089", 1, "battle", { kind: "hpDamage", unit: "flat" }, 80),
+  ...tiers("shadow-strike", "\u5F71\u8A0E", "\u5F71\u8A0E\u3061", [5, 10, 15], "battle", { kind: "hpDamage", unit: "flat" }),
+  s("jump-the-gun", "\u6436\u5148\u4E00\u6B65", "\u5148\u8D70\u308A", 1, "battle", { kind: "hpDamage", unit: "pct" }, 10),
+  ...tiers("ambush", "\u7A81\u8972", "\u4E0D\u610F\u8A0E\u3061", [1, 2, 3], "battle", { kind: "hpDamage", unit: "pct" }),
+  // HP for attack
+  ...tiers("price-of-power", "\u529B\u91CF\u7684\u4EE3\u50F9", "\u529B\u306E\u4EE3\u511F", [10, 20, 30], "battle", { kind: "hpCost", ratio: 0.5 }),
+  ...tiers("price-of-violence", "\u66B4\u529B\u7684\u4EE3\u50F9", "\u66B4\u529B\u306E\u4EE3\u511F", [10, 20, 30], "battle", { kind: "hpCost", ratio: 1 }),
+  s("last-stand", "\u80CC\u6C34\u4E4B\u9663", "\u80CC\u6C34\u306E\u9663", 5, "battle", { kind: "hpCost", ratio: 1 }, 80),
+  // Final damage up
+  ...tiers("plus-damage", "\u8FFD\u52A0\u50B7\u5BB3", "\u30D7\u30E9\u30B9\u30C0\u30E1\u30FC\u30B8", [5, 10, 15], "battle", { kind: "finalDamage", unit: "flat" }),
+  s("raise-damage-2", "\u589E\u5E45\u50B7\u5BB3\u2161", "\u30EC\u30A4\u30BA\u30C0\u30E1\u30FC\u30B82", 10, "battle", { kind: "finalDamage", unit: "pct" }, 2),
+  s("raise-damage-3", "\u589E\u5E45\u50B7\u5BB3\u2162", "\u30EC\u30A4\u30BA\u30C0\u30E1\u30FC\u30B83", 10, "battle", { kind: "finalDamage", unit: "pct" }, 3),
+  s("war-hammer", "\u6230\u795E\u4E4B\u939A", "\u6226\u795E\u306E\u9244\u69CC", 5, "battle", { kind: "finalDamage", unit: "pct" }, 10),
+  // Final blow (deck-out) damage taken down
+  ...tiers("slim-hope", "\u4E00\u7E37\u5E0C\u671B", "\u3044\u3061\u308B\u306E\u671B\u307F", [20, 40, 60], "finalBlow", { kind: "finalBlowGuard", unit: "flat" }),
+  ...tiers("guardian", "\u5B88\u8B77\u795E", "\u5B88\u8B77\u795E", [2, 4, 6], "finalBlow", { kind: "finalBlowGuard", unit: "pct" }),
+  // Enemy defense down
+  ...tiers("break-armor", "\u7834\u7532", "\u30D6\u30EC\u30A4\u30AF\u30A2\u30FC\u30DE\u30FC", [1, 2, 3], "battle", { kind: "defense", target: "enemy" }),
+  s("armor-pierce", "\u93A7\u901A", "\u93A7\u901A\u3057", 5, "battle", { kind: "defense", target: "enemy" }, 8),
+  // Colour advantage
+  s("balance-art", "\u5929\u79E4\u6B66\u6280", "\u5929\u79E4\u306E\u6B66\u6280", 1, "battle", { kind: "element", mode: "balance" }, 0),
+  s("surpass-art", "\u51CC\u99D5\u6B66\u6280", "\u51CC\u99D5\u306E\u6B66\u6280", 1, "battle", { kind: "element", mode: "surpass" }, 0),
+  s("slump-art", "\u4E0D\u8ABF\u6B66\u6280", "\u4E0D\u8ABF\u306E\u6B66\u6280", 1, "battle", { kind: "element", mode: "slump" }, 0),
+  // Hand
+  s("distant-bond", "\u9059\u9060\u7684\u7F88\u7D46", "\u9060\u3044\u7D46", 1, "leader", { kind: "discard", redraw: true }, 1),
+  s("reinforcements", "\u63F4\u8ECD", "\u63F4\u8ECD", 3, "leader", { kind: "discard", redraw: true }, 1),
+  s("decoy", "\u8A98\u990C", "\u304A\u3068\u308A", 3, "leader", { kind: "discard", redraw: false }, 1),
+  ...tiers("elitism", "\u9078\u6C11\u4E3B\u7FA9", "\u9078\u6C11\u4E3B\u7FA9", [1, 1, 1], "leader", { kind: "elitism" }, [1, 3, 5]),
+  // Chain draws
+  s("snatch", "\u6436\u596A", "\u3088\u3053\u3069\u308A", 1, "leader", { kind: "draws", target: "enemy" }, 1),
+  s("pincer", "\u633E\u64CA", "\u631F\u6483", 3, "leader", { kind: "draws", target: "enemy" }, 1),
+  s("encircle", "\u5305\u570D\u7DB2", "\u5305\u56F2\u7DB2", 5, "leader", { kind: "draws", target: "enemy" }, 1),
+  s("friend-mail", "\u597D\u53CB\u4FE1\u4EF6", "\u30D5\u30EC\u30F3\u30C9\u30E1\u30FC\u30EB", 3, "leader", { kind: "draws", target: "self" }, 1),
+  s("friend-call", "\u597D\u53CB\u4F86\u96FB", "\u30D5\u30EC\u30F3\u30C9\u30B3\u30FC\u30EB", 5, "leader", { kind: "draws", target: "self" }, 1),
+  // Chain board
+  s("joint-fight", "\u5171\u9B25", "\u5171\u95D8", 3, "battle", { kind: "board", colour: "other" }, 30),
+  s("alliance", "\u540C\u76DF", "\u540C\u76DF", 3, "battle", { kind: "board", colour: "other" }, 50),
+  s("hometown", "\u540C\u9109\u4E4B\u53CB", "\u540C\u90F7\u306E\u53CB", 3, "battle", { kind: "board", colour: "same" }, 10),
+  s("compatriot", "\u540C\u570B\u4E4B\u53CB", "\u540C\u56FD\u306E\u53CB", 3, "battle", { kind: "board", colour: "same" }, 20),
+  // Shuffles
+  s("regroup", "\u968A\u4F0D\u91CD\u7DE8", "PT\u518D\u7DE8\u6210", 1, "leader", { kind: "shuffle", target: "self", scope: "hand" }, 0),
+  s("shuffle", "\u6D17\u724C", "\u30B7\u30E3\u30C3\u30D5\u30EB", 1, "leader", { kind: "shuffle", target: "self", scope: "all" }, 0),
+  s("disrupt", "\u64FE\u4E82", "\u304B\u304F\u4E71", 1, "leader", { kind: "shuffle", target: "enemy", scope: "hand" }, 0),
+  s("strategy-crush", "\u6230\u7565\u7C89\u788E", "\u6226\u7565\u6F70\u3057", 1, "leader", { kind: "shuffle", target: "enemy", scope: "all" }, 0),
+  s("havoc", "\u5927\u7834\u58DE", "\u3076\u3061\u3053\u308F\u3057", 1, "leader", { kind: "shuffle", target: "both", scope: "all" }, 0),
+  // Charge
+  ...tiers("purge", "\u8085\u6E05", "\u7C9B\u6E05", [1, 1, 1], "leader", { kind: "purge" }, [1, 3, 5]),
+  s("regal", "\u738B\u8005\u98A8\u7BC4", "\u738B\u8005\u306E\u98A8\u683C", 1, "leader", { kind: "charge", types: ALL_TYPES }, 0),
+  s("curse-support", "\u5492\u7D0B\u652F\u63F4", "\u546A\u7D0B\u652F\u63F4", 1, "leader", { kind: "charge", types: ["magic"] }, 0),
+  s("steel-charge", "\u92FC\u5203\u7A81\u64CA", "\u92FC\u5203\u7A81\u6483", 1, "leader", { kind: "charge", types: ["heavy"] }, 0),
+  s("twin-blade", "\u96D9\u5203\u4ECB\u5165", "\u53CC\u5203\u4ECB\u5165", 1, "leader", { kind: "charge", types: ["light"] }, 0),
+  // Counters
+  s("shield", "\u8B77\u76FE", "\u30B7\u30FC\u30EB\u30C9", 1, "leader", { kind: "shield" }, 0),
+  s("mimic", "\u6A21\u4EFF", "\u3082\u306E\u307E\u306D", 3, "leader", { kind: "mimic" }, 0)
+];
+var SKILL_BY_ID = new Map(SKILLS.map((k) => [k.id, k]));
+function skillOf(id) {
+  const skill = SKILL_BY_ID.get(id);
+  if (!skill) throw new Error(`unknown skill ${id}`);
+  return skill;
+}
+var clampSkillLevel = (skill, level) => Math.max(1, Math.min(skill.maxLevel, Math.floor(level)));
+var skillValue = (skill, level) => skill.perLevel ? skill.value * clampSkillLevel(skill, level) : skill.value;
+var cardMaxLevel = (card) => card.skill ? skillOf(card.skill).maxLevel : 1;
+
 var RULES_V0 = {
-  ruleVersion: "0.5.0-draft",
+  ruleVersion: "0.6.0-draft",
   rng: "sfc32",
   deckSize: 32,
   slotSize: 8,
@@ -87,18 +195,90 @@ function deckCardIds(deck) {
 }
 
 var TYPE_LABEL = { heavy: "\u91CD\u88DD", light: "\u8F15\u88DD", magic: "\u9B54\u88DD" };
-var PER_TYPE = 16;
+var TYPES = ["heavy", "light", "magic"];
 var placeholderCardId = (type, n) => `ph-${type}-${String(n).padStart(2, "0")}`;
-var TYPE_OFFSET = { heavy: 0, light: 5, magic: 11 };
-var PLACEHOLDER_CARDS = ["heavy", "light", "magic"].flatMap(
-  (type) => Array.from({ length: PER_TYPE }, (_, i) => ({
-    id: placeholderCardId(type, i + 1),
-    name: `${TYPE_LABEL[type]}\u8A66\u4F5C ${String(i + 1).padStart(2, "0")}`,
+var SKILL_RARITY = {
+  ranbu: "SR+",
+  swift: "R",
+  rengeki: "R",
+  assault: "SR",
+  pursuit: "R+",
+  "far-gaze": "N+",
+  mikiri: "R",
+  "mind-eye": "SR",
+  "iron-fist": "R",
+  "gift-of-power": "R+",
+  "soul-breath": "SR+",
+  reckless: "SR",
+  "belly-laugh": "R",
+  disarm: "R+",
+  "arms-curse": "SR+",
+  scout: "R",
+  "silver-crown": "SR",
+  watchful: "R",
+  "soul-armor": "SR",
+  paw: "R",
+  "high-heal": "SR",
+  prank: "R",
+  "jump-the-gun": "SR",
+  "last-stand": "SR+",
+  "war-hammer": "SR+",
+  "armor-pierce": "SR",
+  "balance-art": "R+",
+  "surpass-art": "SR",
+  "slump-art": "R",
+  "distant-bond": "N",
+  reinforcements: "R",
+  decoy: "N+",
+  snatch: "N+",
+  pincer: "R+",
+  encircle: "SR",
+  "friend-mail": "R",
+  "friend-call": "SR",
+  "joint-fight": "R+",
+  alliance: "SR",
+  hometown: "N+",
+  compatriot: "R",
+  regroup: "N+",
+  shuffle: "R",
+  disrupt: "R+",
+  "strategy-crush": "SR",
+  havoc: "SR+",
+  regal: "SR+",
+  "curse-support": "R",
+  "steel-charge": "R",
+  "twin-blade": "R",
+  shield: "SR",
+  mimic: "SR+"
+};
+var TIER_RARITY = ["N", "N+", "R+", "SR"];
+function placeholderRarity(skillId) {
+  const tier = /-(\d)$/.exec(skillId);
+  return SKILL_RARITY[skillId] ?? TIER_RARITY[Number(tier?.[1] ?? 1) - 1];
+}
+var ATTACK_RANGE = {
+  N: [30, 45],
+  "N+": [35, 55],
+  R: [45, 65],
+  "R+": [50, 72],
+  SR: [60, 85],
+  "SR+": [70, 100]
+};
+var PLACEHOLDER_CARDS = SKILLS.map((skill, i) => {
+  const type = TYPES[i % TYPES.length];
+  const n = Math.floor(i / TYPES.length) + 1;
+  const rarity = placeholderRarity(skill.id);
+  const [low, high] = ATTACK_RANGE[rarity];
+  return {
+    id: placeholderCardId(type, n),
+    name: `${TYPE_LABEL[type]}\u8A66\u4F5C ${String(n).padStart(2, "0")}`,
     type,
-    // Spread across 40–100 so hands differ; not balanced.
-    attack: 40 + (i + TYPE_OFFSET[type]) * 37 % 61
-  }))
-);
+    // Spread across the rarity's range so hands differ; not balanced.
+    attack: low + i * 37 % (high - low + 1),
+    rarity,
+    skill: skill.id
+  };
+});
 var range = (type, from, to) => Array.from({ length: to - from + 1 }, (_, i) => placeholderCardId(type, from + i));
 var PLACEHOLDER_DEFAULT_DECK = {
   heavy: range("heavy", 1, 8),
@@ -106,9 +286,10 @@ var PLACEHOLDER_DEFAULT_DECK = {
   magic: range("magic", 1, 8),
   free: [...range("heavy", 9, 11), ...range("light", 9, 11), ...range("magic", 9, 10)]
 };
+var RARITY_WEIGHT = { N: 12, "N+": 8, R: 5, "R+": 3, SR: 2, "SR+": 1 };
 var PLACEHOLDER_POOL = {
-  id: "pool-v0",
-  entries: PLACEHOLDER_CARDS.map((c) => ({ id: c.id, weight: 1 }))
+  id: "pool-v1",
+  entries: PLACEHOLDER_CARDS.map((c) => ({ id: c.id, weight: RARITY_WEIGHT[c.rarity] }))
 };
 var ITEM_LABEL = { armor: "\u9632\u5177", weapon: "\u6B66\u5668", gear: "\u98FE\u54C1" };
 var PER_KIND = 6;
@@ -119,7 +300,7 @@ var PLACEHOLDER_ITEMS = ["armor", "weapon", "gear"].flatMap(
     name: i === 0 ? `\u898B\u7FD2${ITEM_LABEL[kind]}` : `${ITEM_LABEL[kind]}\u8A66\u4F5C ${String(i + 1).padStart(2, "0")}`,
     kind,
     attack: kind === "weapon" ? 10 * (i + 1) : 0,
-    defense: kind === "armor" ? 20 + 3 * i : 0
+    defense: kind === "armor" ? 14 + 3 * i : 0
   }))
 );
 var PLACEHOLDER_STARTER_LOADOUT = {
@@ -133,10 +314,10 @@ var PLACEHOLDER_ITEM_POOL = {
 };
 
 var DRAWS_PER_TICKET = 10;
-var SHARDS_PER_LEVEL = 5;
 var TICKET_TIME_ZONE = "Asia/Taipei";
 var STARTING_TICKETS = 1;
-function applyPull(collection, id) {
+var levelsOf = (collection) => Object.fromEntries(Object.entries(collection).map(([id, owned]) => [id, owned.level]));
+function applyPull(collection, id, maxLevel = Number.POSITIVE_INFINITY) {
   const owned = collection[id];
   if (!owned) {
     const fresh = { level: 1, shards: 0 };
@@ -146,32 +327,30 @@ function applyPull(collection, id) {
     };
   }
   let { level, shards } = owned;
-  shards += 1;
-  const leveledUp = shards >= SHARDS_PER_LEVEL;
-  if (leveledUp) {
-    level += 1;
-    shards -= SHARDS_PER_LEVEL;
-  }
+  const leveledUp = level < maxLevel;
+  if (leveledUp) level += 1;
+  else shards += 1;
   return {
     collection: { ...collection, [id]: { level, shards } },
     result: { id, isNew: false, level, shards, leveledUp }
   };
 }
 function pickFromPool(pool, rng) {
-  const total = pool.entries.reduce((sum, e) => sum + e.weight, 0);
-  if (!Number.isInteger(total) || total <= 0) throw new Error(`pool ${pool.id} has invalid total weight ${total}`);
-  let roll = rng.nextInt(total);
+  const total2 = pool.entries.reduce((sum, e) => sum + e.weight, 0);
+  if (!Number.isInteger(total2) || total2 <= 0) throw new Error(`pool ${pool.id} has invalid total weight ${total2}`);
+  let roll = rng.nextInt(total2);
   for (const entry of pool.entries) {
     if (roll < entry.weight) return entry.id;
     roll -= entry.weight;
   }
   throw new Error("unreachable: roll exceeded total weight");
 }
-function drawTen(collection, pool, rng) {
+function drawTen(collection, pool, rng, maxLevelOf = () => Number.POSITIVE_INFINITY) {
   const results = [];
   let current = collection;
   for (let i = 0; i < DRAWS_PER_TICKET; i++) {
-    const applied = applyPull(current, pickFromPool(pool, rng));
+    const id = pickFromPool(pool, rng);
+    const applied = applyPull(current, id, maxLevelOf(id));
     current = applied.collection;
     results.push(applied.result);
   }
@@ -198,10 +377,18 @@ function validateLoadout(loadout, items, owned) {
   }
   return errors;
 }
-function resolveEquipment(loadout, items) {
+var ITEM_MAX_LEVEL = 10;
+var ITEM_LEVEL_PERCENT = 10;
+function leveledItem(item, level) {
+  const lv = Math.max(1, Math.min(ITEM_MAX_LEVEL, Math.floor(level)));
+  const scale = (n) => Math.floor(n * (100 + ITEM_LEVEL_PERCENT * (lv - 1)) / 100);
+  return { ...item, attack: scale(item.attack), defense: scale(item.defense) };
+}
+function resolveEquipment(loadout, items, levels = {}) {
   const get = (slot) => {
     const id = loadout[slot];
-    return id === null ? null : items.get(id) ?? null;
+    const item = id === null ? void 0 : items.get(id);
+    return item ? leveledItem(item, levels[item.id] ?? 1) : null;
   };
   return { armor: get("armor"), weapon: get("weapon"), gear: get("gear") };
 }
@@ -215,6 +402,7 @@ function startBattle(seed, challenger, defender, rules) {
   const side = (setup) => ({
     hp: rules.startingHp,
     equipment: setup.equipment,
+    levels: setup.levels ?? {},
     drawPile: shuffle(setup.deck, rng),
     hand: [],
     discard: [],
@@ -234,12 +422,12 @@ function startBattle(seed, challenger, defender, rules) {
 function refill(state, rules) {
   const sides = { ...state.sides };
   for (const id of SIDES) {
-    const s = sides[id];
-    const count = Math.max(0, Math.min(rules.handSize - s.hand.length, s.drawPile.length));
-    const drawPile = s.drawPile.slice(count);
+    const s2 = sides[id];
+    const count = Math.max(0, Math.min(rules.handSize - s2.hand.length, s2.drawPile.length));
+    const drawPile = s2.drawPile.slice(count);
     sides[id] = {
-      ...s,
-      hand: [...s.hand, ...s.drawPile.slice(0, count)],
+      ...s2,
+      hand: [...s2.hand, ...s2.drawPile.slice(0, count)],
       drawPile,
       ranOut: drawPile.length === 0
     };
@@ -254,7 +442,17 @@ function cardOf(cards, id) {
 }
 var perMille = (n) => Math.round(n * 1e3);
 var sumAttack = (ids, cards) => ids.reduce((sum, id) => sum + cardOf(cards, id).attack, 0);
-var comboFor = (count, rules) => rules.comboMultipliers[Math.min(count, rules.comboMultipliers.length) - 1];
+var comboFor = (count, rules) => rules.comboMultipliers[Math.max(1, Math.min(count, rules.comboMultipliers.length)) - 1];
+function cardSkill(card, levels) {
+  const skill = card.skill ? SKILL_BY_ID.get(card.skill) : void 0;
+  return skill ? { skill, level: clampSkillLevel(skill, levels[card.id] ?? 1) } : null;
+}
+function chargeTypes(leader, levels = {}) {
+  const types = /* @__PURE__ */ new Set([leader.type]);
+  const effect = cardSkill(leader, levels)?.skill.effect;
+  if (effect?.kind === "charge") for (const t of effect.types) types.add(t);
+  return types;
+}
 var requiredPicks = (hand, rules) => Math.min(rules.maxSelected, hand.length);
 function validateSelection(hand, selection, rules) {
   if (!hand.includes(selection.leader)) return "LEADER_NOT_IN_HAND";
@@ -264,10 +462,9 @@ function validateSelection(hand, selection, rules) {
   if (selection.supports.some((id) => !hand.includes(id))) return "SUPPORT_NOT_IN_HAND";
   return null;
 }
-function previewAttack(selected, cards, rules) {
+function previewAttack(selected, cards, rules, counts = new Set(selected.length ? [cardOf(cards, selected[0]).type] : [])) {
   if (selected.length === 0) return 0;
-  const colour = cardOf(cards, selected[0]).type;
-  const counted = selected.filter((id) => cardOf(cards, id).type === colour);
+  const counted = selected.filter((id) => counts.has(cardOf(cards, id).type));
   return Math.floor(sumAttack(counted, cards) * perMille(comboFor(counted.length, rules)) / 1e3);
 }
 function aiSelect(hand, cards, rules) {
@@ -284,34 +481,41 @@ function aiSelect(hand, cards, rules) {
   const [leader, ...supports] = [...chosen, ...fillers];
   return { leader, supports };
 }
-function runChain(side, picks, cards, rules) {
-  const leaderType = cardOf(cards, picks[0]).type;
+function runChain(side, picks, cards, rules, options) {
   const drawPile = [...side.drawPile];
   const chain = [{ card: picks[0], from: "pick", counted: true }];
   const queue = picks.slice(1).map((card) => ({ card, from: "pick" }));
+  const spaces = rules.maxSelected - 1;
   let blocks = 0;
   let countedDraws = 0;
   let waitingDraws = 0;
+  let purge = options.purge;
+  const draw = () => {
+    if (drawPile.length > 0 && countedDraws + waitingDraws < options.drawLimit) {
+      queue.push({ card: drawPile.shift(), from: "draw" });
+      waitingDraws++;
+    }
+  };
   for (let step = queue.shift(); step; step = queue.shift()) {
     if (step.from === "draw") waitingDraws--;
-    const counted = cardOf(cards, step.card).type === leaderType;
+    const counted = options.counts.has(cardOf(cards, step.card).type);
     if (!counted) blocks++;
     else if (step.from === "draw") countedDraws++;
     chain.push({ ...step, counted });
-    if (counted && drawPile.length > 0 && countedDraws + waitingDraws < rules.maxChainDraws) {
-      queue.push({ card: drawPile.shift(), from: "draw" });
-      waitingDraws++;
+    if (counted) draw();
+    else if (blocks === spaces && purge > 0) {
+      for (const blocker of chain.filter((s2) => !s2.counted && !s2.purged).slice(0, purge)) {
+        blocker.purged = true;
+        blocks--;
+        draw();
+      }
+      purge = 0;
     }
   }
   return {
     chain,
     blocks,
-    side: {
-      ...side,
-      drawPile,
-      hand: side.hand.filter((id) => !picks.includes(id)),
-      discard: [...side.discard, ...chain.map((s) => s.card)]
-    }
+    side: { ...side, drawPile, discard: [...side.discard, ...chain.map((s2) => s2.card)] }
   };
 }
 function reshuffle(side, rng) {
@@ -322,6 +526,52 @@ function reshuffle(side, rng) {
     discard: []
   };
 }
+function returnAndRedraw(side, back, rng, withDiscard = false) {
+  if (back.length === 0 && !withDiscard) return side;
+  const drawPile = shuffle([...side.drawPile, ...back, ...withDiscard ? side.discard : []], rng);
+  return {
+    ...side,
+    hand: [...side.hand.filter((id) => !back.includes(id)), ...drawPile.slice(0, back.length)],
+    drawPile: drawPile.slice(back.length),
+    discard: withDiscard ? [] : side.discard
+  };
+}
+function discardOrder(hand, leaderType, cards) {
+  const key = (id) => [cardOf(cards, id).type === leaderType ? 1 : 0, cardOf(cards, id).attack];
+  return [...hand].sort((a, b) => {
+    const [ka, kb] = [key(a), key(b)];
+    return ka[0] - kb[0] || ka[1] - kb[1] || a.localeCompare(b);
+  });
+}
+function settleSkills(leaders, sides) {
+  const own = {
+    challenger: cardSkill(leaders.challenger, sides.challenger.levels),
+    defender: cardSkill(leaders.defender, sides.defender.levels)
+  };
+  const kind = (id) => own[id]?.skill.effect.kind;
+  const settled = {};
+  for (const id of SIDES) {
+    const mine = own[id];
+    if (!mine) {
+      settled[id] = null;
+      continue;
+    }
+    const blocked = kind(other(id)) === "shield" && kind(id) !== "shield";
+    const theirs = own[other(id)];
+    if (!blocked && mine.skill.effect.kind === "mimic" && theirs && !["mimic", "shield"].includes(theirs.skill.effect.kind)) {
+      const level = clampSkillLevel(theirs.skill, mine.level);
+      settled[id] = { skill: theirs.skill, level, use: { id: theirs.skill.id, level, via: mine.skill.id, blocked } };
+    } else {
+      settled[id] = { ...mine, use: { id: mine.skill.id, level: mine.level, blocked } };
+    }
+  }
+  return settled;
+}
+function total(active, match) {
+  if (!active || active.use.blocked || !match(active.skill.effect)) return 0;
+  return skillValue(active.skill, active.level);
+}
+var effectOf = (active) => active && !active.use.blocked ? active.skill.effect : null;
 function resolvePhase(state, selection, cards, rules) {
   if (state.status !== "active") throw new Error("battle is over");
   if (state.ruleVersion !== rules.ruleVersion) throw new Error(`rule version mismatch: ${state.ruleVersion}`);
@@ -341,52 +591,158 @@ function resolvePhase(state, selection, cards, rules) {
       challenger: [selection.leader, ...selection.supports],
       defender: [ai.leader, ...ai.supports]
     };
-    const leaderTypes = {
-      challenger: cardOf(cards, selection.leader).type,
-      defender: cardOf(cards, ai.leader).type
+    const leaders = {
+      challenger: cardOf(cards, selection.leader),
+      defender: cardOf(cards, ai.leader)
     };
-    const resolveSide = (id) => {
-      const run = runChain(sides[id], picks[id], cards, rules);
-      sides[id] = run.side;
-      const played = run.chain.filter((s) => s.counted).map((s) => s.card);
-      const combo = comboFor(played.length, rules);
-      const advantage = rules.beats[leaderTypes[id]] === leaderTypes[other(id)];
+    for (const id of SIDES) sides[id] = { ...sides[id], hand: sides[id].hand.filter((c2) => !picks[id].includes(c2)) };
+    const active = settleSkills(leaders, sides);
+    for (const id of SIDES) {
+      const effect = effectOf(active[id]);
+      if (!effect) continue;
+      const value = skillValue(active[id].skill, active[id].level);
+      const leaderType = leaders[id].type;
+      if (effect.kind === "discard") {
+        const out = discardOrder(sides[id].hand, leaderType, cards).slice(0, value);
+        const s2 = sides[id];
+        const drawn = effect.redraw ? s2.drawPile.slice(0, out.length) : [];
+        sides[id] = {
+          ...s2,
+          hand: [...s2.hand.filter((c2) => !out.includes(c2)), ...drawn],
+          drawPile: s2.drawPile.slice(drawn.length),
+          discard: [...s2.discard, ...out]
+        };
+      } else if (effect.kind === "elitism") {
+        const back = sides[id].hand.filter((c2) => cardOf(cards, c2).type !== leaderType).slice(0, value);
+        sides[id] = returnAndRedraw(sides[id], back, rng);
+      } else if (effect.kind === "shuffle") {
+        const targets = effect.target === "both" ? SIDES : [effect.target === "self" ? id : other(id)];
+        for (const t of targets) sides[t] = returnAndRedraw(sides[t], sides[t].hand, rng, effect.scope === "all");
+      }
+    }
+    const chains = {};
+    for (const id of SIDES) {
+      const drawLimit = Math.max(
+        0,
+        rules.maxChainDraws + total(active[id], (e) => e.kind === "draws" && e.target === "self") - total(active[other(id)], (e) => e.kind === "draws" && e.target === "enemy")
+      );
+      const counts = /* @__PURE__ */ new Set([leaders[id].type]);
+      const charge = effectOf(active[id]);
+      if (charge?.kind === "charge") for (const t of charge.types) counts.add(t);
+      chains[id] = runChain(sides[id], picks[id], cards, rules, {
+        counts,
+        drawLimit,
+        purge: total(active[id], (e) => e.kind === "purge")
+      });
+      sides[id] = chains[id].side;
+    }
+    const advantage = {};
+    for (const id of SIDES) {
+      advantage[id] = rules.beats[leaders[id].type] === leaders[other(id)].type ? rules.advantageMultiplier : 1;
+    }
+    const element = (id) => {
+      const e = effectOf(active[id]);
+      return e?.kind === "element" ? e.mode : null;
+    };
+    if (SIDES.some((id) => element(id) === "balance")) for (const id of SIDES) advantage[id] = 1;
+    for (const id of SIDES) if (element(id) === "surpass") advantage[id] = rules.advantageMultiplier;
+    for (const id of SIDES) if (element(id) === "slump" && advantage[other(id)] > 1) advantage[other(id)] = 1;
+    const results = {};
+    const hp = { challenger: sides.challenger.hp, defender: sides.defender.hp };
+    const hpDamageTaken = { challenger: 0, defender: 0 };
+    for (const id of SIDES) {
+      const mine = active[id];
+      const theirs = active[other(id)];
+      const { chain, blocks } = chains[id];
+      const played = chain.filter((s2) => s2.counted).map((s2) => s2.card);
+      const comboCount = Math.max(
+        1,
+        Math.min(
+          rules.comboMultipliers.length,
+          played.length + total(mine, (e) => e.kind === "combo" && e.target === "self") - total(theirs, (e) => e.kind === "combo" && e.target === "enemy")
+        )
+      );
+      const combo = comboFor(comboCount, rules);
       const baseAttack = sumAttack(played, cards);
-      const multiplier = perMille(combo) * (advantage ? perMille(rules.advantageMultiplier) : 1e3);
       const weaponAttack = weaponAttackOf(sides[id].equipment);
-      return {
+      const chainAttack = Math.floor(baseAttack * perMille(combo) * perMille(advantage[id]) / 1e6) + weaponAttack;
+      const hpCostEffect = effectOf(mine);
+      const hpCost = hpCostEffect?.kind === "hpCost" ? skillValue(mine.skill, mine.level) : 0;
+      const ratio = hpCostEffect?.kind === "hpCost" ? hpCostEffect.ratio : 0;
+      const percent = total(mine, (e) => e.kind === "power" && e.target === "self" && e.unit === "pct" || e.kind === "reckless") - total(theirs, (e) => e.kind === "power" && e.target === "enemy" && e.unit === "pct");
+      const flat = total(mine, (e) => e.kind === "power" && e.target === "self" && e.unit === "flat") - total(theirs, (e) => e.kind === "power" && e.target === "enemy" && e.unit === "flat") + total(mine, (e) => e.kind === "board" && e.colour === "same") * (played.length - 1) + total(mine, (e) => e.kind === "board" && e.colour === "other") * blocks + Math.floor(hpCost * ratio);
+      const attack = Math.max(0, Math.floor(chainAttack * (100 + percent) / 100) + flat);
+      const defensePercent = total(mine, (e) => e.kind === "defense" && e.target === "self") - Math.floor(total(mine, (e) => e.kind === "reckless") / 4) - total(theirs, (e) => e.kind === "defense" && e.target === "enemy");
+      const defense = Math.max(0, Math.floor(defenseOf(sides[id].equipment) * (100 + defensePercent) / 100));
+      const heal = total(mine, (e) => e.kind === "heal" && e.unit === "flat") + Math.floor(rules.startingHp * total(mine, (e) => e.kind === "heal" && e.unit === "pct") / 100);
+      const before = hp[id];
+      hp[id] = Math.min(rules.startingHp, hp[id] + heal);
+      const healed = hp[id] - before;
+      const paid = Math.min(hpCost, hp[id] - 1);
+      hp[id] -= paid;
+      const enemy = other(id);
+      const hit = total(mine, (e) => e.kind === "hpDamage" && e.unit === "flat") + Math.floor(hp[enemy] * total(mine, (e) => e.kind === "hpDamage" && e.unit === "pct") / 100);
+      const dealt = Math.min(hit, hp[enemy] - 1);
+      hp[enemy] -= dealt;
+      hpDamageTaken[enemy] += dealt;
+      results[id] = {
         played,
-        chain: run.chain,
-        blocks: run.blocks,
-        leaderType: leaderTypes[id],
+        chain,
+        blocks,
+        leaderType: leaders[id].type,
+        skill: mine?.use ?? null,
         baseAttack,
+        comboCount,
         combo,
-        advantage,
+        advantageMultiplier: advantage[id],
+        advantage: advantage[id] > 1,
         weaponAttack,
-        attack: Math.floor(baseAttack * multiplier / 1e6) + weaponAttack,
+        skillAttack: attack - chainAttack,
+        attack,
+        defense,
+        healed,
+        hpCost: paid,
+        hpDamageTaken: 0,
         ranOut: false
       };
-    };
-    sideResults = { challenger: resolveSide("challenger"), defender: resolveSide("defender") };
+    }
+    for (const id of SIDES) {
+      results[id].hpDamageTaken = hpDamageTaken[id];
+      sides[id] = { ...sides[id], hp: hp[id] };
+    }
+    sideResults = results;
     const { challenger: c, defender: d } = sideResults;
     if (c.attack !== d.attack) {
       winner = c.attack > d.attack ? "challenger" : "defender";
-      damage = Math.max(0, sideResults[winner].attack - defenseOf(sides[other(winner)].equipment));
+      const loser = other(winner);
+      const raw = Math.max(0, sideResults[winner].attack - sideResults[loser].defense);
+      damage = Math.max(
+        0,
+        raw + total(active[winner], (e) => e.kind === "finalDamage" && e.unit === "flat") + Math.floor(raw * total(active[winner], (e) => e.kind === "finalDamage" && e.unit === "pct") / 100) - total(active[loser], (e) => e.kind === "guard")
+      );
     }
   } else {
     const deckOut = (id) => {
       const weaponAttack = weaponAttackOf(sides[id].equipment);
-      const total = sumAttack(sides[id].hand, cards);
+      const sum = sumAttack(sides[id].hand, cards);
       return {
         played: sides[id].hand,
         chain: [],
         blocks: 0,
         leaderType: null,
-        baseAttack: total,
+        skill: null,
+        baseAttack: sum,
+        comboCount: 1,
         combo: 1,
+        advantageMultiplier: 1,
         advantage: false,
         weaponAttack,
-        attack: total + weaponAttack,
+        skillAttack: 0,
+        attack: sum + weaponAttack,
+        defense: defenseOf(sides[id].equipment),
+        healed: 0,
+        hpCost: 0,
+        hpDamageTaken: 0,
         ranOut: sides[id].ranOut
       };
     };
@@ -400,8 +756,13 @@ function resolvePhase(state, selection, cards, rules) {
       const { challenger: c, defender: d } = sideResults;
       if (c.attack !== d.attack) {
         winner = c.attack > d.attack ? "challenger" : "defender";
-        damage = Math.max(0, sideResults[winner].attack - defenseOf(sides[other(winner)].equipment));
+        damage = Math.max(0, sideResults[winner].attack - sideResults[other(winner)].defense);
       }
+    }
+    if (winner) {
+      const guard = finalBlowGuard(sides[other(winner)], cards, damage);
+      damage -= guard.amount;
+      if (guard.card) sideResults[other(winner)].skill = guard.card;
     }
     for (const id of out) sides[id] = reshuffle(sides[id], rng);
     reshuffled.push(...out);
@@ -427,11 +788,24 @@ function resolvePhase(state, selection, cards, rules) {
     }
   };
 }
+function finalBlowGuard(side, cards, damage) {
+  let best = { amount: 0, card: null };
+  for (const id of side.hand) {
+    const found = cardSkill(cardOf(cards, id), side.levels);
+    if (!found || found.skill.effect.kind !== "finalBlowGuard") continue;
+    const value = skillValue(found.skill, found.level);
+    const amount = Math.min(damage, found.skill.effect.unit === "flat" ? value : Math.floor(damage * value / 100));
+    if (amount > best.amount) best = { amount, card: { id: found.skill.id, level: found.level, blocked: false } };
+  }
+  return best;
+}
 export {
   AI_STRATEGY_VERSION,
   DECK_SLOTS,
   DRAWS_PER_TICKET,
   ITEM_KINDS,
+  ITEM_LEVEL_PERCENT,
+  ITEM_MAX_LEVEL,
   NO_EQUIPMENT,
   PLACEHOLDER_CARDS,
   PLACEHOLDER_DEFAULT_DECK,
@@ -439,26 +813,38 @@ export {
   PLACEHOLDER_ITEM_POOL,
   PLACEHOLDER_POOL,
   PLACEHOLDER_STARTER_LOADOUT,
+  RARITIES,
+  RARITY_WEIGHT,
   RULES_V0,
-  SHARDS_PER_LEVEL,
   SIDES,
+  SKILLS,
+  SKILL_BY_ID,
   STARTING_TICKETS,
   TICKET_TIME_ZONE,
   aiSelect,
   applyPull,
+  cardMaxLevel,
+  cardSkill,
+  chargeTypes,
+  clampSkillLevel,
   createRng,
   daysBetween,
   deckCardIds,
   defenseOf,
   drawTen,
+  leveledItem,
+  levelsOf,
   pickFromPool,
   placeholderCardId,
+  placeholderRarity,
   previewAttack,
   requiredPicks,
   resolveEquipment,
   resolvePhase,
   restoreRng,
   shuffle,
+  skillOf,
+  skillValue,
   startBattle,
   taipeiDate,
   validateDeck,

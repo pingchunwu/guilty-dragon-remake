@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { PullResult } from "@gdr/engine";
+import { ITEM_MAX_LEVEL, type PullResult } from "@gdr/engine";
 import type { Content } from "../game/content";
 import { GameError, type GameService, type PlayerState } from "../game/types";
 import { errorText } from "../game/text";
@@ -18,7 +18,7 @@ interface Props {
 
 function badge(r: PullResult): string {
   if (r.isNew) return "NEW";
-  return r.leveledUp ? `升級 Lv ${r.level}` : "碎片 +1";
+  return r.leveledUp ? `升級 Lv ${r.level}` : "已滿級";
 }
 
 export function Gacha({ content: { cards, items }, service, state, onState }: Props) {
@@ -76,7 +76,7 @@ export function Gacha({ content: { cards, items }, service, state, onState }: Pr
           <strong className="big">{state.tickets}</strong>
         </div>
         <p className="muted small">
-          每天（台北時間）獲得 1 張，可累積；卡片和裝備共用。1 張券進行 10 抽；重複的轉為碎片，5 片升 1 級。
+          每天（台北時間）獲得 1 張，可累積；卡片和裝備共用。1 張券進行 10 抽；每抽到重複的就升 1 級（卡片升的是技能等級，上限依技能；裝備每級 +10%，上限 Lv {ITEM_MAX_LEVEL}）。
         </p>
         <button type="button" className="primary" disabled={busy || (state.tickets < 1 && !pendingKey)} onClick={draw}>
           {busy ? "抽卡中…" : `${pendingKey ? "重試" : ""}${KIND_LABEL[kind]}十連抽${pendingKey ? "" : "（消耗 1 張）"}`}

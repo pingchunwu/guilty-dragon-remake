@@ -395,3 +395,26 @@ p.error {
   opacity: 0.45;
   text-decoration: line-through;
 }
+
+.card-rarity {
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.card-skill {
+  font-size: 0.72rem;
+  color: var(--accent);
+}
+
+.tag-skill {
+  font-weight: 600;
+}
+
+.tag-off {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
+.chain-purged {
+  border-style: dashed;
+}

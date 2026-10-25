@@ -26,10 +26,24 @@ export function validateLoadout(loadout: Loadout, items: Items, owned?: Readonly
   return errors;
 }
 
-export function resolveEquipment(loadout: Loadout, items: Items): Equipment {
+/** Item levels stop here; later duplicates are kept as shards. */
+export const ITEM_MAX_LEVEL = 10;
+/** Each item level past 1 adds this percent of the item's base attack and defense. */
+export const ITEM_LEVEL_PERCENT = 10;
+
+/** An item's stats at a level: base × (1 + 10% per level past 1), rounded down. */
+export function leveledItem(item: ItemDefinition, level: number): ItemDefinition {
+  const lv = Math.max(1, Math.min(ITEM_MAX_LEVEL, Math.floor(level)));
+  const scale = (n: number) => Math.floor((n * (100 + ITEM_LEVEL_PERCENT * (lv - 1))) / 100);
+  return { ...item, attack: scale(item.attack), defense: scale(item.defense) };
+}
+
+/** Equipped items with their stats at the owner's item levels (level 1 when missing). */
+export function resolveEquipment(loadout: Loadout, items: Items, levels: Readonly<Record<string, number>> = {}): Equipment {
   const get = (slot: ItemKind) => {
     const id = loadout[slot];
-    return id === null ? null : (items.get(id) ?? null);
+    const item = id === null ? undefined : items.get(id);
+    return item ? leveledItem(item, levels[item.id] ?? 1) : null;
   };
   return { armor: get("armor"), weapon: get("weapon"), gear: get("gear") };
 }

@@ -155,7 +155,7 @@ describe("battles", () => {
     const secret = (await db.query<any>("select seed, snapshot, state from public.pvp_battle_secrets")).rows[0];
     const steps = (await db.query<any>("select selection from public.pvp_phases order by phase")).rows;
     const items = new Map(Object.entries<any>(secret.snapshot.items));
-    const side = (s: any) => ({ deck: s.deck, equipment: resolveEquipment(s.loadout, items) });
+    const side = (s: any) => ({ deck: s.deck, equipment: resolveEquipment(s.loadout, items, s.itemLevels), levels: s.levels });
     let state: BattleState = startBattle(secret.seed, side(secret.snapshot.challenger), side(secret.snapshot.defender), RULES_V0);
     for (const { selection } of steps) state = resolvePhase(state, selection, cards, RULES_V0).state;
     expect(state).toEqual(secret.state);

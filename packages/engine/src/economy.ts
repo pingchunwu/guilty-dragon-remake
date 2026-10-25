@@ -3,13 +3,13 @@ import type { Pool } from "./catalog";
 
 /** Confirmed economy rules. */
 export const DRAWS_PER_TICKET = 10;
-export const SHARDS_PER_LEVEL = 5;
 export const TICKET_TIME_ZONE = "Asia/Taipei";
 /** PLACEHOLDER: starting ticket count is an open decision. */
 export const STARTING_TICKETS = 1;
 
 export interface OwnedCard {
   level: number;
+  /** Duplicates pulled after reaching the level cap. */
   shards: number;
 }
 
@@ -27,12 +27,20 @@ export interface PullResult {
   leveledUp: boolean;
 }
 
+/** Card or item IDs mapped to their owned level, for battles. */
+export const levelsOf = (collection: Collection): Record<string, number> =>
+  Object.fromEntries(Object.entries(collection).map(([id, owned]) => [id, owned.level]));
+
 /**
- * Adds one pulled card or item. A new one starts at level 1; a duplicate
- * becomes one shard, and every SHARDS_PER_LEVEL shards raise it one level. No
- * level cap yet, and levels have no battle effect yet (open decisions).
+ * Adds one pulled card or item. A new one starts at level 1 and each
+ * duplicate raises it one level up to maxLevel (a card's skill max, or
+ * ITEM_MAX_LEVEL); duplicates past the cap become shards.
  */
-export function applyPull(collection: Collection, id: string): { collection: Collection; result: PullResult } {
+export function applyPull(
+  collection: Collection,
+  id: string,
+  maxLevel = Number.POSITIVE_INFINITY,
+): { collection: Collection; result: PullResult } {
   const owned = collection[id];
   if (!owned) {
     const fresh = { level: 1, shards: 0 };
@@ -42,12 +50,9 @@ export function applyPull(collection: Collection, id: string): { collection: Col
     };
   }
   let { level, shards } = owned;
-  shards += 1;
-  const leveledUp = shards >= SHARDS_PER_LEVEL;
-  if (leveledUp) {
-    level += 1;
-    shards -= SHARDS_PER_LEVEL;
-  }
+  const leveledUp = level < maxLevel;
+  if (leveledUp) level += 1;
+  else shards += 1;
   return {
     collection: { ...collection, [id]: { level, shards } },
     result: { id, isNew: false, level, shards, leveledUp },
@@ -71,11 +76,13 @@ export function drawTen(
   collection: Collection,
   pool: Pool,
   rng: Rng,
+  maxLevelOf: (id: string) => number = () => Number.POSITIVE_INFINITY,
 ): { collection: Collection; results: PullResult[] } {
   const results: PullResult[] = [];
   let current = collection;
   for (let i = 0; i < DRAWS_PER_TICKET; i++) {
-    const applied = applyPull(current, pickFromPool(pool, rng));
+    const id = pickFromPool(pool, rng);
+    const applied = applyPull(current, id, maxLevelOf(id));
     current = applied.collection;
     results.push(applied.result);
   }

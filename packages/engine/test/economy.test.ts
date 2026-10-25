@@ -30,15 +30,15 @@ describe("applyPull", () => {
     expect(result).toEqual({ id: "a", isNew: true, level: 1, shards: 0, leveledUp: false });
   });
 
-  it("turns duplicates into shards and levels up at 5", () => {
-    let collection = applyPull({}, "a").collection;
-    for (let i = 1; i <= 4; i++) {
-      const applied = applyPull(collection, "a");
+  it("levels up once per duplicate, then keeps shards at the cap", () => {
+    let collection = applyPull({}, "a", 3).collection;
+    for (const level of [2, 3]) {
+      const applied = applyPull(collection, "a", 3);
       collection = applied.collection;
-      expect(applied.result).toMatchObject({ isNew: false, level: 1, shards: i, leveledUp: false });
+      expect(applied.result).toMatchObject({ isNew: false, level, shards: 0, leveledUp: true });
     }
-    const fifth = applyPull(collection, "a");
-    expect(fifth.result).toMatchObject({ level: 2, shards: 0, leveledUp: true });
+    const capped = applyPull(collection, "a", 3);
+    expect(capped.result).toMatchObject({ level: 3, shards: 1, leveledUp: false });
   });
 });
 
@@ -48,6 +48,13 @@ describe("drawTen", () => {
     const b = drawTen({}, PLACEHOLDER_POOL, createRng([1, 2, 3, 4]));
     expect(a.results).toHaveLength(10);
     expect(a.results).toEqual(b.results);
+  });
+
+  it("caps each pulled ID at its own max level", () => {
+    const pool = { id: "t", entries: [{ id: "x", weight: 1 }] };
+    const { results } = drawTen({ x: { level: 1, shards: 0 } }, pool, createRng([1, 1, 1, 1]), () => 4);
+    expect(results.map((r) => r.level)).toEqual([2, 3, 4, 4, 4, 4, 4, 4, 4, 4]);
+    expect(results.at(-1)!.shards).toBe(7);
   });
 
   it("only draws positive-weight cards", () => {

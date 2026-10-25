@@ -106,7 +106,11 @@ export async function handle(
     const snapshot = await db.prepare(player, request.opponentId);
     const { items } = contentOf(snapshot);
     const seed = randomSeed();
-    const side = (s: SideSnapshot) => ({ deck: s.deck, equipment: resolveEquipment(s.loadout, items) });
+    const side = (s: SideSnapshot) => ({
+      deck: s.deck,
+      equipment: resolveEquipment(s.loadout, items, s.itemLevels),
+      levels: s.levels,
+    });
     const state = startBattle(seed, side(snapshot.challenger), side(snapshot.defender), RULES_V0);
     return db.create(player, request.opponentId, snapshot, seed, state);
   }
