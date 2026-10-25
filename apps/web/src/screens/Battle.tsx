@@ -5,6 +5,7 @@ import {
   RULES_V0,
   deckCardIds,
   previewAttack,
+  requiredPicks,
   resolvePhase,
   startBattle,
   type BattleState,
@@ -60,8 +61,8 @@ export function Battle({ state: player }: { state: PlayerState }) {
           </p>
           <ul className="small rules">
             <li>雙方 HP {RULES_V0.startingHp}，手牌 {RULES_V0.handSize} 張；沒出的牌留在手上，每階段補回 {RULES_V0.handSize} 張。</li>
-            <li>選一張領導卡，再選最多 4 張；不同色的卡會擋住一格。</li>
-            <li>領導卡之後每結算一張，就從牌庫抽一張接在後面：同色加入攻擊，不同色擋住一格。4 格都被擋住、抽到的卡已計入 {RULES_V0.maxChainDraws} 張、或牌庫抽完時停止。</li>
+            <li>每階段一定出 {RULES_V0.maxSelected} 張：一張領導卡，後面 {RULES_V0.maxSelected - 1} 格。</li>
+            <li>後面的卡依序結算：與領導卡同色就併入攻擊並空出那格，從牌庫抽一張補到最後；不同色就擋住那格，不抽牌。{RULES_V0.maxSelected - 1} 格都被擋住、抽到的卡已計入 {RULES_V0.maxChainDraws} 張、或牌庫抽完時停止。</li>
             <li>計入的張數越多連擊加成越高（最高 ×1.5）。</li>
             <li>重裝剋輕裝、輕裝剋魔裝、魔裝剋重裝（領導卡相剋 ×1.2）。</li>
             <li>攻擊較高的一方造成「攻擊－對方防具」傷害；相同則無傷害。</li>
@@ -80,11 +81,12 @@ export function Battle({ state: player }: { state: PlayerState }) {
   const leaderType = leader ? cards.get(leader)!.type : null;
   const preview = previewAttack(picked, cards, RULES_V0);
   const pickedCounted = picked.filter((id) => cards.get(id)!.type === leaderType).length;
+  const required = requiredPicks(me.hand, RULES_V0);
 
   function toggle(id: string) {
     if (id === leader) setPicked([]);
     else if (picked.includes(id)) setPicked(picked.filter((x) => x !== id));
-    else if (picked.length < RULES_V0.maxSelected) setPicked([...picked, id]);
+    else if (picked.length < required) setPicked([...picked, id]);
   }
 
   function play() {
@@ -153,8 +155,8 @@ export function Battle({ state: player }: { state: PlayerState }) {
           </div>
           <p className="muted small">
             {leader
-              ? `再點最多 ${RULES_V0.maxSelected - 1} 張；${TYPE_LABEL[leaderType!]}以外的卡會擋住一格。點領導卡可重選。`
-              : "點一張卡作為領導卡。"}
+              ? `再選 ${required - picked.length} 張（共 ${required} 張）；${TYPE_LABEL[leaderType!]}以外的卡會擋住一格。點領導卡可重選。`
+              : `點一張卡作為領導卡，共要出 ${required} 張。`}
           </p>
           <div className="grid compact">
             {me.hand.map((id) => {
@@ -178,7 +180,7 @@ export function Battle({ state: player }: { state: PlayerState }) {
                 ? `選牌攻擊 ${preview}（同色 ${pickedCounted} 張${picked.length > pickedCounted ? `，阻擋 ${picked.length - pickedCounted} 格` : ""}）`
                 : "尚未選牌"}
             </span>
-            <button type="button" className="primary" disabled={!leader} onClick={play}>
+            <button type="button" className="primary" disabled={picked.length !== required} onClick={play}>
               出牌
             </button>
           </div>

@@ -14,7 +14,7 @@ export interface RuleConfig {
   /** Hand size; unused cards stay in hand and the hand refills to this after each phase. */
   handSize: number;
   startingHp: number;
-  /** Leader plus picks; picks after the leader fill maxSelected − 1 chain spaces. */
+  /** Cards played each phase: the leader plus maxSelected − 1 spaces behind it. */
   maxSelected: number;
   /** At most this many chain-drawn cards can count in one phase. */
   maxChainDraws: number;
@@ -26,7 +26,7 @@ export interface RuleConfig {
 }
 
 export const RULES_V0: RuleConfig = {
-  ruleVersion: "0.3.0-draft",
+  ruleVersion: "0.4.0-draft",
   rng: "sfc32",
   deckSize: 32,
   slotSize: 8,
@@ -40,4 +40,4 @@ export const RULES_V0: RuleConfig = {
 };
 
 /** Version of the defender AI strategy in battle.ts. */
-export const AI_STRATEGY_VERSION = "0.3.0";
+export const AI_STRATEGY_VERSION = "0.4.0";

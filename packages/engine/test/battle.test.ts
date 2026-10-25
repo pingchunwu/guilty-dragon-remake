@@ -93,15 +93,19 @@ describe("startBattle", () => {
 });
 
 describe("validateSelection", () => {
-  const hand = ["h1", "h2", "l1", "m1", "m2", "m3"];
-  it("accepts picks of any colour; other colours just block", () => {
-    expect(validateSelection(hand, { leader: "h1", supports: ["h2", "l1"] }, RULES_V0)).toBeNull();
+  const hand = ["h1", "h2", "l1", "m1", "m2", "m3", "l2", "l3"];
+  it("accepts five cards of any colour; other colours just block", () => {
+    expect(validateSelection(hand, { leader: "h1", supports: ["h2", "l1", "m1", "m2"] }, RULES_V0)).toBeNull();
   });
-  it("rejects cards not in hand, duplicates and more than five cards", () => {
+  it("requires exactly five cards, or the whole hand when it is smaller", () => {
+    expect(validateSelection(hand, { leader: "h1", supports: ["h2"] }, RULES_V0)).toBe("WRONG_COUNT");
+    expect(validateSelection(hand, { leader: "h1", supports: ["h2", "l1", "m1", "m2", "m3"] }, RULES_V0)).toBe("WRONG_COUNT");
+    expect(validateSelection(["h1", "h2"], { leader: "h1", supports: ["h2"] }, RULES_V0)).toBeNull();
+  });
+  it("rejects cards not in hand and duplicates", () => {
     expect(validateSelection(hand, { leader: "zz", supports: [] }, RULES_V0)).toBe("LEADER_NOT_IN_HAND");
-    expect(validateSelection(hand, { leader: "h1", supports: ["zz"] }, RULES_V0)).toBe("SUPPORT_NOT_IN_HAND");
-    expect(validateSelection(hand, { leader: "h1", supports: ["h1"] }, RULES_V0)).toBe("DUPLICATE");
-    expect(validateSelection(hand, { leader: "h1", supports: ["h2", "l1", "m1", "m2", "m3"] }, RULES_V0)).toBe("TOO_MANY");
+    expect(validateSelection(hand, { leader: "h1", supports: ["zz", "l1", "m1", "m2"] }, RULES_V0)).toBe("SUPPORT_NOT_IN_HAND");
+    expect(validateSelection(hand, { leader: "h1", supports: ["h1", "l1", "m1", "m2"] }, RULES_V0)).toBe("DUPLICATE");
   });
 });
 
@@ -136,8 +140,8 @@ describe("attack", () => {
 });
 
 describe("chain", () => {
-  it("draws one card per resolved card after the leader, in tempo", () => {
-    // Pick red-style example: leader h1, then h2, l1 (blocks), h3. The pile runs out mid-chain.
+  it("draws a card into the row each time a same-colour card merges", () => {
+    // Leader h1, then h2, l1 (blocks, draws nothing), h3. The pile runs out mid-chain.
     const c = fixture([["h1", "heavy", 10], ["h2", "heavy", 20], ["l1", "light", 99], ["h3", "heavy", 30], ["h4", "heavy", 40], ["m1", "magic", 99], ["h5", "heavy", 50], ...quietCards]);
     const { result, state } = resolvePhase(
       stateWith(side(["h1", "h2", "l1", "h3"], ["h4", "m1", "h5"]), quietDefender()),
@@ -181,38 +185,52 @@ describe("chain", () => {
     expect(state.sides.challenger.hand).toEqual(ids("x", 9).slice(5));
   });
 
-  it("stops drawing once all four spaces are blocked; waiting draws still resolve", () => {
+  it("draws nothing when all four spaces hold other colours", () => {
     const c = fixture([["lead", "heavy", 10], ...many("l", "light", 4), ...many("x", "heavy", 9, 10), ...quietCards]);
-    const { result } = resolvePhase(
+    const { result, state } = resolvePhase(
       stateWith(side(["lead", ...ids("l", 4)], ids("x", 9)), quietDefender()),
       { leader: "lead", supports: ids("l", 4) },
       c,
       RULES_V0,
     );
     const me = result.sides.challenger;
-    // l1..l3 each draw (x1..x3); l4 is the fourth block, so no fourth draw.
-    expect(me.chain.map((s) => s.card)).toEqual(["lead", "l1", "l2", "l3", "l4", "x1", "x2", "x3"]);
+    expect(me.chain.map((s) => s.card)).toEqual(["lead", "l1", "l2", "l3", "l4"]);
     expect(me.blocks).toBe(4);
-    expect(me.played).toEqual(["lead", "x1", "x2", "x3"]);
+    expect(me.played).toEqual(["lead"]);
+    // Only the refill touched the deck: the emptied hand draws 8.
+    expect(state.sides.challenger.hand).toEqual(ids("x", 8));
+    expect(state.sides.challenger.drawPile).toEqual(["x9"]);
+  });
+
+  it("never holds more than four blockers", () => {
+    for (let i = 0; i < 50; i++) {
+      const { results } = playOut([i, 11, 22, 33]);
+      for (const r of results) for (const s of Object.values(r.sides)) expect(s.blocks).toBeLessThanOrEqual(4);
+    }
   });
 
   it("keeps unplayed cards in hand and refills only what was used", () => {
     const hand = ["a", "b", "c", "d", "e", "f", "g", "h"];
     const c = fixture([...hand.map((id) => [id, "heavy", 50] as [string, "heavy", number]), ...many("m", "magic", 10), ...quietCards]);
-    const { result, state } = resolvePhase(stateWith(side(hand, ids("m", 10)), quietDefender()), { leader: "a", supports: ["b"] }, c, RULES_V0);
-    // b draws m1; m1..m4 block and keep drawing until the fourth block.
-    expect(result.sides.challenger.chain.map((s) => s.card)).toEqual(["a", "b", "m1", "m2", "m3", "m4"]);
-    expect(state.sides.challenger.hand).toEqual(["c", "d", "e", "f", "g", "h", "m5", "m6"]);
-    expect(state.sides.challenger.discard).toEqual(["a", "b", "m1", "m2", "m3", "m4"]);
-    expect(state.sides.challenger.drawPile).toEqual(ids("m", 10).slice(6));
+    const { result, state } = resolvePhase(
+      stateWith(side(hand, ids("m", 10)), quietDefender()),
+      { leader: "a", supports: ["b", "c", "d", "e"] },
+      c,
+      RULES_V0,
+    );
+    // b..e each merge and draw m1..m4, which all block the four spaces.
+    expect(result.sides.challenger.chain.map((s) => s.card)).toEqual(["a", "b", "c", "d", "e", "m1", "m2", "m3", "m4"]);
+    expect(state.sides.challenger.hand).toEqual(["f", "g", "h", ...ids("m", 9).slice(4)]);
+    expect(state.sides.challenger.discard).toEqual(["a", "b", "c", "d", "e", "m1", "m2", "m3", "m4"]);
+    expect(state.sides.challenger.drawPile).toEqual(["m10"]);
   });
 });
 
 describe("aiSelect", () => {
-  it("plays up to five cards of its strongest colour, highest attack as leader", () => {
-    const c = fixture([["h1", "heavy", 50], ["h2", "heavy", 60], ["m1", "magic", 100], ["l1", "light", 40], ["l2", "light", 45]]);
-    // heavy: 110 × 1.1 = 121; magic: 100; light: 85 × 1.1 = 93.
-    expect(aiSelect(["h1", "h2", "m1", "l1", "l2"], c, RULES_V0)).toEqual({ leader: "h2", supports: ["h1"] });
+  it("leads with its strongest colour and fills to five with its weakest other cards", () => {
+    const c = fixture([["h1", "heavy", 50], ["h2", "heavy", 60], ["m1", "magic", 100], ["l1", "light", 40], ["l2", "light", 45], ["m2", "magic", 99], ["m3", "magic", 30]]);
+    // heavy: 110 × 1.1 = 121; magic: 229 × 1.2 = 274; light: 85 × 1.1 = 93.
+    expect(aiSelect(["h1", "h2", "m1", "l1", "l2", "m2", "m3"], c, RULES_V0)).toEqual({ leader: "m1", supports: ["m2", "m3", "l1", "l2"] });
   });
 });
 

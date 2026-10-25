@@ -3,7 +3,7 @@ import { AI_STRATEGY_VERSION, type RuleConfig } from "./rules";
 import type { Armor, CardDefinition, CardType } from "./types";
 
 /**
- * Multi-phase battle, rule version 0.3.0-draft (docs/development-spec.md §6a).
+ * Multi-phase battle, rule version 0.4.0-draft (docs/development-spec.md §6a).
  * Pure and deterministic: the same seed, decks and selections always give the
  * same result. State is plain JSON so it can be stored between phase requests.
  */
@@ -38,7 +38,7 @@ export interface BattleState {
   status: BattleStatus;
 }
 
-/** Leader plus up to four picks in order; picks of another colour block a chain space. */
+/** Leader plus four picks (five cards, or the whole hand if smaller); other colours block a space. */
 export interface Selection {
   leader: string;
   supports: string[];
@@ -48,7 +48,7 @@ export interface ChainStep {
   card: string;
   /** Picked from the hand, or drawn from the deck during the chain. */
   from: "pick" | "draw";
-  /** Same colour as the leader and added to the attack; otherwise it blocks a space. */
+  /** Same colour as the leader: merges into the attack and frees its space. Otherwise it blocks the space. */
   counted: boolean;
 }
 
@@ -142,7 +142,10 @@ const sumAttack = (ids: readonly string[], cards: Cards) => ids.reduce((sum, id)
 const comboFor = (count: number, rules: RuleConfig) =>
   rules.comboMultipliers[Math.min(count, rules.comboMultipliers.length) - 1]!;
 
-export type SelectionError = "LEADER_NOT_IN_HAND" | "SUPPORT_NOT_IN_HAND" | "DUPLICATE" | "TOO_MANY";
+export type SelectionError = "LEADER_NOT_IN_HAND" | "SUPPORT_NOT_IN_HAND" | "DUPLICATE" | "WRONG_COUNT";
+
+/** Every phase plays exactly maxSelected cards, or the whole hand if it is smaller. */
+export const requiredPicks = (hand: readonly string[], rules: RuleConfig) => Math.min(rules.maxSelected, hand.length);
 
 export function validateSelection(
   hand: readonly string[],
@@ -152,7 +155,7 @@ export function validateSelection(
   if (!hand.includes(selection.leader)) return "LEADER_NOT_IN_HAND";
   const all = [selection.leader, ...selection.supports];
   if (new Set(all).size !== all.length) return "DUPLICATE";
-  if (all.length > rules.maxSelected) return "TOO_MANY";
+  if (all.length !== requiredPicks(hand, rules)) return "WRONG_COUNT";
   if (selection.supports.some((id) => !hand.includes(id))) return "SUPPORT_NOT_IN_HAND";
   return null;
 }
@@ -169,10 +172,10 @@ export function previewAttack(selected: readonly string[], cards: Cards, rules: 
 }
 
 /**
- * Defender AI (AI_STRATEGY_VERSION): plays up to five cards of one colour,
- * highest attack first as leader, choosing the colour with the highest attack
- * before advantage. Ties go heavy, light, magic. Never picks blockers, and
- * never sees the challenger's selection.
+ * Defender AI (AI_STRATEGY_VERSION): leads with the colour whose cards give
+ * the highest attack before advantage (highest attack first; ties go heavy,
+ * light, magic), then fills the remaining picks with its lowest-attack cards
+ * of other colours. It never sees the challenger's selection.
  */
 export function aiSelect(hand: readonly string[], cards: Cards, rules: RuleConfig): Selection {
   let best: { ids: string[]; attack: number } | null = null;
@@ -186,21 +189,26 @@ export function aiSelect(hand: readonly string[], cards: Cards, rules: RuleConfi
     if (!best || attack > best.attack) best = { ids, attack };
   }
   if (!best) throw new Error("AI has an empty hand");
-  const [leader, ...supports] = best.ids;
+  const chosen = best.ids;
+  const fillers = hand
+    .filter((id) => !chosen.includes(id))
+    .sort((a, b) => cardOf(cards, a).attack - cardOf(cards, b).attack || a.localeCompare(b))
+    .slice(0, requiredPicks(hand, rules) - chosen.length);
+  const [leader, ...supports] = [...chosen, ...fillers];
   return { leader: leader!, supports };
 }
 
 /**
- * Resolves one side's chain. The leader always counts and draws nothing.
- * Every later card, picked or drawn, counts if it matches the leader's colour
- * and otherwise blocks one of the maxSelected − 1 spaces; then one card is
- * drawn onto the end of the chain, unless all spaces are blocked, the draw
- * pile is empty, or maxChainDraws drawn cards have counted or are waiting.
- * Drawn cards already waiting still resolve after the drawing stops.
+ * Resolves one side's chain. The leader sits in front and the other picks
+ * fill the maxSelected − 1 spaces behind it, resolved in order. A card of the
+ * leader's colour merges into the attack and frees its space, and a new card
+ * is drawn from the deck into the end of the row; a card of another colour
+ * stays and blocks its space, drawing nothing. The chain ends when every
+ * space is blocked, the draw pile is empty, or maxChainDraws drawn cards have
+ * counted (a draw is only made while counted plus waiting draws are under it).
  */
 function runChain(side: SideState, picks: readonly string[], cards: Cards, rules: RuleConfig) {
   const leaderType = cardOf(cards, picks[0]!).type;
-  const spaces = rules.maxSelected - 1;
   const drawPile = [...side.drawPile];
   const chain: ChainStep[] = [{ card: picks[0]!, from: "pick", counted: true }];
   const queue: Omit<ChainStep, "counted">[] = picks.slice(1).map((card) => ({ card, from: "pick" }));
@@ -213,14 +221,14 @@ function runChain(side: SideState, picks: readonly string[], cards: Cards, rules
     if (!counted) blocks++;
     else if (step.from === "draw") countedDraws++;
     chain.push({ ...step, counted });
-    if (blocks < spaces && drawPile.length > 0 && countedDraws + waitingDraws < rules.maxChainDraws) {
+    if (counted && drawPile.length > 0 && countedDraws + waitingDraws < rules.maxChainDraws) {
       queue.push({ card: drawPile.shift()!, from: "draw" });
       waitingDraws++;
     }
   }
   return {
     chain,
-    blocks: Math.min(blocks, spaces),
+    blocks,
     side: {
       ...side,
       drawPile,

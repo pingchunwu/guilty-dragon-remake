@@ -158,7 +158,7 @@ Candidate entities/tables; refine columns and constraints with migrations before
 
 Important constraints include one-time default-deck grant, unique card per constrained deck slot, unique `(player_id, idempotency_key)` for draws, and unique phase/action application so duplicate requests cannot resolve a phase twice.
 
-## 6a. Battle rules, version `0.3.0-draft` (decided 2026-10-25)
+## 6a. Battle rules, version `0.4.0-draft` (decided 2026-10-25)
 
 Product decisions are marked **decided**; values the product owner has not set are marked **placeholder** or **provisional** and live in `packages/engine` so they can change under a new rule version.
 
@@ -167,19 +167,19 @@ Product decisions are marked **decided**; values the product owner has not set a
 - **Armor gives defense** (decided): each player wears armor, separate from cards. How armor is obtained, how many pieces, and upgrades are open. Placeholder: everyone wears one starter armor with defense 30.
 - **Card attack:** the number on a card is its attack (decided). Placeholder values 40–100 per card.
 - **Hand** (decided): 8 cards. Cards not played stay in hand; after each phase the hand refills to 8 from the draw pile.
-- **Picking** (decided): the challenger picks a leader, then up to 4 more cards of any colour in order. Picks of the leader's colour count; other colours do not count and block one of the 4 spaces after the leader.
-- **Chain** (decided): the leader draws nothing. Each later card, picked or drawn, is resolved in order: same colour as the leader counts, another colour blocks a space; then one card is drawn from the deck onto the end of the chain. Drawing stops when all 4 spaces are blocked, when 5 drawn cards have counted, or when the deck is empty.
-  - Provisional details: a card that blocks still draws the next card; drawn cards already waiting when drawing stops still resolve (and count if they match); to keep the 5-draw cap exact, a new card is only drawn while counted draws plus waiting draws is under 5.
-  - All picked and chain-drawn cards (counted or blocking) go to the discard pile after the phase (decided).
+- **Picking** (decided): each side plays exactly 5 cards per phase (the whole hand if it has fewer): a leader, which always counts, and 4 cards of any colour in the 4 spaces behind it. How fast a deck empties depends on the chain draws.
+- **Chain** (decided, matching the original game's play video): the 4 spaces resolve in order. A card of the leader's colour merges into the attack, which frees its space, and one card is drawn from the deck into the end of the row. A card of another colour stays and blocks its space; it draws nothing. Drawn cards resolve the same way. The chain ends when all 4 spaces hold blockers, when 5 drawn cards have counted, or when the deck is empty, so there are never more than 4 blockers.
+  - Provisional detail: to keep the 5-draw cap exact, a new card is only drawn while counted draws plus waiting draws are under 5.
+  - All played and chain-drawn cards (counted or blocking) go to the discard pile after the phase (decided).
 - **Attack:** floor(sum of counted cards × combo × advantage). Combo by counted cards, counting from the leader: 1–5 cards ×1.0, ×1.1, ×1.2, ×1.3, ×1.5, staying at ×1.5 beyond 5 (decided). Higher attack wins the phase; damage = winner's attack − loser's armor, minimum 0 (floor provisional). Equal attack: no damage (decided).
-- **Defender AI** (`ai 0.3.0`): picks up to 5 cards of one type, highest attack as leader, choosing the type with the highest picked attack ignoring advantage; ties go Heavy, Light, Magic. It never picks blockers and never sees the challenger's selection.
+- **Defender AI** (`ai 0.4.0`): leads with the type whose cards (up to 5, highest attack first) give the highest attack ignoring advantage; ties go Heavy, Light, Magic. It fills the rest of its 5 cards with its lowest-attack cards of other types. It never sees the challenger's selection.
 - **Deck-out** (decided): once a side's draw pile hits 0 (during a chain or a refill), the next phase is a deck-out phase for that side, using whatever is in its hand.
   - Only one side runs out: its hand total hits the opponent directly, ignoring armor. Provisional: the opponent does not attack in that phase and keeps its hand; only the side that ran out reshuffles.
   - Both run out: compare hand totals; the higher total deals (total − loser's armor), equal deals nothing. Then both decks are reshuffled and reset.
   - A side that reshuffles puts its hand, discard and pile together, shuffles, and draws a fresh 8.
 - **Ending** (decided): the battle ends only when a side reaches 0 HP. There is no safety cap; instead, balance must keep armor below the lowest card attack so every won phase deals damage. The engine test suite enforces this for the placeholder content.
 - Weapons (3 slots, decided earlier) have no battle effect yet; their role is still open.
-- **Balance warning (open):** with chains, a phase typically counts about 6 cards for ×1.5, so attacks of 300–1000 are common against 1000 HP and battles end in 2–3 phases (2,000 simulated AI-vs-AI battles averaged 2.4 phases). Card attack values (placeholder), HP, the combo cap, or the chain limits need tuning before this feels right.
+- **Balance warning (open):** with chains, a phase typically counts about 5 cards for ×1.5, so attacks of 300–800 are common against 1000 HP and battles end in 2–3 phases (2,000 simulated AI-vs-AI battles averaged 2.6 phases). Card attack values (placeholder), HP, the combo cap, or the chain limits need tuning before this feels right.
 
 ## 7. Open decisions — do not invent during implementation
 
