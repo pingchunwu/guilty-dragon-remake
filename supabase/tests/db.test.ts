@@ -1,6 +1,3 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
-import { PGlite, type Transaction } from "@electric-sql/pglite";
 import { beforeEach, describe, expect, it } from "vitest";
 import {
   PLACEHOLDER_CARDS,
@@ -13,52 +10,9 @@ import {
   type Deck,
   type Loadout,
 } from "@gdr/engine";
+import { ALICE, BOB, as, createDb, db, rpc } from "./pglite";
 
-const migrationsDir = fileURLToPath(new URL("../migrations/", import.meta.url));
-
-// Minimal stand-in for what Supabase provides: roles, auth.users and auth.uid().
-const SUPABASE_STUB = `
-  create role anon nologin;
-  create role authenticated nologin;
-  create schema auth;
-  create table auth.users (id uuid primary key);
-  create function auth.uid() returns uuid language sql stable as
-    $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
-  grant usage on schema auth, public to anon, authenticated;
-  grant execute on function auth.uid() to anon, authenticated;
-  alter default privileges in schema public grant all on tables to anon, authenticated;
-  alter default privileges in schema public grant all on functions to anon, authenticated;
-`;
-
-const ALICE = "00000000-0000-0000-0000-00000000000a";
-const BOB = "00000000-0000-0000-0000-00000000000b";
-
-let db: PGlite;
-
-beforeEach(async () => {
-  db = new PGlite();
-  await db.exec(SUPABASE_STUB);
-  for (const file of readdirSync(migrationsDir).filter((f) => f.endsWith(".sql")).sort()) {
-    await db.exec(readFileSync(migrationsDir + file, "utf8"));
-  }
-  await db.exec(`insert into auth.users (id) values ('${ALICE}'), ('${BOB}')`);
-});
-
-/** Runs `fn` as the authenticated role with the given user ID (or none). */
-async function as<T>(uid: string | null, fn: (tx: Transaction) => Promise<T>, role = "authenticated"): Promise<T> {
-  return db.transaction(async (tx) => {
-    await tx.exec(`set local role ${role}`);
-    await tx.query(`select set_config('request.jwt.claim.sub', $1, true)`, [uid ?? ""]);
-    return fn(tx);
-  });
-}
-
-async function rpc<T = any>(uid: string | null, sql: string, params: unknown[] = []): Promise<T> {
-  return as(uid, async (tx) => {
-    const res = await tx.query<{ r: T }>(`select ${sql} as r`, params);
-    return res.rows[0]!.r;
-  });
-}
+beforeEach(createDb);
 
 const sync = (uid: string) => rpc(uid, "public.sync_player()");
 const draw = (uid: string, key: string) => rpc(uid, "public.draw_ten($1)", [key]);

@@ -4,27 +4,19 @@ import {
   PLACEHOLDER_ITEMS,
   RULES_V0,
   deckCardIds,
-  defenseOf,
-  previewAttack,
-  requiredPicks,
   resolvePhase,
   resolveEquipment,
   startBattle,
-  weaponAttackOf,
   type BattleState,
-  type Equipment,
   type PhaseResult,
-  type SideId,
-  type SideResult,
+  type Selection,
 } from "@gdr/engine";
 import type { PlayerState } from "../game/types";
-import { TYPE_LABEL } from "../game/text";
-import { CardTile } from "./CardTile";
+import { DeckOutPanel, HandPicker, HpBar, PhaseSummary, type SideLabels } from "./BattleParts";
 
 const cards = new Map(PLACEHOLDER_CARDS.map((c) => [c.id, c]));
 const items = new Map(PLACEHOLDER_ITEMS.map((i) => [i.id, i]));
-const cardName = (id: string) => cards.get(id)?.name ?? id;
-const SIDE_LABEL: Record<SideId, string> = { challenger: "你", defender: "對手" };
+const SIDE_LABEL: SideLabels = { challenger: "你", defender: "對手" };
 
 function randomSeed(): [number, number, number, number] {
   const seed = new Uint32Array(4);
@@ -35,12 +27,11 @@ function randomSeed(): [number, number, number, number] {
 /**
  * Practice battle: your attack deck against your own defense deck played by
  * the defender AI. Runs in the browser; nothing is saved and there are no
- * rewards. Friend PvP will resolve the same engine on the server.
+ * rewards. Friend PvP (Pvp.tsx) resolves the same engine on the server.
  */
 export function Battle({ state: player }: { state: PlayerState }) {
   const [battle, setBattle] = useState<BattleState | null>(null);
   const [last, setLast] = useState<PhaseResult | null>(null);
-  const [picked, setPicked] = useState<string[]>([]);
 
   function start() {
     // One loadout for attack and defense, so both sides wear the same here.
@@ -54,7 +45,6 @@ export function Battle({ state: player }: { state: PlayerState }) {
       ),
     );
     setLast(null);
-    setPicked([]);
   }
 
   if (!battle) {
@@ -64,7 +54,7 @@ export function Battle({ state: player }: { state: PlayerState }) {
         <div className="panel stack">
           <strong>練習對戰</strong>
           <p className="muted small">
-            用你的進攻牌組挑戰你自己的防守牌組，對手由 AI 出牌。練習不保存、沒有獎勵；和朋友的非同步對戰之後加入。
+            用你的進攻牌組挑戰你自己的防守牌組，對手由 AI 出牌。練習不保存、沒有獎勵。
           </p>
           <ul className="small rules">
             <li>雙方 HP {RULES_V0.startingHp}，手牌 {RULES_V0.handSize} 張；沒出的牌留在手上，每階段補回 {RULES_V0.handSize} 張。</li>
@@ -85,25 +75,12 @@ export function Battle({ state: player }: { state: PlayerState }) {
   }
 
   const me = battle.sides.challenger;
-  const leader = picked[0];
-  const leaderType = leader ? cards.get(leader)!.type : null;
-  const preview = previewAttack(picked, cards, RULES_V0);
-  const pickedCounted = picked.filter((id) => cards.get(id)!.type === leaderType).length;
-  const required = requiredPicks(me.hand, RULES_V0);
 
-  function toggle(id: string) {
-    if (id === leader) setPicked([]);
-    else if (picked.includes(id)) setPicked(picked.filter((x) => x !== id));
-    else if (picked.length < required) setPicked([...picked, id]);
-  }
-
-  function play() {
+  function play(selection: Selection | null) {
     if (!battle) return;
-    const selection = battle.kind === "normal" && leader ? { leader, supports: picked.slice(1) } : null;
     const step = resolvePhase(battle, selection, cards, RULES_V0);
     setBattle(step.state);
     setLast(step.result);
-    setPicked([]);
   }
 
   const over = battle.status !== "active";
@@ -121,7 +98,7 @@ export function Battle({ state: player }: { state: PlayerState }) {
         ))}
       </div>
 
-      {last && <PhaseSummary result={last} />}
+      {last && <PhaseSummary result={last} cards={cards} labels={SIDE_LABEL} />}
 
       {over ? (
         <div className="panel stack">
@@ -137,144 +114,23 @@ export function Battle({ state: player }: { state: PlayerState }) {
           </button>
         </div>
       ) : battle.kind === "deck_out" ? (
-        <div className="panel stack">
-          <strong>牌庫耗盡！</strong>
-          <p className="small muted">
-            {me.ranOut && battle.sides.defender.ranOut
-              ? "雙方牌庫同時耗盡：比較手牌攻擊總和，較高者造成「總和－對方防具」傷害，之後雙方洗牌重置。"
-              : me.ranOut
-                ? "你的牌庫耗盡：手牌攻擊總和直接打給對手（無視防具），之後你的牌庫洗牌重置。"
-                : "對手牌庫耗盡：對手手牌攻擊總和直接打給你（無視防具）。你的手牌保留。"}
-          </p>
-          <div className="grid compact">
-            {me.hand.map((id) => (
-              <CardTile key={id} card={cards.get(id)!} owned={player.cards[id]} />
-            ))}
-          </div>
-          <button type="button" className="primary" onClick={play}>
-            結算
-          </button>
-        </div>
+        <DeckOutPanel
+          hand={me.hand}
+          cards={cards}
+          owned={player.cards}
+          ranOut={{ challenger: me.ranOut, defender: battle.sides.defender.ranOut }}
+          onResolve={() => play(null)}
+        />
       ) : (
-        <div className="panel stack">
-          <div className="row between">
-            <strong>你的手牌</strong>
-            <span className="muted small">牌庫剩 {me.drawPile.length}</span>
-          </div>
-          <p className="muted small">
-            {leader
-              ? `再選 ${required - picked.length} 張（共 ${required} 張）；${TYPE_LABEL[leaderType!]}以外的卡會擋住一格。點領導卡可重選。`
-              : `點一張卡作為領導卡，共要出 ${required} 張。`}
-          </p>
-          <div className="grid compact">
-            {me.hand.map((id) => {
-              const card = cards.get(id)!;
-              const index = picked.indexOf(id);
-              return (
-                <CardTile
-                  key={id}
-                  card={card}
-                  owned={player.cards[id]}
-                  selected={index >= 0}
-                  badge={index === 0 ? "領導" : index > 0 ? (card.type === leaderType ? `支援 ${index}` : `阻擋 ${index}`) : undefined}
-                  onClick={() => toggle(id)}
-                />
-              );
-            })}
-          </div>
-          <div className="row between">
-            <span className="small">
-              {picked.length > 0
-                ? `選牌攻擊 ${preview}（同色 ${pickedCounted} 張${picked.length > pickedCounted ? `，阻擋 ${picked.length - pickedCounted} 格` : ""}）`
-                : "尚未選牌"}
-            </span>
-            <button type="button" className="primary" disabled={picked.length !== required} onClick={play}>
-              出牌
-            </button>
-          </div>
-          <p className="muted small">連鎖抽牌和相剋加成在出牌後計算。</p>
-        </div>
+        <HandPicker
+          key={battle.phase}
+          hand={me.hand}
+          cards={cards}
+          owned={player.cards}
+          drawPile={me.drawPile.length}
+          onPlay={play}
+        />
       )}
     </section>
-  );
-}
-
-function HpBar({ label, hp, equipment }: { label: string; hp: number; equipment: Equipment }) {
-  const pct = Math.round((hp / RULES_V0.startingHp) * 100);
-  return (
-    <div className="stack hp">
-      <div className="row between small">
-        <span>
-          {label}{" "}
-          <span className="muted">
-            防具 {defenseOf(equipment)} · 武器 +{weaponAttackOf(equipment)}
-          </span>
-        </span>
-        <span>
-          {hp} / {RULES_V0.startingHp}
-        </span>
-      </div>
-      <div className="hp-track">
-        <div className="hp-fill" style={{ width: `${pct}%` }} />
-      </div>
-    </div>
-  );
-}
-
-function PhaseSummary({ result }: { result: PhaseResult }) {
-  const line = (id: SideId, s: SideResult) =>
-    result.kind === "deck_out" && !s.ranOut ? (
-      <li key={id}>
-        <strong>{SIDE_LABEL[id]}</strong>：本階段不出手，手牌保留。
-      </li>
-    ) : (
-      <li key={id} className="stack chain-line">
-        <span>
-          <strong>{SIDE_LABEL[id]}</strong>：攻擊 {s.attack}
-          {result.kind === "normal" && (
-            <span className="muted">
-              {" "}
-              （{s.played.length} 張計入，連擊 ×{s.combo}
-              {s.blocks > 0 && `，阻擋 ${s.blocks} 格`}）
-            </span>
-          )}
-          {s.advantage && <span className="tag">相剋 ×{RULES_V0.advantageMultiplier}</span>}
-          {s.weaponAttack > 0 && <span className="tag">武器 +{s.weaponAttack}</span>}
-          {s.ranOut && <span className="tag">牌庫耗盡</span>}
-        </span>
-        {result.kind === "normal" ? (
-          <span className="chain">
-            {s.chain.map((step, i) => (
-              <span
-                key={step.card}
-                className={`chain-step card-${cards.get(step.card)!.type}${step.counted ? "" : " chain-blocked"}`}
-                title={step.counted ? "計入" : "阻擋"}
-              >
-                {i === 0 ? "領 " : step.from === "draw" ? "抽 " : ""}
-                {cards.get(step.card)!.attack}
-                {!step.counted && " ✕"}
-              </span>
-            ))}
-          </span>
-        ) : (
-          <span className="muted">{s.played.map(cardName).join("、") || "（無）"}</span>
-        )}
-      </li>
-    );
-  const outcome = result.winner
-    ? `${SIDE_LABEL[result.winner]}贏下這階段，造成 ${result.damage} 傷害${result.ignoredArmor ? "（無視防具）" : ""}。`
-    : "攻擊相同，雙方都沒有受到傷害。";
-  return (
-    <div className="panel stack small">
-      <strong>第 {result.phase} 階段結果</strong>
-      <ul className="result-list">
-        {line("challenger", result.sides.challenger)}
-        {line("defender", result.sides.defender)}
-      </ul>
-      <p>{outcome}</p>
-      {result.reshuffled.length > 0 && (
-        <p className="muted">{result.reshuffled.map((id) => SIDE_LABEL[id]).join("、")}的牌庫已洗牌重置。</p>
-      )}
-    </div>
   );
 }

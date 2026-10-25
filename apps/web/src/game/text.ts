@@ -34,6 +34,29 @@ export function errorText(code: string): string {
       return "目前沒有開放的卡池。";
     case "IDEMPOTENCY_KEY_REUSED":
       return "抽卡請求重複，請再按一次。";
+    case "NAME_TOO_LONG":
+      return "名稱最多 20 個字。";
+    case "FRIEND_NOT_FOUND":
+      return "找不到這個好友代碼。";
+    case "FRIEND_IS_SELF":
+      return "這是你自己的好友代碼。";
+    case "BATTLE_IN_PROGRESS":
+      return "你還有一場未結束的對戰。";
+    case "NO_ACTIVE_BATTLE":
+      return "這場對戰已經結束。";
+    case "PHASE_CONFLICT":
+      return "這個階段已經結算過了。";
+    case "INVALID_SELECTION":
+      return "出牌不符合規則，請重選。";
+    case "CANNOT_CHALLENGE_SELF":
+    case "OPPONENT_NOT_FOUND":
+      return "找不到這位玩家。";
+    case "OPPONENT_NO_DECK":
+      return "對手還沒有防守牌組。";
+    case "DECK_MISSING":
+      return "你還沒有進攻牌組。";
+    case "RULE_VERSION_RETIRED":
+      return "這場對戰的規則版本已停用。";
     default:
       return `發生錯誤（${code}），請稍後再試。`;
   }
