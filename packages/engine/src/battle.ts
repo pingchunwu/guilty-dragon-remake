@@ -3,7 +3,7 @@ import { AI_STRATEGY_VERSION, type RuleConfig } from "./rules";
 import type { Armor, CardDefinition, CardType } from "./types";
 
 /**
- * Multi-phase battle, rule version 0.2.0-draft (docs/development-spec.md §6a).
+ * Multi-phase battle, rule version 0.3.0-draft (docs/development-spec.md §6a).
  * Pure and deterministic: the same seed, decks and selections always give the
  * same result. State is plain JSON so it can be stored between phase requests.
  */
@@ -18,9 +18,10 @@ export interface SideState {
   hp: number;
   armor: Armor;
   drawPile: string[];
+  /** Unplayed cards stay here between phases. */
   hand: string[];
   discard: string[];
-  /** Drew the last card of its draw pile this phase. */
+  /** Draw pile was empty when this phase started. */
   ranOut: boolean;
 }
 
@@ -37,14 +38,26 @@ export interface BattleState {
   status: BattleStatus;
 }
 
+/** Leader plus up to four picks in order; picks of another colour block a chain space. */
 export interface Selection {
   leader: string;
   supports: string[];
 }
 
+export interface ChainStep {
+  card: string;
+  /** Picked from the hand, or drawn from the deck during the chain. */
+  from: "pick" | "draw";
+  /** Same colour as the leader and added to the attack; otherwise it blocks a space. */
+  counted: boolean;
+}
+
 export interface SideResult {
-  /** Cards that counted: the selection in a normal phase, the whole hand on deck-out. */
+  /** Cards that counted: the chain's counted cards, or the whole hand on deck-out. */
   played: string[];
+  /** Every card resolved this phase in order, leader first. Empty on deck-out. */
+  chain: ChainStep[];
+  blocks: number;
   leaderType: CardType | null;
   baseAttack: number;
   combo: number;
@@ -86,7 +99,7 @@ export function startBattle(
     ranOut: false,
   });
   const sides = { challenger: side(challenger), defender: side(defender) };
-  return deal({
+  return refill({
     ruleVersion: rules.ruleVersion,
     aiVersion: AI_STRATEGY_VERSION,
     rng: rng.state(),
@@ -97,17 +110,21 @@ export function startBattle(
   }, rules);
 }
 
-/** Draws each side's hand for the current phase. */
-function deal(state: BattleState, rules: RuleConfig): BattleState {
+/**
+ * Tops each hand back up to the hand size. A side whose draw pile is empty
+ * afterwards has run out, and the phase becomes a deck-out phase.
+ */
+function refill(state: BattleState, rules: RuleConfig): BattleState {
   const sides = { ...state.sides };
   for (const id of SIDES) {
     const s = sides[id];
-    const count = Math.min(rules.phaseHandSize, s.drawPile.length);
+    const count = Math.max(0, Math.min(rules.handSize - s.hand.length, s.drawPile.length));
+    const drawPile = s.drawPile.slice(count);
     sides[id] = {
       ...s,
-      hand: s.drawPile.slice(0, count),
-      drawPile: s.drawPile.slice(count),
-      ranOut: s.drawPile.length <= rules.phaseHandSize,
+      hand: [...s.hand, ...s.drawPile.slice(0, count)],
+      drawPile,
+      ranOut: drawPile.length === 0,
     };
   }
   const kind = SIDES.some((id) => sides[id].ranOut) ? "deck_out" : "normal";
@@ -122,38 +139,40 @@ function cardOf(cards: Cards, id: string): CardDefinition {
 
 const perMille = (n: number) => Math.round(n * 1000);
 const sumAttack = (ids: readonly string[], cards: Cards) => ids.reduce((sum, id) => sum + cardOf(cards, id).attack, 0);
+const comboFor = (count: number, rules: RuleConfig) =>
+  rules.comboMultipliers[Math.min(count, rules.comboMultipliers.length) - 1]!;
 
-export type SelectionError = "LEADER_NOT_IN_HAND" | "SUPPORT_NOT_IN_HAND" | "DUPLICATE" | "WRONG_COLOUR" | "TOO_MANY";
+export type SelectionError = "LEADER_NOT_IN_HAND" | "SUPPORT_NOT_IN_HAND" | "DUPLICATE" | "TOO_MANY";
 
 export function validateSelection(
   hand: readonly string[],
   selection: Selection,
-  cards: Cards,
   rules: RuleConfig,
 ): SelectionError | null {
   if (!hand.includes(selection.leader)) return "LEADER_NOT_IN_HAND";
   const all = [selection.leader, ...selection.supports];
   if (new Set(all).size !== all.length) return "DUPLICATE";
   if (all.length > rules.maxSelected) return "TOO_MANY";
-  const colour = cardOf(cards, selection.leader).type;
-  for (const id of selection.supports) {
-    if (!hand.includes(id)) return "SUPPORT_NOT_IN_HAND";
-    if (cardOf(cards, id).type !== colour) return "WRONG_COLOUR";
-  }
+  if (selection.supports.some((id) => !hand.includes(id))) return "SUPPORT_NOT_IN_HAND";
   return null;
 }
 
-/** Attack before advantage: floor(sum × combo). */
+/**
+ * Attack of the picked cards before chain draws and advantage:
+ * floor(sum of leader-colour picks × combo).
+ */
 export function previewAttack(selected: readonly string[], cards: Cards, rules: RuleConfig): number {
   if (selected.length === 0) return 0;
-  const combo = rules.comboMultipliers[Math.min(selected.length, rules.comboMultipliers.length) - 1]!;
-  return Math.floor((sumAttack(selected, cards) * perMille(combo)) / 1000);
+  const colour = cardOf(cards, selected[0]!).type;
+  const counted = selected.filter((id) => cardOf(cards, id).type === colour);
+  return Math.floor((sumAttack(counted, cards) * perMille(comboFor(counted.length, rules))) / 1000);
 }
 
 /**
- * Defender AI (AI_STRATEGY_VERSION): plays every card of one colour, choosing
- * the colour with the highest attack before advantage. Ties go heavy, light,
- * magic. It never sees the challenger's selection.
+ * Defender AI (AI_STRATEGY_VERSION): plays up to five cards of one colour,
+ * highest attack first as leader, choosing the colour with the highest attack
+ * before advantage. Ties go heavy, light, magic. Never picks blockers, and
+ * never sees the challenger's selection.
  */
 export function aiSelect(hand: readonly string[], cards: Cards, rules: RuleConfig): Selection {
   let best: { ids: string[]; attack: number } | null = null;
@@ -171,20 +190,43 @@ export function aiSelect(hand: readonly string[], cards: Cards, rules: RuleConfi
   return { leader: leader!, supports };
 }
 
-function normalSide(selected: string[], opponentLeader: CardType, cards: Cards, rules: RuleConfig): SideResult {
-  const leaderType = cardOf(cards, selected[0]!).type;
-  const combo = rules.comboMultipliers[Math.min(selected.length, rules.comboMultipliers.length) - 1]!;
-  const advantage = rules.beats[leaderType] === opponentLeader;
-  const baseAttack = sumAttack(selected, cards);
-  const multiplier = perMille(combo) * (advantage ? perMille(rules.advantageMultiplier) : 1000);
+/**
+ * Resolves one side's chain. The leader always counts and draws nothing.
+ * Every later card, picked or drawn, counts if it matches the leader's colour
+ * and otherwise blocks one of the maxSelected − 1 spaces; then one card is
+ * drawn onto the end of the chain, unless all spaces are blocked, the draw
+ * pile is empty, or maxChainDraws drawn cards have counted or are waiting.
+ * Drawn cards already waiting still resolve after the drawing stops.
+ */
+function runChain(side: SideState, picks: readonly string[], cards: Cards, rules: RuleConfig) {
+  const leaderType = cardOf(cards, picks[0]!).type;
+  const spaces = rules.maxSelected - 1;
+  const drawPile = [...side.drawPile];
+  const chain: ChainStep[] = [{ card: picks[0]!, from: "pick", counted: true }];
+  const queue: Omit<ChainStep, "counted">[] = picks.slice(1).map((card) => ({ card, from: "pick" }));
+  let blocks = 0;
+  let countedDraws = 0;
+  let waitingDraws = 0;
+  for (let step = queue.shift(); step; step = queue.shift()) {
+    if (step.from === "draw") waitingDraws--;
+    const counted = cardOf(cards, step.card).type === leaderType;
+    if (!counted) blocks++;
+    else if (step.from === "draw") countedDraws++;
+    chain.push({ ...step, counted });
+    if (blocks < spaces && drawPile.length > 0 && countedDraws + waitingDraws < rules.maxChainDraws) {
+      queue.push({ card: drawPile.shift()!, from: "draw" });
+      waitingDraws++;
+    }
+  }
   return {
-    played: selected,
-    leaderType,
-    baseAttack,
-    combo,
-    advantage,
-    attack: Math.floor((baseAttack * multiplier) / 1_000_000),
-    ranOut: false,
+    chain,
+    blocks: Math.min(blocks, spaces),
+    side: {
+      ...side,
+      drawPile,
+      hand: side.hand.filter((id) => !picks.includes(id)),
+      discard: [...side.discard, ...chain.map((s) => s.card)],
+    },
   };
 }
 
@@ -198,8 +240,8 @@ function reshuffle(side: SideState, rng: Rng): SideState {
 }
 
 /**
- * Resolves the current phase and deals the next one. `selection` is the
- * challenger's play in a normal phase and is ignored on deck-out.
+ * Resolves the current phase and refills hands for the next one. `selection`
+ * is the challenger's play in a normal phase and is ignored on deck-out.
  */
 export function resolvePhase(
   state: BattleState,
@@ -210,7 +252,7 @@ export function resolvePhase(
   if (state.status !== "active") throw new Error("battle is over");
   if (state.ruleVersion !== rules.ruleVersion) throw new Error(`rule version mismatch: ${state.ruleVersion}`);
   const rng = restoreRng(state.rng);
-  let sides = { ...state.sides };
+  const sides = { ...state.sides };
   let sideResults: Record<SideId, SideResult>;
   let winner: SideId | null = null;
   let damage = 0;
@@ -219,17 +261,38 @@ export function resolvePhase(
 
   if (state.kind === "normal") {
     if (!selection) throw new Error("selection required");
-    const error = validateSelection(sides.challenger.hand, selection, cards, rules);
+    const error = validateSelection(sides.challenger.hand, selection, rules);
     if (error) throw new Error(`invalid selection: ${error}`);
     const ai = aiSelect(sides.defender.hand, cards, rules);
-    const picks = {
+    const picks: Record<SideId, string[]> = {
       challenger: [selection.leader, ...selection.supports],
       defender: [ai.leader, ...ai.supports],
     };
-    sideResults = {
-      challenger: normalSide(picks.challenger, cardOf(cards, ai.leader).type, cards, rules),
-      defender: normalSide(picks.defender, cardOf(cards, selection.leader).type, cards, rules),
+    const leaderTypes = {
+      challenger: cardOf(cards, selection.leader).type,
+      defender: cardOf(cards, ai.leader).type,
     };
+    const resolveSide = (id: SideId): SideResult => {
+      const run = runChain(sides[id], picks[id], cards, rules);
+      sides[id] = run.side;
+      const played = run.chain.filter((s) => s.counted).map((s) => s.card);
+      const combo = comboFor(played.length, rules);
+      const advantage = rules.beats[leaderTypes[id]] === leaderTypes[other(id)];
+      const baseAttack = sumAttack(played, cards);
+      const multiplier = perMille(combo) * (advantage ? perMille(rules.advantageMultiplier) : 1000);
+      return {
+        played,
+        chain: run.chain,
+        blocks: run.blocks,
+        leaderType: leaderTypes[id],
+        baseAttack,
+        combo,
+        advantage,
+        attack: Math.floor((baseAttack * multiplier) / 1_000_000),
+        ranOut: false,
+      };
+    };
+    sideResults = { challenger: resolveSide("challenger"), defender: resolveSide("defender") };
     const { challenger: c, defender: d } = sideResults;
     if (c.attack !== d.attack) {
       winner = c.attack > d.attack ? "challenger" : "defender";
@@ -238,7 +301,17 @@ export function resolvePhase(
   } else {
     const deckOut = (id: SideId): SideResult => {
       const total = sumAttack(sides[id].hand, cards);
-      return { played: sides[id].hand, leaderType: null, baseAttack: total, combo: 1, advantage: false, attack: total, ranOut: sides[id].ranOut };
+      return {
+        played: sides[id].hand,
+        chain: [],
+        blocks: 0,
+        leaderType: null,
+        baseAttack: total,
+        combo: 1,
+        advantage: false,
+        attack: total,
+        ranOut: sides[id].ranOut,
+      };
     };
     sideResults = { challenger: deckOut("challenger"), defender: deckOut("defender") };
     const out = SIDES.filter((id) => sides[id].ranOut);
@@ -253,6 +326,8 @@ export function resolvePhase(
         damage = Math.max(0, sideResults[winner].attack - sides[other(winner)].armor.defense);
       }
     }
+    // Only sides that ran out use their hand; the other side keeps it.
+    for (const id of out) sides[id] = reshuffle(sides[id], rng);
     reshuffled.push(...out);
   }
 
@@ -260,15 +335,11 @@ export function resolvePhase(
     const loser = other(winner);
     sides[loser] = { ...sides[loser], hp: Math.max(0, sides[loser].hp - damage) };
   }
-  for (const id of SIDES) {
-    sides[id] = { ...sides[id], discard: [...sides[id].discard, ...sides[id].hand], hand: [] };
-  }
-  for (const id of reshuffled) sides[id] = reshuffle(sides[id], rng);
 
   const status: BattleStatus =
     sides.defender.hp === 0 ? "challenger_won" : sides.challenger.hp === 0 ? "defender_won" : "active";
   let next: BattleState = { ...state, sides, status, rng: rng.state() };
-  if (status === "active") next = deal({ ...next, phase: state.phase + 1 }, rules);
+  if (status === "active") next = refill({ ...next, phase: state.phase + 1 }, rules);
 
   return {
     state: next,

@@ -350,3 +350,27 @@ p.error {
   color: var(--accent-ink);
   border-color: var(--accent);
 }
+
+.chain-line {
+  gap: 6px;
+}
+
+.chain {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.chain-step {
+  padding: 2px 6px;
+  border-radius: 6px;
+  border: 2px solid var(--line);
+  background: var(--panel-2);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.chain-blocked {
+  opacity: 0.45;
+  text-decoration: line-through;
+}

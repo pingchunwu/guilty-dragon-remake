@@ -11,12 +11,14 @@ export interface RuleConfig {
   rng: "sfc32";
   deckSize: number;
   slotSize: number;
-  /** Provisional new-game decision (original reportedly dealt 8). */
-  phaseHandSize: number;
+  /** Hand size; unused cards stay in hand and the hand refills to this after each phase. */
+  handSize: number;
   startingHp: number;
-  /** Leader plus supports. */
+  /** Leader plus picks; picks after the leader fill maxSelected − 1 chain spaces. */
   maxSelected: number;
-  /** Attack multiplier by number of selected cards (index 0 = 1 card). */
+  /** At most this many chain-drawn cards can count in one phase. */
+  maxChainDraws: number;
+  /** Attack multiplier by number of counted cards (index 0 = leader alone); stays at the last value beyond. */
   comboMultipliers: readonly number[];
   advantageMultiplier: number;
   /** Each type beats the type it maps to. Order is provisional. */
@@ -24,17 +26,18 @@ export interface RuleConfig {
 }
 
 export const RULES_V0: RuleConfig = {
-  ruleVersion: "0.2.0-draft",
+  ruleVersion: "0.3.0-draft",
   rng: "sfc32",
   deckSize: 32,
   slotSize: 8,
-  phaseHandSize: 5,
+  handSize: 8,
   startingHp: 1000,
   maxSelected: 5,
+  maxChainDraws: 5,
   comboMultipliers: [1, 1.1, 1.2, 1.3, 1.5],
   advantageMultiplier: 1.2,
   beats: { heavy: "light", light: "magic", magic: "heavy" },
 };
 
 /** Version of the defender AI strategy in battle.ts. */
-export const AI_STRATEGY_VERSION = "0.2.0";
+export const AI_STRATEGY_VERSION = "0.3.0";

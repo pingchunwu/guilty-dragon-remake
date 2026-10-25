@@ -59,11 +59,13 @@ export function Battle({ state: player }: { state: PlayerState }) {
             用你的進攻牌組挑戰你自己的防守牌組，對手由 AI 出牌。練習不保存、沒有獎勵；和朋友的非同步對戰之後加入。
           </p>
           <ul className="small rules">
-            <li>雙方 HP {RULES_V0.startingHp}，每階段各抽 {RULES_V0.phaseHandSize} 張。</li>
-            <li>選一張領導卡，再選同色卡當支援；張數越多連擊加成越高（最高 ×1.5）。</li>
+            <li>雙方 HP {RULES_V0.startingHp}，手牌 {RULES_V0.handSize} 張；沒出的牌留在手上，每階段補回 {RULES_V0.handSize} 張。</li>
+            <li>選一張領導卡，再選最多 4 張；不同色的卡會擋住一格。</li>
+            <li>領導卡之後每結算一張，就從牌庫抽一張接在後面：同色加入攻擊，不同色擋住一格。4 格都被擋住、抽到的卡已計入 {RULES_V0.maxChainDraws} 張、或牌庫抽完時停止。</li>
+            <li>計入的張數越多連擊加成越高（最高 ×1.5）。</li>
             <li>重裝剋輕裝、輕裝剋魔裝、魔裝剋重裝（領導卡相剋 ×1.2）。</li>
             <li>攻擊較高的一方造成「攻擊－對方防具」傷害；相同則無傷害。</li>
-            <li>牌庫耗盡時比較本階段抽到的卡片總和，之後洗牌重置。</li>
+            <li>牌庫抽完後的下一階段：用手牌總和結算，之後洗牌重置。</li>
           </ul>
           <button type="button" className="primary" onClick={start}>
             開始練習對戰
@@ -77,6 +79,7 @@ export function Battle({ state: player }: { state: PlayerState }) {
   const leader = picked[0];
   const leaderType = leader ? cards.get(leader)!.type : null;
   const preview = previewAttack(picked, cards, RULES_V0);
+  const pickedCounted = picked.filter((id) => cards.get(id)!.type === leaderType).length;
 
   function toggle(id: string) {
     if (id === leader) setPicked([]);
@@ -128,10 +131,10 @@ export function Battle({ state: player }: { state: PlayerState }) {
           <strong>牌庫耗盡！</strong>
           <p className="small muted">
             {me.ranOut && battle.sides.defender.ranOut
-              ? "雙方牌庫同時耗盡：比較本階段抽到的卡片攻擊總和，較高者造成「總和－對方防具」傷害，之後雙方洗牌重置。"
+              ? "雙方牌庫同時耗盡：比較手牌攻擊總和，較高者造成「總和－對方防具」傷害，之後雙方洗牌重置。"
               : me.ranOut
-                ? "你的牌庫耗盡：本階段抽到的卡片攻擊總和直接打給對手（無視防具），之後你的牌庫洗牌重置。"
-                : "對手牌庫耗盡：對手本階段抽到的卡片攻擊總和直接打給你（無視防具）。"}
+                ? "你的牌庫耗盡：手牌攻擊總和直接打給對手（無視防具），之後你的牌庫洗牌重置。"
+                : "對手牌庫耗盡：對手手牌攻擊總和直接打給你（無視防具）。你的手牌保留。"}
           </p>
           <div className="grid compact">
             {me.hand.map((id) => (
@@ -149,7 +152,9 @@ export function Battle({ state: player }: { state: PlayerState }) {
             <span className="muted small">牌庫剩 {me.drawPile.length}</span>
           </div>
           <p className="muted small">
-            {leader ? `再點同色（${TYPE_LABEL[leaderType!]}）卡加入支援，點領導卡可重選。` : "點一張卡作為領導卡。"}
+            {leader
+              ? `再點最多 ${RULES_V0.maxSelected - 1} 張；${TYPE_LABEL[leaderType!]}以外的卡會擋住一格。點領導卡可重選。`
+              : "點一張卡作為領導卡。"}
           </p>
           <div className="grid compact">
             {me.hand.map((id) => {
@@ -161,8 +166,7 @@ export function Battle({ state: player }: { state: PlayerState }) {
                   card={card}
                   owned={player.cards[id]}
                   selected={index >= 0}
-                  dimmed={leaderType !== null && card.type !== leaderType}
-                  badge={index === 0 ? "領導" : index > 0 ? "支援" : undefined}
+                  badge={index === 0 ? "領導" : index > 0 ? (card.type === leaderType ? `支援 ${index}` : `阻擋 ${index}`) : undefined}
                   onClick={() => toggle(id)}
                 />
               );
@@ -170,13 +174,15 @@ export function Battle({ state: player }: { state: PlayerState }) {
           </div>
           <div className="row between">
             <span className="small">
-              {picked.length > 0 ? `攻擊 ${preview}（${picked.length} 張，連擊 ×${RULES_V0.comboMultipliers[picked.length - 1]}）` : "尚未選牌"}
+              {picked.length > 0
+                ? `選牌攻擊 ${preview}（同色 ${pickedCounted} 張${picked.length > pickedCounted ? `，阻擋 ${picked.length - pickedCounted} 格` : ""}）`
+                : "尚未選牌"}
             </span>
             <button type="button" className="primary" disabled={!leader} onClick={play}>
               出牌
             </button>
           </div>
-          <p className="muted small">相剋加成在雙方亮牌後計算。</p>
+          <p className="muted small">連鎖抽牌和相剋加成在出牌後計算。</p>
         </div>
       )}
     </section>
@@ -203,14 +209,44 @@ function HpBar({ label, hp, armor }: { label: string; hp: number; armor: number 
 }
 
 function PhaseSummary({ result }: { result: PhaseResult }) {
-  const line = (id: SideId, s: SideResult) => (
-    <li key={id}>
-      <strong>{SIDE_LABEL[id]}</strong>：{s.played.map(cardName).join("、") || "（無）"} → 攻擊 {s.attack}
-      {s.advantage && <span className="tag">相剋 ×{RULES_V0.advantageMultiplier}</span>}
-      {result.kind === "normal" && s.played.length > 1 && <span className="muted"> 連擊 ×{s.combo}</span>}
-      {s.ranOut && <span className="tag">牌庫耗盡</span>}
-    </li>
-  );
+  const line = (id: SideId, s: SideResult) =>
+    result.kind === "deck_out" && !s.ranOut ? (
+      <li key={id}>
+        <strong>{SIDE_LABEL[id]}</strong>：本階段不出手，手牌保留。
+      </li>
+    ) : (
+      <li key={id} className="stack chain-line">
+        <span>
+          <strong>{SIDE_LABEL[id]}</strong>：攻擊 {s.attack}
+          {result.kind === "normal" && (
+            <span className="muted">
+              {" "}
+              （{s.played.length} 張計入，連擊 ×{s.combo}
+              {s.blocks > 0 && `，阻擋 ${s.blocks} 格`}）
+            </span>
+          )}
+          {s.advantage && <span className="tag">相剋 ×{RULES_V0.advantageMultiplier}</span>}
+          {s.ranOut && <span className="tag">牌庫耗盡</span>}
+        </span>
+        {result.kind === "normal" ? (
+          <span className="chain">
+            {s.chain.map((step, i) => (
+              <span
+                key={step.card}
+                className={`chain-step card-${cards.get(step.card)!.type}${step.counted ? "" : " chain-blocked"}`}
+                title={step.counted ? "計入" : "阻擋"}
+              >
+                {i === 0 ? "領 " : step.from === "draw" ? "抽 " : ""}
+                {cards.get(step.card)!.attack}
+                {!step.counted && " ✕"}
+              </span>
+            ))}
+          </span>
+        ) : (
+          <span className="muted">{s.played.map(cardName).join("、") || "（無）"}</span>
+        )}
+      </li>
+    );
   const outcome = result.winner
     ? `${SIDE_LABEL[result.winner]}贏下這階段，造成 ${result.damage} 傷害${result.ignoredArmor ? "（無視防具）" : ""}。`
     : "攻擊相同，雙方都沒有受到傷害。";
