@@ -200,6 +200,53 @@ p.error {
   border-color: var(--magic);
 }
 
+.card-attack {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.card-dimmed {
+  opacity: 0.3;
+}
+
+.hp {
+  gap: 4px;
+}
+
+.hp-track {
+  height: 10px;
+  border-radius: 999px;
+  background: var(--bg);
+  overflow: hidden;
+}
+
+.hp-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #e2574c, var(--accent));
+  transition: width 0.4s ease;
+}
+
+.tag {
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: 6px;
+  background: var(--panel-2);
+  color: var(--accent);
+  font-size: 0.75rem;
+}
+
+.result-list,
+.rules {
+  margin: 0;
+  padding-left: 1.1em;
+  display: grid;
+  gap: 4px;
+}
+
 .card-locked {
   opacity: 0.35;
   filter: grayscale(0.8);

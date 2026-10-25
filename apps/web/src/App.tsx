@@ -5,15 +5,17 @@ import { createGuestService } from "./game/guestService";
 import { createAccountService, supabase } from "./game/supabase";
 import { errorText } from "./game/text";
 import { GameError, type GameService, type PlayerState } from "./game/types";
+import { Battle } from "./screens/Battle";
 import { Collection } from "./screens/Collection";
 import { DeckEditor } from "./screens/DeckEditor";
 import { Gacha } from "./screens/Gacha";
 import { SignIn } from "./screens/SignIn";
 
-type Tab = "collection" | "deck" | "gacha";
+type Tab = "collection" | "deck" | "battle" | "gacha";
 const TABS: { id: Tab; label: string }[] = [
   { id: "collection", label: "收藏" },
   { id: "deck", label: "牌組" },
+  { id: "battle", label: "對戰" },
   { id: "gacha", label: "抽卡" },
 ];
 
@@ -98,6 +100,10 @@ export function App() {
             <main>
               {tab === "collection" && <Collection state={state} />}
               {tab === "deck" && <DeckEditor service={service} state={state} onState={setState} />}
+              {/* Kept mounted so switching tabs doesn't lose a battle in progress. */}
+              <div hidden={tab !== "battle"}>
+                <Battle state={state} />
+              </div>
               {tab === "gacha" && <Gacha service={service} state={state} onState={setState} />}
             </main>
           )}

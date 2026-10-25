@@ -7,13 +7,20 @@ interface Props {
   onClick?: () => void;
   badge?: string | undefined;
   selected?: boolean;
+  /** Shown but not choosable right now (e.g. wrong colour for the leader). */
+  dimmed?: boolean;
 }
 
-export function CardTile({ card, owned, onClick, badge, selected }: Props) {
-  const className = `card card-${card.type}${owned ? "" : " card-locked"}${selected ? " card-selected" : ""}`;
+export function CardTile({ card, owned, onClick, badge, selected, dimmed }: Props) {
+  const className = `card card-${card.type}${owned ? "" : " card-locked"}${selected ? " card-selected" : ""}${
+    dimmed ? " card-dimmed" : ""
+  }`;
   const body = (
     <>
       <span className="card-type">{TYPE_LABEL[card.type]}</span>
+      <span className="card-attack" aria-label={`攻擊 ${card.attack}`}>
+        {card.attack}
+      </span>
       <span className="card-name">{card.name}</span>
       {owned && (
         <span className="card-level">
@@ -24,7 +31,7 @@ export function CardTile({ card, owned, onClick, badge, selected }: Props) {
     </>
   );
   return onClick ? (
-    <button type="button" className={className} onClick={onClick}>
+    <button type="button" className={className} onClick={onClick} disabled={dimmed}>
       {body}
     </button>
   ) : (
