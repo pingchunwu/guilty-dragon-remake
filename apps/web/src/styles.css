@@ -11,6 +11,9 @@
   --heavy: #c4623d;
   --light: #3f9a7a;
   --magic: #7b4fd6;
+  --armor: #5b7fb8;
+  --weapon: #c9a03a;
+  --gear: #9a6fa8;
   color-scheme: dark;
   font-family: system-ui, "Noto Sans TC", "PingFang TC", sans-serif;
 }
@@ -200,6 +203,23 @@ p.error {
   border-color: var(--magic);
 }
 
+.item-armor {
+  border-color: var(--armor);
+}
+
+.item-weapon {
+  border-color: var(--weapon);
+}
+
+.item-gear {
+  border-color: var(--gear);
+}
+
+.card-stat {
+  font-size: 0.8rem;
+  color: var(--accent);
+}
+
 .card-attack {
   position: absolute;
   top: 6px;
@@ -343,6 +363,7 @@ p.error {
 .tabs button {
   flex: 1;
   max-width: 160px;
+  padding: 10px 4px;
 }
 
 .tabs button.active {

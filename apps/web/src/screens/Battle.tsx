@@ -1,14 +1,18 @@
 import { useState } from "react";
 import {
   PLACEHOLDER_CARDS,
-  PLACEHOLDER_STARTER_ARMOR,
+  PLACEHOLDER_ITEMS,
   RULES_V0,
   deckCardIds,
+  defenseOf,
   previewAttack,
   requiredPicks,
   resolvePhase,
+  resolveEquipment,
   startBattle,
+  weaponAttackOf,
   type BattleState,
+  type Equipment,
   type PhaseResult,
   type SideId,
   type SideResult,
@@ -18,6 +22,7 @@ import { TYPE_LABEL } from "../game/text";
 import { CardTile } from "./CardTile";
 
 const cards = new Map(PLACEHOLDER_CARDS.map((c) => [c.id, c]));
+const items = new Map(PLACEHOLDER_ITEMS.map((i) => [i.id, i]));
 const cardName = (id: string) => cards.get(id)?.name ?? id;
 const SIDE_LABEL: Record<SideId, string> = { challenger: "你", defender: "對手" };
 
@@ -38,11 +43,13 @@ export function Battle({ state: player }: { state: PlayerState }) {
   const [picked, setPicked] = useState<string[]>([]);
 
   function start() {
+    // One loadout for attack and defense, so both sides wear the same here.
+    const equipment = resolveEquipment(player.loadout, items);
     setBattle(
       startBattle(
         randomSeed(),
-        { deck: deckCardIds(player.decks.attack), armor: PLACEHOLDER_STARTER_ARMOR },
-        { deck: deckCardIds(player.decks.defense), armor: PLACEHOLDER_STARTER_ARMOR },
+        { deck: deckCardIds(player.decks.attack), equipment },
+        { deck: deckCardIds(player.decks.defense), equipment },
         RULES_V0,
       ),
     );
@@ -65,6 +72,7 @@ export function Battle({ state: player }: { state: PlayerState }) {
             <li>後面的卡依序結算：與領導卡同色就併入攻擊並空出那格，從牌庫抽一張補到最後；不同色就擋住那格，不抽牌。{RULES_V0.maxSelected - 1} 格都被擋住、抽到的卡已計入 {RULES_V0.maxChainDraws} 張、或牌庫抽完時停止。</li>
             <li>計入的張數越多連擊加成越高（最高 ×1.5）。</li>
             <li>重裝剋輕裝、輕裝剋魔裝、魔裝剋重裝（領導卡相剋 ×1.2）。</li>
+            <li>裝備的武器攻擊每階段都加在倍率之後（牌庫耗盡時加在手牌總和上）。</li>
             <li>攻擊較高的一方造成「攻擊－對方防具」傷害；相同則無傷害。</li>
             <li>牌庫抽完後的下一階段：用手牌總和結算，之後洗牌重置。</li>
           </ul>
@@ -109,7 +117,7 @@ export function Battle({ state: player }: { state: PlayerState }) {
 
       <div className="panel stack">
         {(["challenger", "defender"] as const).map((id) => (
-          <HpBar key={id} label={SIDE_LABEL[id]} hp={battle.sides[id].hp} armor={battle.sides[id].armor.defense} />
+          <HpBar key={id} label={SIDE_LABEL[id]} hp={battle.sides[id].hp} equipment={battle.sides[id].equipment} />
         ))}
       </div>
 
@@ -191,13 +199,16 @@ export function Battle({ state: player }: { state: PlayerState }) {
   );
 }
 
-function HpBar({ label, hp, armor }: { label: string; hp: number; armor: number }) {
+function HpBar({ label, hp, equipment }: { label: string; hp: number; equipment: Equipment }) {
   const pct = Math.round((hp / RULES_V0.startingHp) * 100);
   return (
     <div className="stack hp">
       <div className="row between small">
         <span>
-          {label} <span className="muted">防具 {armor}</span>
+          {label}{" "}
+          <span className="muted">
+            防具 {defenseOf(equipment)} · 武器 +{weaponAttackOf(equipment)}
+          </span>
         </span>
         <span>
           {hp} / {RULES_V0.startingHp}
@@ -228,6 +239,7 @@ function PhaseSummary({ result }: { result: PhaseResult }) {
             </span>
           )}
           {s.advantage && <span className="tag">相剋 ×{RULES_V0.advantageMultiplier}</span>}
+          {s.weaponAttack > 0 && <span className="tag">武器 +{s.weaponAttack}</span>}
           {s.ranOut && <span className="tag">牌庫耗盡</span>}
         </span>
         {result.kind === "normal" ? (

@@ -158,13 +158,19 @@ Candidate entities/tables; refine columns and constraints with migrations before
 
 Important constraints include one-time default-deck grant, unique card per constrained deck slot, unique `(player_id, idempotency_key)` for draws, and unique phase/action application so duplicate requests cannot resolve a phase twice.
 
-## 6a. Battle rules, version `0.4.0-draft` (decided 2026-10-25)
+## 6a. Battle rules, version `0.5.0-draft` (decided 2026-10-25)
 
 Product decisions are marked **decided**; values the product owner has not set are marked **placeholder** or **provisional** and live in `packages/engine` so they can change under a new rule version.
 
-- **HP:** each side starts at 1000 (decided). No phase cap and no end phase (decided); see "Ending" below.
+- **HP:** each side starts at 3000 (decided; raised from 1000). No phase cap and no end phase (decided); see "Ending" below.
 - **Types are colours** (decided): Heavy/Light/Magic decide deck slots, same-colour supports, and type advantage. Advantage cycle Heavy > Light > Magic > Heavy, ×1.2 to the advantaged side's attack (cycle order provisional).
-- **Armor gives defense** (decided): each player wears armor, separate from cards. How armor is obtained, how many pieces, and upgrades are open. Placeholder: everyone wears one starter armor with defense 30.
+- **Equipment** (decided): one 裝備 loadout with 1 armor, 1 weapon and 1 gear slot, separate from the deck and used for both attack and defense battles. Replaces the earlier "3 weapon slots" decision.
+  - Armor defense is subtracted from damage taken in a lost phase.
+  - Weapon attack is added to the phase's attack after the combo and advantage multipliers (decided). Provisional: it is also added to deck-out hand totals, since it applies "every phase".
+  - Gear has a slot but no effect yet (open).
+  - Items come from a separate item gacha: one shared ticket for 10 item pulls; duplicates become shards and every 5 shards raise the item one level, like cards (decided). Item levels have no effect yet (open), and item odds are placeholders (equal weights).
+  - Placeholder items: 6 per kind. Armor defense 20–35, weapon attack +10 to +60, gear no stats. Every player gets and equips the starter armor, weapon and gear (見習防具 20, 見習武器 +10, 見習飾品).
+- **Data:** card attack is stored in `card_definitions.attack`, and item stats in `item_definitions`, both generated from `packages/engine/src/catalog.ts`. The web app still bundles the same catalog; a test checks the database matches it.
 - **Card attack:** the number on a card is its attack (decided). Placeholder values 40–100 per card.
 - **Hand** (decided): 8 cards. Cards not played stay in hand; after each phase the hand refills to 8 from the draw pile.
 - **Picking** (decided): each side plays exactly 5 cards per phase (the whole hand if it has fewer): a leader, which always counts, and 4 cards of any colour in the 4 spaces behind it. How fast a deck empties depends on the chain draws.
@@ -178,8 +184,7 @@ Product decisions are marked **decided**; values the product owner has not set a
   - Both run out: compare hand totals; the higher total deals (total − loser's armor), equal deals nothing. Then both decks are reshuffled and reset.
   - A side that reshuffles puts its hand, discard and pile together, shuffles, and draws a fresh 8.
 - **Ending** (decided): the battle ends only when a side reaches 0 HP. There is no safety cap; instead, balance must keep armor below the lowest card attack so every won phase deals damage. The engine test suite enforces this for the placeholder content.
-- Weapons (3 slots, decided earlier) have no battle effect yet; their role is still open.
-- **Balance warning (open):** with chains, a phase typically counts about 5 cards for ×1.5, so attacks of 300–800 are common against 1000 HP and battles end in 2–3 phases (2,000 simulated AI-vs-AI battles averaged 2.6 phases). Card attack values (placeholder), HP, the combo cap, or the chain limits need tuning before this feels right.
+- **Balance (open):** a phase typically counts about 5 cards for ×1.5, so attacks of 300–800 are common. At 3000 HP, 2,000 simulated AI-vs-AI battles with starter equipment averaged 8.7 phases (at most 13), with about 2 deck-outs per battle. Card attack values (placeholder), HP, the combo cap, or the chain limits need tuning before this feels right.
 
 ## 7. Open decisions — do not invent during implementation
 
@@ -188,7 +193,7 @@ Resolve these before locking battle-engine behavior or pool data:
 - Starting HP, HP maximum, per-phase damage formula, healing cap, draw/phase tie handling, and simultaneous zero-HP handling.
 - **Attack model — decided 2026-10-25:** each phase both sides compute an attack value; the side with the higher attack wins the phase and is the only one that attacks. Damage = winner's attack − loser's defense. Still open: equal-attack phases, whether damage has a floor (e.g. 0 or 1), and where a side's defense value comes from.
 - ~~**Guaranteed battle end:** a phase cap~~ — replaced later on 2026-10-25: no phase cap; battles end by HP only, with balance keeping armor below card attack (see §6a).
-- **Weapons — decided 2026-10-25:** each player has 3 weapon slots outside the 32-card deck, as in the original. Still open: how weapons are obtained (same pool as cards or separate), their stats and effects, and whether attack and defense loadouts are separate.
+- ~~**Weapons:** 3 weapon slots~~ — replaced 2026-10-25 by one loadout of armor, weapon and gear (see §6a). Still open: the gear effect, item levels, item rarity/odds, and real item stats.
 - ~~**Type, colour, and attribute**~~ — decided: types are colours (see §6a). Original question: Heavy/Light/Magic are slot types; the docs also use a three-way attribute counter system and "same-colour" supports. Define whether these are one concept, and if not, which one support selection, counters, and slot validation each use.
 - ~~Hand size~~ — decided 2026-10-25: 8 cards with refill and a chain (see §6a). Original question: exact relationship between five starting cards and the reported original-game limit of leader plus four support cards; recommended initial interpretation is deal five and allow up to five selected cards, with skill-drawn cards outside the starting hand count. Risk: with five cards and a same-colour support rule, the best play is often "take every card of the biggest colour", which removes most decisions. Confirm in rule walkthroughs that five cards still leaves real choices, or revert to eight.
 - **Defender AI information and goal:** the server receives challenger picks before running the AI. Decide whether the AI may see them (recommended: no; it decides only from its own hand and public state). If the attack model includes defense, decide whether "maximize current-phase attack" becomes another goal such as net damage.

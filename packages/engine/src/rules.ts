@@ -26,12 +26,12 @@ export interface RuleConfig {
 }
 
 export const RULES_V0: RuleConfig = {
-  ruleVersion: "0.4.0-draft",
+  ruleVersion: "0.5.0-draft",
   rng: "sfc32",
   deckSize: 32,
   slotSize: 8,
   handSize: 8,
-  startingHp: 1000,
+  startingHp: 3000,
   maxSelected: 5,
   maxChainDraws: 5,
   comboMultipliers: [1, 1.1, 1.2, 1.3, 1.5],

@@ -1,9 +1,10 @@
 import { createRng, restoreRng, shuffle, type Rng, type RngState } from "./rng";
 import { AI_STRATEGY_VERSION, type RuleConfig } from "./rules";
-import type { Armor, CardDefinition, CardType } from "./types";
+import { defenseOf, weaponAttackOf, type Equipment } from "./equipment";
+import type { CardDefinition, CardType } from "./types";
 
 /**
- * Multi-phase battle, rule version 0.4.0-draft (docs/development-spec.md §6a).
+ * Multi-phase battle, rule version 0.5.0-draft (docs/development-spec.md §6a).
  * Pure and deterministic: the same seed, decks and selections always give the
  * same result. State is plain JSON so it can be stored between phase requests.
  */
@@ -16,7 +17,8 @@ export type Cards = ReadonlyMap<string, CardDefinition>;
 
 export interface SideState {
   hp: number;
-  armor: Armor;
+  /** Armor defense and weapon attack apply every phase. */
+  equipment: Equipment;
   drawPile: string[];
   /** Unplayed cards stay here between phases. */
   hand: string[];
@@ -62,6 +64,8 @@ export interface SideResult {
   baseAttack: number;
   combo: number;
   advantage: boolean;
+  /** Added after the multipliers; already included in `attack`. */
+  weaponAttack: number;
   attack: number;
   ranOut: boolean;
 }
@@ -80,7 +84,7 @@ export interface PhaseResult {
 
 export interface SideSetup {
   deck: readonly string[];
-  armor: Armor;
+  equipment: Equipment;
 }
 
 export function startBattle(
@@ -92,7 +96,7 @@ export function startBattle(
   const rng = createRng(seed);
   const side = (setup: SideSetup): SideState => ({
     hp: rules.startingHp,
-    armor: setup.armor,
+    equipment: setup.equipment,
     drawPile: shuffle(setup.deck, rng),
     hand: [],
     discard: [],
@@ -288,6 +292,7 @@ export function resolvePhase(
       const advantage = rules.beats[leaderTypes[id]] === leaderTypes[other(id)];
       const baseAttack = sumAttack(played, cards);
       const multiplier = perMille(combo) * (advantage ? perMille(rules.advantageMultiplier) : 1000);
+      const weaponAttack = weaponAttackOf(sides[id].equipment);
       return {
         played,
         chain: run.chain,
@@ -296,7 +301,8 @@ export function resolvePhase(
         baseAttack,
         combo,
         advantage,
-        attack: Math.floor((baseAttack * multiplier) / 1_000_000),
+        weaponAttack,
+        attack: Math.floor((baseAttack * multiplier) / 1_000_000) + weaponAttack,
         ranOut: false,
       };
     };
@@ -304,10 +310,11 @@ export function resolvePhase(
     const { challenger: c, defender: d } = sideResults;
     if (c.attack !== d.attack) {
       winner = c.attack > d.attack ? "challenger" : "defender";
-      damage = Math.max(0, sideResults[winner].attack - sides[other(winner)].armor.defense);
+      damage = Math.max(0, sideResults[winner].attack - defenseOf(sides[other(winner)].equipment));
     }
   } else {
     const deckOut = (id: SideId): SideResult => {
+      const weaponAttack = weaponAttackOf(sides[id].equipment);
       const total = sumAttack(sides[id].hand, cards);
       return {
         played: sides[id].hand,
@@ -317,7 +324,8 @@ export function resolvePhase(
         baseAttack: total,
         combo: 1,
         advantage: false,
-        attack: total,
+        weaponAttack,
+        attack: total + weaponAttack,
         ranOut: sides[id].ranOut,
       };
     };
@@ -331,7 +339,7 @@ export function resolvePhase(
       const { challenger: c, defender: d } = sideResults;
       if (c.attack !== d.attack) {
         winner = c.attack > d.attack ? "challenger" : "defender";
-        damage = Math.max(0, sideResults[winner].attack - sides[other(winner)].armor.defense);
+        damage = Math.max(0, sideResults[winner].attack - defenseOf(sides[other(winner)].equipment));
       }
     }
     // Only sides that ran out use their hand; the other side keeps it.

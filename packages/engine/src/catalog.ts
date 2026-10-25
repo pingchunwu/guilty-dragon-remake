@@ -1,4 +1,4 @@
-import type { Armor, CardDefinition, CardType, Deck } from "./types";
+import type { CardDefinition, CardType, Deck, ItemDefinition, ItemKind, Loadout } from "./types";
 
 /**
  * PLACEHOLDER content for development: 16 cards per type, no art, attack only.
@@ -23,13 +23,6 @@ export const PLACEHOLDER_CARDS: readonly CardDefinition[] = (["heavy", "light", 
   })),
 );
 
-/**
- * PLACEHOLDER armor everyone wears until armor acquisition is designed.
- * Balance rule: defense must stay below the lowest card attack so every won
- * phase deals damage (battles have no phase cap).
- */
-export const PLACEHOLDER_STARTER_ARMOR: Armor = { id: "ph-armor-01", name: "見習防具", defense: 30 };
-
 const range = (type: CardType, from: number, to: number) =>
   Array.from({ length: to - from + 1 }, (_, i) => placeholderCardId(type, from + i));
 
@@ -42,17 +35,51 @@ export const PLACEHOLDER_DEFAULT_DECK: Deck = {
 };
 
 export interface PoolEntry {
-  cardId: string;
+  /** Card ID in a card pool, item ID in an item pool. */
+  id: string;
   weight: number;
 }
 
-export interface CardPool {
+export interface Pool {
   id: string;
   entries: readonly PoolEntry[];
 }
 
 /** PLACEHOLDER pool: every card, equal weight. Odds/rarity are still TBD. */
-export const PLACEHOLDER_POOL: CardPool = {
+export const PLACEHOLDER_POOL: Pool = {
   id: "pool-v0",
-  entries: PLACEHOLDER_CARDS.map((c) => ({ cardId: c.id, weight: 1 })),
+  entries: PLACEHOLDER_CARDS.map((c) => ({ id: c.id, weight: 1 })),
+};
+
+const ITEM_LABEL: Record<ItemKind, string> = { armor: "防具", weapon: "武器", gear: "飾品" };
+const PER_KIND = 6;
+const itemId = (kind: ItemKind, n: number) => `ph-${kind}-${String(n).padStart(2, "0")}`;
+
+/**
+ * PLACEHOLDER equipment, 6 of each kind. Item 01 of each kind is the starter.
+ * Balance rule: armor defense must stay below the lowest card attack so every
+ * won phase deals damage (battles have no phase cap). Weapon attack is added
+ * after multipliers. Gear has no stats until its effect is decided.
+ */
+export const PLACEHOLDER_ITEMS: readonly ItemDefinition[] = (["armor", "weapon", "gear"] as const).flatMap((kind) =>
+  Array.from({ length: PER_KIND }, (_, i) => ({
+    id: itemId(kind, i + 1),
+    name: i === 0 ? `見習${ITEM_LABEL[kind]}` : `${ITEM_LABEL[kind]}試作 ${String(i + 1).padStart(2, "0")}`,
+    kind,
+    attack: kind === "weapon" ? 10 * (i + 1) : 0,
+    defense: kind === "armor" ? 20 + 3 * i : 0,
+  })),
+);
+
+/** PLACEHOLDER loadout granted to every player (and guests). */
+export const PLACEHOLDER_STARTER_LOADOUT: Loadout = {
+  armor: itemId("armor", 1),
+  weapon: itemId("weapon", 1),
+  gear: itemId("gear", 1),
+};
+
+/** PLACEHOLDER item pool: every item, equal weight, same tickets as cards. */
+export const PLACEHOLDER_ITEM_POOL: Pool = {
+  id: "item-pool-v0",
+  entries: PLACEHOLDER_ITEMS.map((item) => ({ id: item.id, weight: 1 })),
 };

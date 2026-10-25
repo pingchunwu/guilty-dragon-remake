@@ -1,17 +1,23 @@
 import {
   PLACEHOLDER_CARDS,
   PLACEHOLDER_DEFAULT_DECK,
+  PLACEHOLDER_ITEM_POOL,
+  PLACEHOLDER_ITEMS,
   PLACEHOLDER_POOL,
+  PLACEHOLDER_STARTER_LOADOUT,
   RULES_V0,
   STARTING_TICKETS,
   createRng,
   drawTen,
   validateDeck,
+  validateLoadout,
   type Collection,
+  type Pool,
 } from "@gdr/engine";
 import { GameError, type GameService, type PlayerState } from "./types";
 
 const cards = new Map(PLACEHOLDER_CARDS.map((c) => [c.id, c]));
+const items = new Map(PLACEHOLDER_ITEMS.map((i) => [i.id, i]));
 
 function randomSeed(): [number, number, number, number] {
   const seed = new Uint32Array(4);
@@ -30,8 +36,24 @@ export function createGuestService(): GameService {
     tickets: STARTING_TICKETS,
     cards: collection,
     decks: { attack: PLACEHOLDER_DEFAULT_DECK, defense: PLACEHOLDER_DEFAULT_DECK },
+    items: Object.fromEntries(
+      Object.values(PLACEHOLDER_STARTER_LOADOUT)
+        .filter((id) => id !== null)
+        .map((id) => [id, { level: 1, shards: 0 }]),
+    ),
+    loadout: PLACEHOLDER_STARTER_LOADOUT,
   };
   const draws = new Map<string, ReturnType<typeof drawTen>["results"]>();
+
+  function draw(key: string, pool: Pool, field: "cards" | "items") {
+    const replay = draws.get(key);
+    if (replay) return { results: replay, state };
+    if (state.tickets < 1) throw new GameError("INSUFFICIENT_TICKETS");
+    const drawn = drawTen(state[field], pool, createRng(randomSeed()));
+    state = { ...state, tickets: state.tickets - 1, [field]: drawn.collection };
+    draws.set(key, drawn.results);
+    return { results: drawn.results, state };
+  }
 
   return {
     mode: "guest",
@@ -39,17 +61,19 @@ export function createGuestService(): GameService {
       return state;
     },
     async drawTen(key) {
-      const replay = draws.get(key);
-      if (replay) return { results: replay, state };
-      if (state.tickets < 1) throw new GameError("INSUFFICIENT_TICKETS");
-      const drawn = drawTen(state.cards, PLACEHOLDER_POOL, createRng(randomSeed()));
-      state = { ...state, tickets: state.tickets - 1, cards: drawn.collection };
-      draws.set(key, drawn.results);
-      return { results: drawn.results, state };
+      return draw(key, PLACEHOLDER_POOL, "cards");
+    },
+    async drawItems(key) {
+      return draw(key, PLACEHOLDER_ITEM_POOL, "items");
     },
     async saveDeck(kind, deck) {
       const errors = validateDeck(deck, cards, RULES_V0, new Set(Object.keys(state.cards)));
       if (errors.length === 0) state = { ...state, decks: { ...state.decks, [kind]: deck } };
+      return { ok: errors.length === 0, errors };
+    },
+    async saveLoadout(loadout) {
+      const errors = validateLoadout(loadout, items, new Set(Object.keys(state.items)));
+      if (errors.length === 0) state = { ...state, loadout };
       return { ok: errors.length === 0, errors };
     },
   };

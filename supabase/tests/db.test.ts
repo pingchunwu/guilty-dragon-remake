@@ -2,7 +2,17 @@ import { readdirSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { PGlite, type Transaction } from "@electric-sql/pglite";
 import { beforeEach, describe, expect, it } from "vitest";
-import { PLACEHOLDER_CARDS, PLACEHOLDER_DEFAULT_DECK, RULES_V0, validateDeck, type Deck } from "@gdr/engine";
+import {
+  PLACEHOLDER_CARDS,
+  PLACEHOLDER_DEFAULT_DECK,
+  PLACEHOLDER_ITEMS,
+  PLACEHOLDER_STARTER_LOADOUT,
+  RULES_V0,
+  validateDeck,
+  validateLoadout,
+  type Deck,
+  type Loadout,
+} from "@gdr/engine";
 
 const migrationsDir = fileURLToPath(new URL("../migrations/", import.meta.url));
 
@@ -52,6 +62,8 @@ async function rpc<T = any>(uid: string | null, sql: string, params: unknown[] =
 
 const sync = (uid: string) => rpc(uid, "public.sync_player()");
 const draw = (uid: string, key: string) => rpc(uid, "public.draw_ten($1)", [key]);
+const drawItems = (uid: string, key: string) => rpc(uid, "public.draw_items_ten($1)", [key]);
+const saveLoadout = (uid: string, l: Loadout) => rpc(uid, "public.save_loadout($1, $2, $3)", [l.armor, l.weapon, l.gear]);
 const saveDeck = (uid: string, kind: string, deck: Deck) =>
   rpc(uid, "public.save_deck($1::public.deck_kind, $2::jsonb)", [kind, JSON.stringify(deck)]);
 
@@ -110,7 +122,7 @@ describe("draw_ten", () => {
     // Force the pool to a single card Alice already owns.
     await db.exec(`update public.pool_entries set weight = case when card_id = 'ph-heavy-01' then 1 else 0 end`);
     const { results, state } = await draw(ALICE, "key-00000001");
-    expect(results.every((r: any) => r.cardId === "ph-heavy-01" && !r.isNew)).toBe(true);
+    expect(results.every((r: any) => r.id === "ph-heavy-01" && !r.isNew)).toBe(true);
     expect(results.filter((r: any) => r.leveledUp)).toHaveLength(2);
     expect(state.cards["ph-heavy-01"]).toEqual({ level: 3, shards: 0 });
   });
@@ -119,8 +131,54 @@ describe("draw_ten", () => {
     await sync(ALICE);
     await db.exec(`update public.pool_entries set weight = case when card_id = 'ph-magic-16' then 1 else 0 end`);
     const { results, state } = await draw(ALICE, "key-00000001");
-    expect(results[0]).toEqual({ cardId: "ph-magic-16", isNew: true, level: 1, shards: 0, leveledUp: false });
+    expect(results[0]).toEqual({ id: "ph-magic-16", isNew: true, level: 1, shards: 0, leveledUp: false });
     expect(state.cards["ph-magic-16"]).toEqual({ level: 2, shards: 4 });
+  });
+});
+
+describe("content", () => {
+  it("stores card attack and item stats from the engine catalog", async () => {
+    const cards = await db.query<{ id: string; attack: number }>("select id, attack from public.card_definitions order by id");
+    expect(Object.fromEntries(cards.rows.map((r) => [r.id, r.attack]))).toEqual(
+      Object.fromEntries(PLACEHOLDER_CARDS.map((c) => [c.id, c.attack])),
+    );
+    const items = await db.query("select id, name, kind::text as kind, attack, defense from public.item_definitions order by id");
+    expect(items.rows).toEqual(expect.arrayContaining([...PLACEHOLDER_ITEMS]));
+    expect(items.rows).toHaveLength(PLACEHOLDER_ITEMS.length);
+  });
+});
+
+describe("equipment", () => {
+  it("grants and equips the starter items, also for players created before equipment", async () => {
+    const first = await sync(ALICE);
+    expect(first.loadout).toEqual(PLACEHOLDER_STARTER_LOADOUT);
+    expect(Object.keys(first.items).sort()).toEqual(Object.values(PLACEHOLDER_STARTER_LOADOUT).sort());
+
+    await db.exec(`delete from public.loadouts; delete from public.player_items;`);
+    expect((await sync(ALICE)).loadout).toEqual(PLACEHOLDER_STARTER_LOADOUT);
+  });
+
+  it("draws ten items for one ticket and keeps card and item keys apart", async () => {
+    await sync(ALICE);
+    const first = await drawItems(ALICE, "key-00000001");
+    expect(first.results).toHaveLength(10);
+    expect(first.state.tickets).toBe(0);
+    for (const r of first.results) expect(first.state.items[r.id]).toBeDefined();
+    await expect(draw(ALICE, "key-00000001")).rejects.toThrow(/IDEMPOTENCY_KEY_REUSED/);
+  });
+
+  it("saves an owned loadout and reports the same errors as the engine", async () => {
+    await sync(ALICE);
+    expect(await saveLoadout(ALICE, { ...PLACEHOLDER_STARTER_LOADOUT, gear: null })).toEqual({ ok: true, errors: [] });
+    expect((await sync(ALICE)).loadout.gear).toBeNull();
+
+    const bad: Loadout = { armor: "ph-weapon-01", weapon: "ph-weapon-06", gear: "nope" };
+    const items = new Map(PLACEHOLDER_ITEMS.map((i) => [i.id, i]));
+    const expected = validateLoadout(bad, items, new Set(Object.values(PLACEHOLDER_STARTER_LOADOUT) as string[]));
+    const result = await saveLoadout(ALICE, bad);
+    expect(result.ok).toBe(false);
+    expect(result.errors).toEqual(expect.arrayContaining(expected));
+    expect(result.errors).toHaveLength(expected.length);
   });
 });
 
@@ -164,6 +222,9 @@ describe("row-level security", () => {
     ).rejects.toThrow(/permission denied/);
     await expect(
       as(ALICE, (tx) => tx.query("insert into public.player_cards (player_id, card_id) values ($1, 'ph-magic-16')", [ALICE])),
+    ).rejects.toThrow(/permission denied/);
+    await expect(
+      as(ALICE, (tx) => tx.query("update public.loadouts set weapon_id = 'ph-weapon-06' where player_id = $1", [ALICE])),
     ).rejects.toThrow(/permission denied/);
   });
 

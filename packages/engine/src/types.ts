@@ -18,11 +18,25 @@ export interface CardDefinition {
   attack: number;
 }
 
-/** Worn by a player; its defense reduces damage taken in a lost phase. */
-export interface Armor {
+/** Equipment kinds; a player equips one of each (docs/development-spec.md §6a). */
+export type ItemKind = "armor" | "weapon" | "gear";
+
+export const ITEM_KINDS: readonly ItemKind[] = ["armor", "weapon", "gear"];
+
+/**
+ * Equipment, separate from the deck. Armor defense reduces damage taken in a
+ * lost phase; weapon attack is added to every phase's attack after the
+ * multipliers. Gear has no battle effect yet (open decision).
+ */
+export interface ItemDefinition {
   id: string;
   name: string;
+  kind: ItemKind;
+  attack: number;
   defense: number;
 }
+
+/** Equipped item IDs; null is an empty slot. */
+export type Loadout = Record<ItemKind, string | null>;
 
 export type Deck = Record<DeckSlot, readonly string[]>;

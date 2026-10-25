@@ -27,7 +27,7 @@ describe("applyPull", () => {
   it("adds a new card at level 1", () => {
     const { collection, result } = applyPull({}, "a");
     expect(collection).toEqual({ a: { level: 1, shards: 0 } });
-    expect(result).toEqual({ cardId: "a", isNew: true, level: 1, shards: 0, leveledUp: false });
+    expect(result).toEqual({ id: "a", isNew: true, level: 1, shards: 0, leveledUp: false });
   });
 
   it("turns duplicates into shards and levels up at 5", () => {
@@ -51,9 +51,9 @@ describe("drawTen", () => {
   });
 
   it("only draws positive-weight cards", () => {
-    const pool = { id: "t", entries: [{ cardId: "x", weight: 0 }, { cardId: "y", weight: 3 }] };
+    const pool = { id: "t", entries: [{ id: "x", weight: 0 }, { id: "y", weight: 3 }] };
     const { results } = drawTen({}, pool, createRng([7, 7, 7, 7]));
-    expect(new Set(results.map((r) => r.cardId))).toEqual(new Set(["y"]));
+    expect(new Set(results.map((r) => r.id))).toEqual(new Set(["y"]));
   });
 });
 

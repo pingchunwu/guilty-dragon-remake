@@ -1,4 +1,4 @@
-import type { Collection, Deck, DeckError, PullResult } from "@gdr/engine";
+import type { Collection, Deck, DeckError, Loadout, LoadoutError, PullResult } from "@gdr/engine";
 
 export type DeckKind = "attack" | "defense";
 
@@ -6,6 +6,9 @@ export interface PlayerState {
   tickets: number;
   cards: Collection;
   decks: Record<DeckKind, Deck>;
+  items: Collection;
+  /** One loadout for both attack and defense. */
+  loadout: Loadout;
 }
 
 export interface DrawOutcome {
@@ -22,7 +25,10 @@ export interface GameService {
   sync(): Promise<PlayerState>;
   /** Reusing `idempotencyKey` for a retry never charges twice. */
   drawTen(idempotencyKey: string): Promise<DrawOutcome>;
+  /** Ten pulls from the item pool for one ticket; keys must differ from card draws. */
+  drawItems(idempotencyKey: string): Promise<DrawOutcome>;
   saveDeck(kind: DeckKind, deck: Deck): Promise<{ ok: boolean; errors: DeckError[] }>;
+  saveLoadout(loadout: Loadout): Promise<{ ok: boolean; errors: LoadoutError[] }>;
 }
 
 /** Errors raised by the database functions, by message. */

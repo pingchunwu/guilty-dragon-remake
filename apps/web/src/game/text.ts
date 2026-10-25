@@ -1,7 +1,26 @@
-import type { CardType, DeckError, DeckSlot } from "@gdr/engine";
+import type { CardType, DeckError, DeckSlot, ItemDefinition, ItemKind, LoadoutError } from "@gdr/engine";
 
 export const TYPE_LABEL: Record<CardType, string> = { heavy: "重裝", light: "輕裝", magic: "魔裝" };
 export const SLOT_LABEL: Record<DeckSlot, string> = { ...TYPE_LABEL, free: "自由" };
+export const ITEM_KIND_LABEL: Record<ItemKind, string> = { armor: "防具", weapon: "武器", gear: "飾品" };
+
+export function itemStatText(item: ItemDefinition): string {
+  if (item.kind === "armor") return `防禦 ${item.defense}`;
+  if (item.kind === "weapon") return `攻擊 +${item.attack}`;
+  return "效果待定";
+}
+
+export function loadoutErrorText(e: LoadoutError): string {
+  const slot = ITEM_KIND_LABEL[e.slot];
+  switch (e.code) {
+    case "UNKNOWN_ITEM":
+      return `未知的裝備：${e.itemId}。`;
+    case "WRONG_KIND":
+      return `這件裝備不能放在${slot}欄。`;
+    case "NOT_OWNED":
+      return `尚未擁有這件${slot}。`;
+  }
+}
 
 export function errorText(code: string): string {
   switch (code) {
@@ -13,6 +32,8 @@ export function errorText(code: string): string {
       return "登入已過期，請重新登入。";
     case "NO_ACTIVE_POOL":
       return "目前沒有開放的卡池。";
+    case "IDEMPOTENCY_KEY_REUSED":
+      return "抽卡請求重複，請再按一次。";
     default:
       return `發生錯誤（${code}），請稍後再試。`;
   }

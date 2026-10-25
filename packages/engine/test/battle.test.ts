@@ -2,15 +2,18 @@ import { describe, expect, it } from "vitest";
 import {
   PLACEHOLDER_CARDS,
   PLACEHOLDER_DEFAULT_DECK,
-  PLACEHOLDER_STARTER_ARMOR,
+  PLACEHOLDER_ITEMS,
+  PLACEHOLDER_STARTER_LOADOUT,
   RULES_V0,
   aiSelect,
   deckCardIds,
   previewAttack,
   resolvePhase,
   startBattle,
+  resolveEquipment,
   validateSelection,
   type BattleState,
+  type Equipment,
   type CardDefinition,
   type Cards,
   type Selection,
@@ -19,8 +22,11 @@ import {
 
 const cards: Cards = new Map(PLACEHOLDER_CARDS.map((c) => [c.id, c]));
 const deck = deckCardIds(PLACEHOLDER_DEFAULT_DECK);
-const armor = PLACEHOLDER_STARTER_ARMOR;
-const setup = { deck, armor };
+/** Armor 30 and no weapon, so the hand-checked numbers below stay simple. */
+const armor = { id: "t-armor", name: "t", kind: "armor" as const, attack: 0, defense: 30 };
+const equipment: Equipment = { armor, weapon: null, gear: null };
+const setup = { deck, equipment };
+const HP = RULES_V0.startingHp;
 
 /** Same rules with HP high enough that deck-out is always reached. */
 const LONG = { ...RULES_V0, startingHp: 100_000 };
@@ -54,7 +60,7 @@ const many = (prefix: string, type: CardDefinition["type"], n: number, attack = 
 const ids = (prefix: string, n: number) => Array.from({ length: n }, (_, i) => `${prefix}${i + 1}`);
 
 function side(hand: string[], drawPile: string[]): SideState {
-  return { hp: 1000, armor, drawPile, hand, discard: [], ranOut: false };
+  return { hp: 1000, equipment, drawPile, hand, discard: [], ranOut: false };
 }
 
 function stateWith(challenger: SideState, defender: SideState): BattleState {
@@ -74,9 +80,39 @@ const quietDefender = () => side(["dm"], ids("dp", 10));
 const quietCards: [string, CardDefinition["type"], number][] = [["dm", "magic", 1], ...many("dp", "magic", 10)];
 
 describe("placeholder balance", () => {
-  it("keeps armor below every card's attack so won phases always deal damage", () => {
+  it("keeps every armor below every card's attack so won phases always deal damage", () => {
     const minAttack = Math.min(...PLACEHOLDER_CARDS.map((c) => c.attack));
-    expect(armor.defense).toBeLessThan(minAttack);
+    for (const item of PLACEHOLDER_ITEMS.filter((i) => i.kind === "armor")) expect(item.defense).toBeLessThan(minAttack);
+  });
+});
+
+describe("weapons", () => {
+  const sword = { id: "t-sword", name: "t", kind: "weapon" as const, attack: 25, defense: 0 };
+  const armed: Equipment = { armor, weapon: sword, gear: null };
+
+  it("adds weapon attack after the combo and advantage multipliers", () => {
+    // heavy beats light: (100 + 50) × 1.1 × 1.2 = 198, + 25 weapon = 223.
+    const c = fixture([["h", "heavy", 100], ["h2", "heavy", 50], ["l", "light", 110], ...many("x", "magic", 12)]);
+    const state = stateWith({ ...side(["h", "h2"], ids("x", 6)), equipment: armed }, side(["l"], ids("x", 12).slice(6)));
+    const { result } = resolvePhase(state, { leader: "h", supports: ["h2"] }, c, RULES_V0);
+    expect(result.sides.challenger).toMatchObject({ weaponAttack: 25, attack: 223 });
+    expect(result.damage).toBe(223 - 30);
+  });
+
+  it("adds weapon attack to deck-out totals too", () => {
+    const start = startBattle([3, 3, 3, 3], { deck, equipment: armed }, setup, RULES_V0);
+    const out = { ...start.sides.challenger, drawPile: [], discard: start.sides.challenger.drawPile, ranOut: true };
+    const total = out.hand.reduce((sum, id) => sum + cards.get(id)!.attack, 0);
+    const { result } = resolvePhase({ ...start, kind: "deck_out", sides: { ...start.sides, challenger: out } }, null, cards, RULES_V0);
+    expect(result.damage).toBe(total + 25);
+  });
+
+  it("resolves the starter loadout from the placeholder items", () => {
+    const items = new Map(PLACEHOLDER_ITEMS.map((i) => [i.id, i]));
+    const e = resolveEquipment(PLACEHOLDER_STARTER_LOADOUT, items);
+    expect(e.armor?.kind).toBe("armor");
+    expect(e.weapon?.attack).toBeGreaterThan(0);
+    expect(e.gear?.kind).toBe("gear");
   });
 });
 
@@ -86,7 +122,7 @@ describe("startBattle", () => {
     for (const s of Object.values(state.sides)) {
       expect(s.hand).toHaveLength(8);
       expect(s.drawPile).toHaveLength(24);
-      expect(s.hp).toBe(1000);
+      expect(s.hp).toBe(HP);
     }
     expect(state.kind).toBe("normal");
   });
@@ -266,7 +302,7 @@ describe("deck-out", () => {
       expect(result.winner).toBe(winner);
       expect(result.damage).toBe(totals[winner] - armor.defense);
       expect(result.ignoredArmor).toBe(false);
-      expect(next.sides[loser].hp).toBe(1000 - result.damage);
+      expect(next.sides[loser].hp).toBe(HP - result.damage);
     }
     expect(result.reshuffled.sort()).toEqual(["challenger", "defender"]);
     for (const s of Object.values(next.sides)) {
@@ -287,7 +323,7 @@ describe("deck-out", () => {
     expect(result.damage).toBe(total);
     expect(result.ignoredArmor).toBe(true);
     expect(result.reshuffled).toEqual(["challenger"]);
-    expect(next.sides.defender.hp).toBe(1000 - total);
+    expect(next.sides.defender.hp).toBe(HP - total);
     expect(next.sides.defender.hand).toEqual(defenderHand);
     expect(next.sides.challenger.hand).toHaveLength(8);
     expect(cardCount(next.sides.challenger)).toBe(32);

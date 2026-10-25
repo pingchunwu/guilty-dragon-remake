@@ -1,5 +1,5 @@
 import type { Rng } from "./rng";
-import type { CardPool } from "./catalog";
+import type { Pool } from "./catalog";
 
 /** Confirmed economy rules. */
 export const DRAWS_PER_TICKET = 10;
@@ -13,10 +13,12 @@ export interface OwnedCard {
   shards: number;
 }
 
+/** Owned cards or items by ID. Items level up from duplicates the same way. */
 export type Collection = Readonly<Record<string, OwnedCard>>;
 
 export interface PullResult {
-  cardId: string;
+  /** Card or item ID. */
+  id: string;
   isNew: boolean;
   /** Level after this pull. */
   level: number;
@@ -26,17 +28,17 @@ export interface PullResult {
 }
 
 /**
- * Adds one pulled card. A new card starts at level 1; a duplicate becomes one
- * shard, and every SHARDS_PER_LEVEL shards raise the card one level. No level
- * cap yet (open decision).
+ * Adds one pulled card or item. A new one starts at level 1; a duplicate
+ * becomes one shard, and every SHARDS_PER_LEVEL shards raise it one level. No
+ * level cap yet, and levels have no battle effect yet (open decisions).
  */
-export function applyPull(collection: Collection, cardId: string): { collection: Collection; result: PullResult } {
-  const owned = collection[cardId];
+export function applyPull(collection: Collection, id: string): { collection: Collection; result: PullResult } {
+  const owned = collection[id];
   if (!owned) {
-    const card = { level: 1, shards: 0 };
+    const fresh = { level: 1, shards: 0 };
     return {
-      collection: { ...collection, [cardId]: card },
-      result: { cardId, isNew: true, ...card, leveledUp: false },
+      collection: { ...collection, [id]: fresh },
+      result: { id, isNew: true, ...fresh, leveledUp: false },
     };
   }
   let { level, shards } = owned;
@@ -47,18 +49,18 @@ export function applyPull(collection: Collection, cardId: string): { collection:
     shards -= SHARDS_PER_LEVEL;
   }
   return {
-    collection: { ...collection, [cardId]: { level, shards } },
-    result: { cardId, isNew: false, level, shards, leveledUp },
+    collection: { ...collection, [id]: { level, shards } },
+    result: { id, isNew: false, level, shards, leveledUp },
   };
 }
 
-/** Picks one card ID by weight. */
-export function pickFromPool(pool: CardPool, rng: Rng): string {
+/** Picks one ID by weight. */
+export function pickFromPool(pool: Pool, rng: Rng): string {
   const total = pool.entries.reduce((sum, e) => sum + e.weight, 0);
   if (!Number.isInteger(total) || total <= 0) throw new Error(`pool ${pool.id} has invalid total weight ${total}`);
   let roll = rng.nextInt(total);
   for (const entry of pool.entries) {
-    if (roll < entry.weight) return entry.cardId;
+    if (roll < entry.weight) return entry.id;
     roll -= entry.weight;
   }
   throw new Error("unreachable: roll exceeded total weight");
@@ -67,7 +69,7 @@ export function pickFromPool(pool: CardPool, rng: Rng): string {
 /** One ticket's worth of pulls applied to a collection, in order. */
 export function drawTen(
   collection: Collection,
-  pool: CardPool,
+  pool: Pool,
   rng: Rng,
 ): { collection: Collection; results: PullResult[] } {
   const results: PullResult[] = [];
