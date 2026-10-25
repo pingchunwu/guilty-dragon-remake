@@ -1,0 +1,53 @@
+:root {
+  --bg: #14101f;
+  --panel: #211a33;
+  --text: #f1ecff;
+  --muted: #a99fc4;
+  --accent: #d9b45a;
+  color-scheme: dark;
+  font-family: system-ui, "Noto Sans TC", "PingFang TC", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.shell {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: max(24px, env(safe-area-inset-top)) 16px 32px;
+  display: grid;
+  gap: 16px;
+}
+
+h1 {
+  margin: 0;
+  color: var(--accent);
+  font-size: 1.6rem;
+}
+
+h2 {
+  margin: 0 0 8px;
+  font-size: 1.1rem;
+}
+
+.panel {
+  background: var(--panel);
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.panel ul {
+  margin: 0;
+  padding-left: 1.2em;
+}
+
+.muted {
+  color: var(--muted);
+}
