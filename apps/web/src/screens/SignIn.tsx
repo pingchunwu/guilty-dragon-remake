@@ -6,7 +6,12 @@ interface Props {
   onGuest: () => void;
 }
 
-/** Email sign-in with a 6-digit code (works inside an installed PWA, unlike a magic link). */
+/**
+ * Email sign-in. The email carries a link (handled by supabase-js on return)
+ * and, once the template includes {{ .Token }}, a 6-digit code. The code is
+ * preferred because a link opened from email lands in the browser, not an
+ * installed PWA; editing the template requires custom SMTP.
+ */
 export function SignIn({ client, onGuest }: Props) {
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
@@ -19,7 +24,10 @@ export function SignIn({ client, onGuest }: Props) {
     if (!client) return;
     setBusy(true);
     setMessage(null);
-    const { error } = await client.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
+    const { error } = await client.auth.signInWithOtp({
+      email,
+      options: { shouldCreateUser: true, emailRedirectTo: window.location.origin },
+    });
     setBusy(false);
     if (error) setMessage(`寄送失敗：${error.message}`);
     else setStep("code");
@@ -46,13 +54,13 @@ export function SignIn({ client, onGuest }: Props) {
             <input type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
           </label>
           <button className="primary" disabled={busy}>
-            {busy ? "寄送中…" : "寄送登入驗證碼"}
+            {busy ? "寄送中…" : "寄送登入信"}
           </button>
         </form>
       )}
       {client && step === "code" && (
         <form className="stack" onSubmit={verify}>
-          <p className="muted">驗證碼已寄到 {email}。</p>
+          <p className="muted">登入信已寄到 {email}。請點信中的登入連結，或輸入信中的驗證碼。</p>
           <label className="field">
             驗證碼
             <input
