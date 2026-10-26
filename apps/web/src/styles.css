@@ -536,7 +536,44 @@ p.error {
 
   .skill-burst,
   .burst-icon,
-  .burst-line {
+  .burst-line,
+  .card-toast {
     animation: none;
   }
+}
+
+/* Long-press opens the card toast, so suppress the OS callout and text selection on cards. */
+.card {
+  -webkit-touch-callout: none;
+  user-select: none;
+}
+
+.card-toast-anchor {
+  position: fixed;
+  top: max(12px, env(safe-area-inset-top));
+  left: 16px;
+  right: 16px;
+  z-index: 10;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.card-toast {
+  pointer-events: auto;
+  display: grid;
+  gap: 4px;
+  width: 100%;
+  max-width: 488px;
+  padding: 12px 14px;
+  text-align: left;
+  border-width: 2px;
+  background: var(--panel);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 45%);
+  animation: burst-float 0.2s ease-out both;
+}
+
+.card-attack-inline {
+  font-weight: 700;
+  color: var(--accent);
 }
