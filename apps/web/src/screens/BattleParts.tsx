@@ -43,7 +43,7 @@ export function HpBar({ label, hp, equipment }: { label: string; hp: number; equ
         </span>
       </div>
       <div className="hp-track">
-        <div className="hp-fill" style={{ width: `${pct}%` }} />
+        <div className="hp-fill" style={{ transform: `scaleX(${pct / 100})` }} />
       </div>
     </div>
   );
