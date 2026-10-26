@@ -138,29 +138,34 @@ describe("combo skills", () => {
 describe("attack and defense skills", () => {
   const sword = { id: "w", name: "w", kind: "weapon" as const, attack: 10, defense: 0 };
 
-  it("percent attack applies to the weapon too; flat attack is added after", () => {
-    expect(lone("soul-breath", 2).result.sides.challenger).toMatchObject({ attack: 60, skillAttack: 10 });
+  it("power skills change only the weapon's power, as in the original", () => {
+    expect(lone("soul-breath", 2).result.sides.challenger).toMatchObject({ attack: 50, skillAttack: 0 });
     const armed = lone("soul-breath", 2, { equipment: { ...NO_EQUIPMENT, weapon: sword } });
-    expect(armed.result.sides.challenger.attack).toBe(72);
+    expect(armed.result.sides.challenger).toMatchObject({ attack: 62, skillAttack: 2 });
     expect(lone("power-up-3", 2).result.sides.challenger.attack).toBe(62);
   });
 
   it("enemy attack-down skills come off the other side", () => {
     const defender = (skill: string) => ({ hand: ["k"], extra: [["k", "magic", 1, skill]] as Def[] });
+    const armed = { ...NO_EQUIPMENT, weapon: sword };
     const run = (skill: string) =>
-      phase(defender(skill).extra, { hand: ["h1", ...ids("m", 4)] }, { hand: ["k"] }).result.sides.challenger.attack;
-    expect(run("disarm")).toBe(42);
-    const hit = phase(defender("disarm").extra, { hand: ["h1", ...ids("m", 4)] }, { hand: ["k"] }).result.sides.challenger;
-    expect(hit).toMatchObject({ skillAttack: -8, enemySkillAttack: -8 });
-    expect(run("arms-curse")).toBe(0);
-    expect(run("belly-laugh")).toBe(20);
+      phase(defender(skill).extra, { hand: ["h1", ...ids("m", 4)], equipment: armed }, { hand: ["k"] }).result.sides
+        .challenger;
+    expect(run("disarm")).toMatchObject({ attack: 58, skillAttack: -2, enemySkillAttack: -2 });
+    // 武裝封咒 removes the whole weapon bonus, not the card attack.
+    expect(run("arms-curse").attack).toBe(50);
+    // Flat cuts stop at a weapon power of 0.
+    expect(run("belly-laugh").attack).toBe(50);
   });
 
   it("defense skills scale armor; 不惜身命 trades defense for attack", () => {
     const armor = { id: "a", name: "a", kind: "armor" as const, attack: 0, defense: 30 };
     const equipment = { ...NO_EQUIPMENT, armor };
     expect(lone("silver-crown", 1, { equipment }).result.sides.challenger.defense).toBe(42);
-    expect(lone("reckless", 1, { equipment }).result.sides.challenger).toMatchObject({ attack: 80, defense: 25 });
+    expect(lone("reckless", 1, { equipment: { ...equipment, weapon: sword } }).result.sides.challenger).toMatchObject({
+      attack: 66,
+      defense: 25,
+    });
     const pierced = phase([["k", "magic", 1, "armor-pierce"]], { hand: ["h1", ...ids("m", 4)], equipment }, {
       hand: ["k"],
       levels: { k: 2 },

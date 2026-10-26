@@ -23,7 +23,7 @@ type Unit = "flat" | "pct";
 export type SkillEffect =
   /** Self: +value combo count. Enemy: −value combo count (never below ×1.0). */
   | { kind: "combo"; target: Side }
-  /** Self: +value attack (flat, or % of attack incl. weapon). Enemy: −value. */
+  /** Self: +value weapon power (flat, or % of the weapon), as in the original. Enemy: −value, not below 0. */
   | { kind: "power"; target: Side; unit: Unit }
   /** +value % attack, −value/4 % own defense (不借身命). */
   | { kind: "reckless" }
