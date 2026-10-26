@@ -4,7 +4,7 @@ import { SKILLS, type Rarity } from "./skills";
 /**
  * PLACEHOLDER content for development: one card per skill (skills.ts), dealt
  * to the three types in turn, no art. Rarity follows the original game's
- * tiers (N … SR+) and sets the attack range and draw weight; the numbers are
+ * tiers (N … SR+) and sets the POW, DRAW and gacha weight ranges; the numbers are
  * not balanced. Replace once the card design (original vs. recreated) is
  * decided. supabase/seed is generated from this file; keep them in sync with
  * `npm run gen:seed`. IDs ph-<type>-01…16 existed before skills and are kept.
@@ -33,27 +33,40 @@ export function placeholderRarity(skillId: string): Rarity {
   return SKILL_RARITY[skillId] ?? TIER_RARITY[Number(tier?.[1] ?? 1) - 1]!;
 }
 
-/** Attack range by rarity, about a tenth of the original's starting POW. */
+/** Attack (max POW) range by rarity, from the original game's card library (spec §6a). */
 const ATTACK_RANGE: Record<Rarity, readonly [number, number]> = {
-  N: [30, 45],
-  "N+": [35, 55],
-  R: [45, 65],
-  "R+": [50, 72],
-  SR: [60, 85],
-  "SR+": [70, 100],
+  N: [320, 800],
+  "N+": [220, 924],
+  R: [644, 1150],
+  "R+": [864, 1272],
+  SR: [750, 1775],
+  "SR+": [1410, 2070],
 };
+
+/** DRAW range by rarity: mostly 1–3 low, 3–5 at SR/SR+; N+ spans 0–4 as in the original. */
+const DRAW_RANGE: Record<Rarity, readonly [number, number]> = {
+  N: [1, 3],
+  "N+": [0, 4],
+  R: [1, 3],
+  "R+": [1, 4],
+  SR: [3, 5],
+  "SR+": [3, 5],
+};
+
+const spread = ([low, high]: readonly [number, number], seed: number) => low + (seed % (high - low + 1));
 
 export const PLACEHOLDER_CARDS: readonly CardDefinition[] = SKILLS.map((skill, i) => {
   const type = TYPES[i % TYPES.length]!;
   const n = Math.floor(i / TYPES.length) + 1;
   const rarity = placeholderRarity(skill.id);
-  const [low, high] = ATTACK_RANGE[rarity];
   return {
     id: placeholderCardId(type, n),
     name: `${TYPE_LABEL[type]}試作 ${String(n).padStart(2, "0")}`,
     type,
-    // Spread across the rarity's range so hands differ; not balanced.
-    attack: low + ((i * 37) % (high - low + 1)),
+    // Spread across the rarity's ranges so hands differ; POW and DRAW use
+    // unrelated steps so a leader trades one for the other. Not balanced.
+    attack: spread(ATTACK_RANGE[rarity], i * 37),
+    draw: spread(DRAW_RANGE[rarity], i * 7 + 1),
     rarity,
     skill: skill.id,
   };

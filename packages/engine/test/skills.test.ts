@@ -22,7 +22,7 @@ type Def = [id: string, type: CardType, attack: number, skill?: string];
 
 function cardsOf(defs: Def[]): Cards {
   return new Map(
-    defs.map(([id, type, attack, skill]) => [id, { id, name: id, type, attack, rarity: "N", skill: skill ?? null }]),
+    defs.map(([id, type, attack, skill]) => [id, { id, name: id, type, attack, draw: 2, rarity: "N", skill: skill ?? null }]),
   );
 }
 

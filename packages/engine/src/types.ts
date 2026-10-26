@@ -18,7 +18,10 @@ export interface CardDefinition {
   id: string;
   name: string;
   type: CardType;
+  /** POW: the original game's max POW scale. */
   attack: number;
+  /** DRAW (0–6): cards drawn from the deck when this card leads (rule 0.7.0-draft). */
+  draw: number;
   rarity: Rarity;
   /** Skill ID (skills.ts); it fires only when this card leads. */
   skill: string | null;

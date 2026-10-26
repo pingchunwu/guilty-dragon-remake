@@ -257,24 +257,34 @@ function placeholderRarity(skillId) {
   return SKILL_RARITY[skillId] ?? TIER_RARITY[Number(tier?.[1] ?? 1) - 1];
 }
 var ATTACK_RANGE = {
-  N: [30, 45],
-  "N+": [35, 55],
-  R: [45, 65],
-  "R+": [50, 72],
-  SR: [60, 85],
-  "SR+": [70, 100]
+  N: [320, 800],
+  "N+": [220, 924],
+  R: [644, 1150],
+  "R+": [864, 1272],
+  SR: [750, 1775],
+  "SR+": [1410, 2070]
 };
+var DRAW_RANGE = {
+  N: [1, 3],
+  "N+": [0, 4],
+  R: [1, 3],
+  "R+": [1, 4],
+  SR: [3, 5],
+  "SR+": [3, 5]
+};
+var spread = ([low, high], seed) => low + seed % (high - low + 1);
 var PLACEHOLDER_CARDS = SKILLS.map((skill, i) => {
   const type = TYPES[i % TYPES.length];
   const n = Math.floor(i / TYPES.length) + 1;
   const rarity = placeholderRarity(skill.id);
-  const [low, high] = ATTACK_RANGE[rarity];
   return {
     id: placeholderCardId(type, n),
     name: `${TYPE_LABEL[type]}\u8A66\u4F5C ${String(n).padStart(2, "0")}`,
     type,
-    // Spread across the rarity's range so hands differ; not balanced.
-    attack: low + i * 37 % (high - low + 1),
+    // Spread across the rarity's ranges so hands differ; POW and DRAW use
+    // unrelated steps so a leader trades one for the other. Not balanced.
+    attack: spread(ATTACK_RANGE[rarity], i * 37),
+    draw: spread(DRAW_RANGE[rarity], i * 7 + 1),
     rarity,
     skill: skill.id
   };
