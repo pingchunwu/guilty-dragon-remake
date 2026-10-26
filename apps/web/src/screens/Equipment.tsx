@@ -63,13 +63,15 @@ export function Equipment({ content: { items }, service, state, onState }: Props
               <strong>{ITEM_KIND_LABEL[kind]}</strong>
               <span className="muted small">擁有 {owned.length}</span>
             </div>
-            {current ? (
-              <ItemTile item={current} owned={state.items[current.id]} onClick={() => setOpen(open === kind ? null : kind)} />
-            ) : (
-              <button type="button" className="card card-empty" onClick={() => setOpen(open === kind ? null : kind)}>
-                ＋
-              </button>
-            )}
+            <div className="grid compact">
+              {current ? (
+                <ItemTile item={current} owned={state.items[current.id]} onClick={() => setOpen(open === kind ? null : kind)} />
+              ) : (
+                <button type="button" className="card card-empty" onClick={() => setOpen(open === kind ? null : kind)}>
+                  ＋
+                </button>
+              )}
+            </div>
             {open === kind && (
               <div className="picker stack">
                 <span className="small muted">選擇要裝備的{ITEM_KIND_LABEL[kind]}</span>

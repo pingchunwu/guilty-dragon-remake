@@ -31,6 +31,7 @@ export function App() {
   const [state, setState] = useState<PlayerState | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("battle");
+  const [deckView, setDeckView] = useState<"deck" | "equipment">("deck");
   const [content, setContent] = useState<Content | null>(null);
   const [contentError, setContentError] = useState<string | null>(null);
 
@@ -134,8 +135,20 @@ export function App() {
             <main>
               {tab === "deck" && (
                 <div className="stack">
-                  <DeckEditor content={content} service={service} state={state} onState={setState} />
-                  <Equipment content={content} service={service} state={state} onState={setState} />
+                  <div className="chips">
+                    {(["deck", "equipment"] as const).map((v) => (
+                      <button key={v} type="button" className={deckView === v ? "chip active" : "chip"} onClick={() => setDeckView(v)}>
+                        {v === "deck" ? "牌組" : "裝備"}
+                      </button>
+                    ))}
+                  </div>
+                  {/* Both stay mounted so switching keeps unsaved drafts. */}
+                  <div hidden={deckView !== "deck"}>
+                    <DeckEditor content={content} service={service} state={state} onState={setState} />
+                  </div>
+                  <div hidden={deckView !== "equipment"}>
+                    <Equipment content={content} service={service} state={state} onState={setState} />
+                  </div>
                 </div>
               )}
               {/* Kept mounted so switching tabs doesn't lose a battle in progress. */}

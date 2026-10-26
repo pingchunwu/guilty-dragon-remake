@@ -190,13 +190,24 @@ p.error {
   position: relative;
   display: grid;
   align-content: start;
-  gap: 4px;
-  min-height: 96px;
-  padding: 8px;
+  gap: 2px;
+  grid-template-columns: minmax(0, 1fr);
+  aspect-ratio: 1;
+  min-height: 88px;
+  padding: 6px;
+  overflow: hidden;
   border-radius: 10px;
   border: 2px solid var(--line);
   background: var(--panel-2);
   text-align: left;
+}
+
+/* Keep every line inside the square; the full text is in the long-press toast. */
+.card > * {
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .card-heavy {
@@ -700,6 +711,8 @@ p.error {
 }
 
 .hand-grid .card {
+  /* The battle screen fits one viewport, so hand cards size to the grid instead. */
+  aspect-ratio: auto;
   min-height: 0;
   padding: 6px;
   gap: 2px;

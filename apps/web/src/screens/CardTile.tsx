@@ -70,8 +70,9 @@ export function CardTile({ card, owned, onClick, badge, selected, dimmed }: Prop
   const max = cardMaxLevel(card);
   const body = (
     <>
+      {/* The border colour already shows the type. */}
       <span className="card-type">
-        {TYPE_LABEL[card.type]} <span className="card-rarity">{card.rarity}</span>
+        <span className="card-rarity">{card.rarity}</span>
       </span>
       <span className="card-attack" aria-label={`攻擊 ${card.attack}`}>
         {card.attack}
@@ -84,8 +85,7 @@ export function CardTile({ card, owned, onClick, badge, selected, dimmed }: Prop
       )}
       {owned && (
         <span className="card-level">
-          技能 Lv {owned.level}/{max}
-          {owned.shards > 0 && ` · 多餘 ${owned.shards}`}
+          Lv {owned.level}/{max}
         </span>
       )}
       {badge && <span className="card-badge">{badge}</span>}
