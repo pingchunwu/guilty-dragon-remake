@@ -680,7 +680,8 @@ function resolvePhase(state, selection, cards, rules) {
       const combo = comboFor(comboCount, rules);
       const baseAttack = sumAttack(played, cards);
       const weaponAttack = weaponAttackOf(sides[id].equipment);
-      const chainAttack = Math.floor(baseAttack * perMille(combo) * perMille(advantage[id]) / 1e6) + weaponAttack;
+      const cardAttack = Math.floor(baseAttack * perMille(combo) * perMille(advantage[id]) / 1e6);
+      const chainAttack = cardAttack + weaponAttack;
       const hpCostEffect = effectOf(mine);
       const hpCost = hpCostEffect?.kind === "hpCost" ? skillValue(mine.skill, mine.level) : 0;
       const ratio = hpCostEffect?.kind === "hpCost" ? hpCostEffect.ratio : 0;
@@ -688,12 +689,13 @@ function resolvePhase(state, selection, cards, rules) {
         mine,
         (e) => e.kind === "power" && e.target === "self" && e.unit === "pct" || e.kind === "reckless"
       );
-      const ownFlat = total(mine, (e) => e.kind === "power" && e.target === "self" && e.unit === "flat") + total(mine, (e) => e.kind === "board" && e.colour === "same") * (played.length - 1) + total(mine, (e) => e.kind === "board" && e.colour === "other") * blocks + Math.floor(hpCost * ratio);
+      const ownWeaponFlat = total(mine, (e) => e.kind === "power" && e.target === "self" && e.unit === "flat");
+      const ownFlat = total(mine, (e) => e.kind === "board" && e.colour === "same") * (played.length - 1) + total(mine, (e) => e.kind === "board" && e.colour === "other") * blocks + Math.floor(hpCost * ratio);
       const enemyPercent = total(theirs, (e) => e.kind === "power" && e.target === "enemy" && e.unit === "pct");
       const enemyFlat = total(theirs, (e) => e.kind === "power" && e.target === "enemy" && e.unit === "flat");
-      const withPercent = (pct, add) => Math.max(0, Math.floor(chainAttack * (100 + pct) / 100) + add);
-      const attack = withPercent(ownPercent - enemyPercent, ownFlat - enemyFlat);
-      const ownAttack = withPercent(ownPercent, ownFlat);
+      const withSkills = (pct, weaponFlat) => cardAttack + Math.max(0, Math.floor(weaponAttack * (100 + pct) / 100) + weaponFlat) + ownFlat;
+      const attack = withSkills(ownPercent - enemyPercent, ownWeaponFlat - enemyFlat);
+      const ownAttack = withSkills(ownPercent, ownWeaponFlat);
       const defensePercent = total(mine, (e) => e.kind === "defense" && e.target === "self") - Math.floor(total(mine, (e) => e.kind === "reckless") / 4) - total(theirs, (e) => e.kind === "defense" && e.target === "enemy");
       const defense = Math.max(0, Math.floor(defenseOf(sides[id].equipment) * (100 + defensePercent) / 100));
       const heal = total(mine, (e) => e.kind === "heal" && e.unit === "flat") + Math.floor(rules.startingHp * total(mine, (e) => e.kind === "heal" && e.unit === "pct") / 100);
