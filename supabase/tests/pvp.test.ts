@@ -104,6 +104,7 @@ describe("battles", () => {
       endReason: null,
       phase: 1,
       kind: "normal",
+      ruleVersion: "0.7.0-draft",
       hp: { challenger: 3000, defender: 3000 },
       drawPile: { challenger: 24, defender: 24 },
       ranOut: { challenger: false, defender: false },
@@ -112,7 +113,7 @@ describe("battles", () => {
     expect(view.hand).toHaveLength(8);
     expect(Object.keys(view).sort()).toEqual(
       ["cards", "deadline", "drawPile", "endReason", "equipment", "hand", "hp", "id", "kind", "last", "levels",
-        "opponent", "phase", "ranOut", "serverNow", "status"].sort(),
+        "opponent", "phase", "ranOut", "ruleVersion", "serverNow", "status"].sort(),
     );
     expect(JSON.stringify(view)).not.toMatch(/rng|seed|discard/);
     for (const id of view.hand) expect(view.cards[id]).toEqual(cards.get(id));
