@@ -123,7 +123,7 @@ describe("weapons", () => {
     const e = resolveEquipment(PLACEHOLDER_STARTER_LOADOUT, items);
     for (const kind of ITEM_KINDS) expect(e[kind]?.kind).toBe(kind);
     expect(weaponAttackOf(e)).toBe(300);
-    expect(defenseOf(e)).toBe(64);
+    expect(defenseOf(e)).toBe(8);
   });
 });
 

@@ -128,9 +128,8 @@ const itemId = (kind: ItemKind, n: number) =>
 
 /**
  * PLACEHOLDER equipment, 6 per slot on the original's scale. Item 01 of each
- * kind is the starter. Weapons 300–2000 (card POW scale), armor pieces 16–21%
- * defense (raised from the OG's 2–10% so 0.7.0 battles last until a deck-out,
- * docs/development-spec.md §6a); a side's defense % is the sum of its 4 pieces.
+ * kind is the starter. Weapons 300–2000 (card POW scale), armor pieces 2–10%
+ * defense; a side's defense % is the sum of its 4 pieces.
  */
 export const PLACEHOLDER_ITEMS: readonly ItemDefinition[] = ITEM_KINDS.flatMap((kind) =>
   Array.from({ length: PER_KIND }, (_, i) => ({
@@ -138,11 +137,11 @@ export const PLACEHOLDER_ITEMS: readonly ItemDefinition[] = ITEM_KINDS.flatMap((
     name: i === 0 ? `見習${ITEM_LABEL[kind]}` : `${ITEM_LABEL[kind]}試作 ${String(i + 1).padStart(2, "0")}`,
     kind,
     attack: isWeapon(kind) ? 300 + 340 * i : 0,
-    defense: isWeapon(kind) ? 0 : 16 + i,
+    defense: isWeapon(kind) ? 0 : 2 + Math.floor((8 * i) / (PER_KIND - 1)),
   })),
 );
 
-/** PLACEHOLDER loadout granted to every player (and guests): 3 weapons at 300 and 4 armor pieces at 16%. */
+/** PLACEHOLDER loadout granted to every player (and guests): 3 weapons at 300 and 4 armor pieces at 2%. */
 export const PLACEHOLDER_STARTER_LOADOUT = Object.fromEntries(ITEM_KINDS.map((k) => [k, itemId(k, 1)])) as Loadout;
 
 /** PLACEHOLDER item pool: every item, equal weight, same tickets as cards. */
