@@ -15,6 +15,7 @@ import {
   type Selection,
   type SideId,
   type SideResult,
+  type SkillEffect,
   type SkillUse,
   weaponAttackOf,
 } from "@gdr/engine";
@@ -66,6 +67,118 @@ function SkillTag({ use }: { use: SkillUse }) {
 }
 
 const signed = (n: number) => (n >= 0 ? `+${n}` : `−${-n}`);
+
+type Family = "attack" | "debuff" | "guard" | "heal" | "damage" | "cards" | "element";
+
+function familyOf(e: SkillEffect): Family {
+  switch (e.kind) {
+    case "combo":
+    case "power":
+      return e.target === "self" ? "attack" : "debuff";
+    case "defense":
+      return e.target === "self" ? "guard" : "debuff";
+    case "draws":
+      return e.target === "self" ? "cards" : "debuff";
+    case "reckless":
+    case "board":
+    case "hpCost":
+      return "attack";
+    case "guard":
+    case "finalBlowGuard":
+    case "shield":
+      return "guard";
+    case "heal":
+      return "heal";
+    case "hpDamage":
+    case "finalDamage":
+      return "damage";
+    case "element":
+      return "element";
+    default:
+      return "cards";
+  }
+}
+
+const FAMILY_ICON: Record<Family, string> = {
+  attack: "⚔",
+  debuff: "▼",
+  guard: "◆",
+  heal: "✚",
+  damage: "✦",
+  cards: "⇄",
+  element: "◐",
+};
+
+/** What the skill actually did this phase, as short lines; results stored before 2026-10-27 lack the hand fields. */
+export function skillOutcome(effect: SkillEffect, mine: SideResult, theirs: SideResult): string[] {
+  const lines: string[] = [];
+  const hand = (h: SideResult["handChange"] | undefined, who: string) => {
+    if (!h) return;
+    if (h.discarded) lines.push(`${who}丟棄 ${h.discarded} 張`);
+    if (h.returned) lines.push(`${who}手牌 ${h.returned} 張洗回牌庫`);
+    else if (h.shuffled) lines.push(`${who}牌庫洗牌`);
+    if (h.drawn) lines.push(`${who}補抽 ${h.drawn} 張`);
+  };
+  if (effect.kind === "shuffle" && effect.target !== "self") hand(theirs.handChange, "對手");
+  if (effect.kind === "shuffle" ? effect.target !== "enemy" : true) hand(mine.handChange, "");
+  const limit = (s: SideResult, who: string) => {
+    if (s.drawLimit !== undefined && s.drawLimit !== RULES_V0.maxChainDraws)
+      lines.push(`${who}抽牌上限 ${RULES_V0.maxChainDraws}→${s.drawLimit}`);
+  };
+  if (effect.kind === "draws") limit(effect.target === "self" ? mine : theirs, effect.target === "self" ? "" : "對手");
+  const purged = mine.chain.filter((c) => c.purged).length;
+  if (purged) lines.push(`肅清 ${purged} 張阻擋卡`);
+  const own = mine.skillAttack - (mine.enemySkillAttack ?? 0);
+  if (own !== 0) lines.push(`攻擊 ${signed(own)}`);
+  if (theirs.enemySkillAttack) lines.push(`對手攻擊 ${signed(theirs.enemySkillAttack)}`);
+  if (mine.healed) lines.push(`HP +${mine.healed}`);
+  if (mine.hpCost) lines.push(`HP −${mine.hpCost}`);
+  if (theirs.hpDamageTaken) lines.push(`對手 HP −${theirs.hpDamageTaken}`);
+  return lines;
+}
+
+/** Animated banner for each leader skill that fired (or was cancelled) this phase. */
+function SkillBursts({ result, labels }: { result: PhaseResult; labels: SideLabels }) {
+  const bursts = (["challenger", "defender"] as const).flatMap((id) => {
+    const mine = result.sides[id];
+    const use = mine.skill;
+    const skill = use && SKILL_BY_ID.get(use.id);
+    if (!use || !skill) return [];
+    const theirs = result.sides[id === "challenger" ? "defender" : "challenger"];
+    const family = familyOf(skill.effect);
+    const name = `${use.via ? `${skillName(use.via)}→` : ""}${skill.name} Lv ${use.level}`;
+    return [
+      <div key={id} className={`skill-burst burst-${use.blocked ? "off" : family} burst-${id}`}>
+        <span className="burst-icon" aria-hidden="true">
+          {FAMILY_ICON[family]}
+        </span>
+        <span className="stack">
+          <span className="burst-title">
+            {labels[id]}・{name}
+            {use.blocked ? " 被護盾無效" : " 發動！"}
+          </span>
+          <span className="burst-text">{skillEffectText(skill, use.level)}</span>
+          {!use.blocked && (
+            <span className="burst-lines">
+              {skillOutcome(skill.effect, mine, theirs)
+                .filter((line) => line !== skillEffectText(skill, use.level))
+                .map((line, i) => (
+                <span key={line} className="burst-line" style={{ animationDelay: `${0.25 + i * 0.12}s` }}>
+                  {line}
+                </span>
+              ))}
+            </span>
+          )}
+        </span>
+      </div>,
+    ];
+  });
+  return bursts.length > 0 ? (
+    <div className="skill-bursts">
+      {bursts}
+    </div>
+  ) : null;
+}
 
 export function PhaseSummary({ result, cards, labels }: { result: PhaseResult; cards: CardMap; labels: SideLabels }) {
   const cardName = (id: string) => cards.get(id)?.name ?? id;
@@ -121,6 +234,8 @@ export function PhaseSummary({ result, cards, labels }: { result: PhaseResult; c
   return (
     <div className="panel stack small">
       <strong>第 {result.phase} 階段結果</strong>
+      {/* Keyed by phase so the animation replays every phase. */}
+      <SkillBursts key={result.phase} result={result} labels={labels} />
       <ul className="result-list">
         {line("challenger", result.sides.challenger)}
         {line("defender", result.sides.defender)}
