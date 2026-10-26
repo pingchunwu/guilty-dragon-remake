@@ -533,8 +533,8 @@ export function resolvePhase(
       const combo = comboFor(comboCount, rules);
       const baseAttack = sumAttack(played, cards);
       const weaponAttack = weaponAttackOf(sides[id].equipment);
-      const chainAttack =
-        Math.floor((baseAttack * perMille(combo) * perMille(advantage[id])) / 1_000_000) + weaponAttack;
+      const cardAttack = Math.floor((baseAttack * perMille(combo) * perMille(advantage[id])) / 1_000_000);
+      const chainAttack = cardAttack + weaponAttack;
 
       const hpCostEffect = effectOf(mine);
       const hpCost = hpCostEffect?.kind === "hpCost" ? skillValue(mine!.skill, mine!.level) : 0;
@@ -543,17 +543,19 @@ export function resolvePhase(
         mine,
         (e) => (e.kind === "power" && e.target === "self" && e.unit === "pct") || e.kind === "reckless",
       );
+      const ownWeaponFlat = total(mine, (e) => e.kind === "power" && e.target === "self" && e.unit === "flat");
       const ownFlat =
-        total(mine, (e) => e.kind === "power" && e.target === "self" && e.unit === "flat") +
         total(mine, (e) => e.kind === "board" && e.colour === "same") * (played.length - 1) +
         total(mine, (e) => e.kind === "board" && e.colour === "other") * blocks +
         Math.floor(hpCost * ratio);
       const enemyPercent = total(theirs, (e) => e.kind === "power" && e.target === "enemy" && e.unit === "pct");
       const enemyFlat = total(theirs, (e) => e.kind === "power" && e.target === "enemy" && e.unit === "flat");
-      const withPercent = (pct: number, add: number) => Math.max(0, Math.floor((chainAttack * (100 + pct)) / 100) + add);
-      const attack = withPercent(ownPercent - enemyPercent, ownFlat - enemyFlat);
+      // Power skills change only the weapon's power, as in the original (武器パワー), and it can't go below 0.
+      const withSkills = (pct: number, weaponFlat: number) =>
+        cardAttack + Math.max(0, Math.floor((weaponAttack * (100 + pct)) / 100) + weaponFlat) + ownFlat;
+      const attack = withSkills(ownPercent - enemyPercent, ownWeaponFlat - enemyFlat);
       // Own skill alone, so the UI can credit each leader with its own effect.
-      const ownAttack = withPercent(ownPercent, ownFlat);
+      const ownAttack = withSkills(ownPercent, ownWeaponFlat);
 
       const defensePercent =
         total(mine, (e) => e.kind === "defense" && e.target === "self") -

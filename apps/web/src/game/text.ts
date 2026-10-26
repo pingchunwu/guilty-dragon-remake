@@ -23,9 +23,9 @@ export function skillEffectText(skill: SkillDefinition, level: number): string {
     case "combo":
       return e.target === "self" ? `連擊數 +${v}` : `敵方連擊數 −${v}（最低 ×1.0）`;
     case "power":
-      return `${WHO[e.target]}攻擊 ${e.target === "self" ? "+" : "−"}${v}${e.unit === "pct" ? "%" : ""}`;
+      return `${WHO[e.target]}武器攻擊 ${e.target === "self" ? "+" : "−"}${v}${e.unit === "pct" ? "%" : ""}`;
     case "reckless":
-      return `攻擊 +${v}%，自身防禦 −${Math.floor(v / 4)}%`;
+      return `武器攻擊 +${v}%，自身防禦 −${Math.floor(v / 4)}%`;
     case "defense":
       return `${WHO[e.target]}防禦 ${e.target === "self" ? "+" : "−"}${v}%`;
     case "guard":
