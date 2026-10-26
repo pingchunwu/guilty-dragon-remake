@@ -1,4 +1,13 @@
-import type { CardDefinition, CardType, Deck, ItemDefinition, ItemKind, Loadout } from "./types";
+import {
+  ITEM_KINDS,
+  WEAPON_KINDS,
+  type CardDefinition,
+  type CardType,
+  type Deck,
+  type ItemDefinition,
+  type ItemKind,
+  type Loadout,
+} from "./types";
 import { SKILLS, type Rarity } from "./skills";
 
 /**
@@ -103,36 +112,40 @@ export const PLACEHOLDER_POOL: Pool = {
   entries: PLACEHOLDER_CARDS.map((c) => ({ id: c.id, weight: RARITY_WEIGHT[c.rarity] })),
 };
 
-const ITEM_LABEL: Record<ItemKind, string> = { armor: "防具", weapon: "武器", gear: "飾品" };
+const ITEM_LABEL: Record<ItemKind, string> = {
+  heavy: "重裝武器",
+  light: "輕裝武器",
+  magic: "魔裝武器",
+  head: "頭甲",
+  body: "胴甲",
+  legs: "腿甲",
+  back: "背甲",
+};
 const PER_KIND = 6;
-const itemId = (kind: ItemKind, n: number) => `ph-${kind}-${String(n).padStart(2, "0")}`;
+const isWeapon = (kind: ItemKind): kind is CardType => WEAPON_KINDS.includes(kind as CardType);
+const itemId = (kind: ItemKind, n: number) =>
+  `ph-${isWeapon(kind) ? "weapon" : "armor"}-${kind}-${String(n).padStart(2, "0")}`;
 
 /**
- * PLACEHOLDER equipment, 6 of each kind. Item 01 of each kind is the starter.
- * Balance rule: armor defense (up to ×1.9 at level 10) should stay well below
- * a typical phase attack so most won phases deal damage; deck-outs ignore
- * armor, so battles always end. Weapon attack is added after multipliers.
- * Gear has no stats until its effect is decided.
+ * PLACEHOLDER equipment, 6 per slot on the original's scale. Item 01 of each
+ * kind is the starter. Weapons 300–2000 (card POW scale), armor pieces 2–10%
+ * defense; a side's defense % is the sum of its 4 pieces.
  */
-export const PLACEHOLDER_ITEMS: readonly ItemDefinition[] = (["armor", "weapon", "gear"] as const).flatMap((kind) =>
+export const PLACEHOLDER_ITEMS: readonly ItemDefinition[] = ITEM_KINDS.flatMap((kind) =>
   Array.from({ length: PER_KIND }, (_, i) => ({
     id: itemId(kind, i + 1),
     name: i === 0 ? `見習${ITEM_LABEL[kind]}` : `${ITEM_LABEL[kind]}試作 ${String(i + 1).padStart(2, "0")}`,
     kind,
-    attack: kind === "weapon" ? 10 * (i + 1) : 0,
-    defense: kind === "armor" ? 14 + 3 * i : 0,
+    attack: isWeapon(kind) ? 300 + 340 * i : 0,
+    defense: isWeapon(kind) ? 0 : 2 + Math.floor((8 * i) / (PER_KIND - 1)),
   })),
 );
 
-/** PLACEHOLDER loadout granted to every player (and guests). */
-export const PLACEHOLDER_STARTER_LOADOUT: Loadout = {
-  armor: itemId("armor", 1),
-  weapon: itemId("weapon", 1),
-  gear: itemId("gear", 1),
-};
+/** PLACEHOLDER loadout granted to every player (and guests): 3 weapons at 300 and 4 armor pieces at 2%. */
+export const PLACEHOLDER_STARTER_LOADOUT = Object.fromEntries(ITEM_KINDS.map((k) => [k, itemId(k, 1)])) as Loadout;
 
 /** PLACEHOLDER item pool: every item, equal weight, same tickets as cards. */
 export const PLACEHOLDER_ITEM_POOL: Pool = {
-  id: "item-pool-v0",
+  id: "item-pool-v1",
   entries: PLACEHOLDER_ITEMS.map((item) => ({ id: item.id, weight: 1 })),
 };

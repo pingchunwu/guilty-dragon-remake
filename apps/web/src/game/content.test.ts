@@ -5,7 +5,7 @@ import { PLACEHOLDER_CONTENT, loadContent, parseContent } from "./content";
 import { GameError } from "./types";
 
 const card = { id: "c1", name: "卡", type: "heavy", attack: 50, draw: 3, rarity: "SR", skill_id: "rengeki" };
-const item = { id: "i1", name: "盾", kind: "armor", attack: 0, defense: 20 };
+const item = { id: "i1", name: "盾", kind: "body", attack: 0, defense: 2 };
 
 /** Just enough of the client for `from(table).select(columns).order("id")`. */
 function fakeClient(tables: Record<string, { data?: unknown[]; error?: { code: string } } | "throw">) {

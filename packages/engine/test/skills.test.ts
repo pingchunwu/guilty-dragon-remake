@@ -139,18 +139,18 @@ describe("combo skills", () => {
 });
 
 describe("attack and defense skills", () => {
-  const sword = { id: "w", name: "w", kind: "weapon" as const, attack: 10, defense: 0 };
+  const sword = { id: "w", name: "w", kind: "heavy" as const, attack: 10, defense: 0 };
 
   it("power skills change only the weapon's power, as in the original", () => {
     expect(lone("soul-breath", 2).result.sides.challenger).toMatchObject({ attack: 50, skillAttack: 0 });
-    const armed = lone("soul-breath", 2, { equipment: { ...NO_EQUIPMENT, weapon: sword } });
+    const armed = lone("soul-breath", 2, { equipment: { ...NO_EQUIPMENT, heavy: sword } });
     expect(armed.result.sides.challenger).toMatchObject({ attack: 62, skillAttack: 2 });
     expect(lone("power-up-3", 2).result.sides.challenger.attack).toBe(170);
   });
 
   it("enemy attack-down skills come off the other side", () => {
     const defender = (skill: string) => ({ hand: ["k"], extra: [["k", "magic", 1, skill]] as Def[] });
-    const armed = { ...NO_EQUIPMENT, weapon: sword };
+    const armed = { ...NO_EQUIPMENT, heavy: sword };
     const run = (skill: string) =>
       phase(defender(skill).extra, { hand: ["h1", ...ids("m", 4)], equipment: armed }, { hand: ["k"] }).result.sides
         .challenger;
@@ -162,10 +162,10 @@ describe("attack and defense skills", () => {
   });
 
   it("defense skills scale armor; 不惜身命 trades defense for attack", () => {
-    const armor = { id: "a", name: "a", kind: "armor" as const, attack: 0, defense: 30 };
-    const equipment = { ...NO_EQUIPMENT, armor };
+    const armor = { id: "a", name: "a", kind: "body" as const, attack: 0, defense: 30 };
+    const equipment = { ...NO_EQUIPMENT, body: armor };
     expect(lone("silver-crown", 1, { equipment }).result.sides.challenger.defense).toBe(42);
-    expect(lone("reckless", 1, { equipment: { ...equipment, weapon: sword } }).result.sides.challenger).toMatchObject({
+    expect(lone("reckless", 1, { equipment: { ...equipment, heavy: sword } }).result.sides.challenger).toMatchObject({
       attack: 66,
       defense: 25,
     });
@@ -317,7 +317,7 @@ describe("final blow guard", () => {
 
 describe("item levels", () => {
   it("adds 10% of base stats per level, capped at level 10", () => {
-    const armor = { id: "a", name: "a", kind: "armor" as const, attack: 0, defense: 20 };
+    const armor = { id: "a", name: "a", kind: "body" as const, attack: 0, defense: 20 };
     expect(leveledItem(armor, 3).defense).toBe(24);
     expect(leveledItem(armor, 99).defense).toBe(38);
   });

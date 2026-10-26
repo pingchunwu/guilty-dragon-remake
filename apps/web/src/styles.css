@@ -14,7 +14,6 @@
   --magic: #7b4fd6;
   --armor: #5b7fb8;
   --weapon: #c9a03a;
-  --gear: #9a6fa8;
   --hp-low: #e2574c;
   color-scheme: dark;
   font-family: system-ui, "Noto Sans TC", "PingFang TC", sans-serif;
@@ -224,14 +223,6 @@ p.error {
 
 .item-armor {
   border-color: var(--armor);
-}
-
-.item-weapon {
-  border-color: var(--weapon);
-}
-
-.item-gear {
-  border-color: var(--gear);
 }
 
 .card-stat {
