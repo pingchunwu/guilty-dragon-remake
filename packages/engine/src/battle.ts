@@ -1,5 +1,5 @@
 import { createRng, restoreRng, shuffle, type Rng, type RngState } from "./rng";
-import { AI_STRATEGY_VERSION, RULES_V07, type RuleConfig } from "./rules";
+import { AI_STRATEGY_V04, AI_STRATEGY_VERSION, RULES_V07, type RuleConfig } from "./rules";
 import { defenseOf, weaponAttackOf, type Equipment } from "./equipment";
 import { SKILL_BY_ID, clampSkillLevel, skillValue, type SkillDefinition, type SkillEffect } from "./skills";
 import { WEAPON_KINDS, type CardDefinition, type CardType } from "./types";
@@ -158,7 +158,7 @@ export function startBattle(
   const sides = { challenger: side(challenger), defender: side(defender) };
   return refill({
     ruleVersion: rules.ruleVersion,
-    aiVersion: AI_STRATEGY_VERSION,
+    aiVersion: rules.ruleVersion === RULES_V07.ruleVersion ? AI_STRATEGY_VERSION : AI_STRATEGY_V04,
     rng: rng.state(),
     phase: 1,
     kind: "normal",
@@ -250,12 +250,14 @@ export function previewAttack(
 }
 
 /**
- * Defender AI (AI_STRATEGY_VERSION): leads with the colour whose cards give
+ * Defender AI. Rule 0.7.0-draft uses AI_STRATEGY_VERSION (aiSelectV05);
+ * older rules keep AI_STRATEGY_V04: lead with the colour whose cards give
  * the highest attack before advantage (highest attack first; ties go heavy,
- * light, magic), then fills the remaining picks with its lowest-attack cards
- * of other colours. It ignores skills and never sees the challenger's selection.
+ * light, magic), then fill the remaining picks with the lowest-attack cards
+ * of other colours. Both ignore skills and never see the challenger's selection.
  */
 export function aiSelect(hand: readonly string[], cards: Cards, rules: RuleConfig): Selection {
+  if (rules.ruleVersion === RULES_V07.ruleVersion) return aiSelectV05(hand, cards, rules);
   let best: { ids: string[]; attack: number } | null = null;
   for (const type of ["heavy", "light", "magic"] as const) {
     const ids = hand
@@ -274,6 +276,25 @@ export function aiSelect(hand: readonly string[], cards: Cards, rules: RuleConfi
     .slice(0, requiredPicks(hand, rules) - chosen.length);
   const [leader, ...supports] = [...chosen, ...fillers];
   return { leader: leader!, supports };
+}
+
+/**
+ * AI 0.5.0 (rule 0.7.0-draft): the colour with the most hand cards leads (ties:
+ * higher total POW, then heavy, light, magic). Its highest-DRAW card is the
+ * leader (ties: higher POW), so more same-colour draws can count. The 4 charge
+ * picks are its other cards of that colour, highest POW first, then the
+ * lowest-POW cards of other colours as blockers.
+ */
+function aiSelectV05(hand: readonly string[], cards: Cards, rules: RuleConfig): Selection {
+  if (hand.length === 0) throw new Error("AI has an empty hand");
+  const byPow = (a: string, b: string) => cardOf(cards, b).attack - cardOf(cards, a).attack || a.localeCompare(b);
+  const groups = (["heavy", "light", "magic"] as const).map((type) => hand.filter((id) => cardOf(cards, id).type === type));
+  const colour = groups.reduce((best, g) =>
+    g.length > best.length || (g.length === best.length && sumAttack(g, cards) > sumAttack(best, cards)) ? g : best);
+  const leader = [...colour].sort((a, b) => cardOf(cards, b).draw - cardOf(cards, a).draw || byPow(a, b))[0]!;
+  const charges = colour.filter((id) => id !== leader).sort(byPow);
+  const fillers = hand.filter((id) => !colour.includes(id)).sort((a, b) => byPow(b, a));
+  return { leader, supports: [...charges, ...fillers].slice(0, requiredPicks(hand, rules) - 1) };
 }
 
 interface ChainOptions {

@@ -8,6 +8,7 @@ import {
   PLACEHOLDER_STARTER_LOADOUT,
   RULES_V0,
   RULES_V07,
+  AI_STRATEGY_VERSION,
   aiSelect,
   deckCardIds,
   defenseOf,
@@ -277,6 +278,17 @@ describe("aiSelect", () => {
     const c = fixture([["h1", "heavy", 50], ["h2", "heavy", 60], ["m1", "magic", 100], ["l1", "light", 40], ["l2", "light", 45], ["m2", "magic", 99], ["m3", "magic", 30]]);
     // heavy: 110 × 1.1 = 121; magic: 229 × 1.2 = 274; light: 85 × 1.1 = 93.
     expect(aiSelect(["h1", "h2", "m1", "l1", "l2", "m2", "m3"], c, RULES_V0)).toEqual({ leader: "m1", supports: ["m2", "m3", "l1", "l2"] });
+  });
+
+  it("under 0.7.0 leads the biggest colour with its highest DRAW, then charges that colour by POW", () => {
+    const c = fixture([["h1", "heavy", 900, 1], ["h2", "heavy", 500, 4], ["h3", "heavy", 700, 4], ["m1", "magic", 2000, 6], ["m2", "magic", 1900], ["l1", "light", 300], ["l2", "light", 400], ["l3", "light", 100]]);
+    // heavy and light have 3 cards; heavy has more POW. h3 beats h2 on POW at equal DRAW.
+    expect(aiSelect(["h1", "h2", "h3", "m1", "m2", "l1", "l2", "l3"], c, RULES_V07)).toEqual({ leader: "h3", supports: ["h1", "h2", "l3", "l1"] });
+  });
+
+  it("records its strategy version per rule version", () => {
+    expect(startBattle([1, 2, 3, 4], setup, setup, RULES_V0).aiVersion).toBe("0.4.0");
+    expect(startBattle([1, 2, 3, 4], setup, setup, RULES_V07).aiVersion).toBe(AI_STRATEGY_VERSION);
   });
 });
 

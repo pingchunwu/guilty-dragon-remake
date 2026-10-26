@@ -127,7 +127,8 @@ var RULES_V0 = {
   beats: { heavy: "light", light: "magic", magic: "heavy" }
 };
 var RULES_V07 = { ...RULES_V0, ruleVersion: "0.7.0-draft" };
-var AI_STRATEGY_VERSION = "0.4.0";
+var AI_STRATEGY_VERSION = "0.5.0";
+var AI_STRATEGY_V04 = "0.4.0";
 
 function createRng(seed) {
   const rng = restoreRng(seed);
@@ -430,7 +431,7 @@ function startBattle(seed, challenger, defender, rules) {
   const sides = { challenger: side(challenger), defender: side(defender) };
   return refill({
     ruleVersion: rules.ruleVersion,
-    aiVersion: AI_STRATEGY_VERSION,
+    aiVersion: rules.ruleVersion === RULES_V07.ruleVersion ? AI_STRATEGY_VERSION : AI_STRATEGY_V04,
     rng: rng.state(),
     phase: 1,
     kind: "normal",
@@ -487,6 +488,7 @@ function previewAttack(selected, cards, rules, counts = new Set(selected.length 
   return Math.floor(sumAttack(counted, cards) * perMille(comboFor(counted.length, rules)) / 1e3);
 }
 function aiSelect(hand, cards, rules) {
+  if (rules.ruleVersion === RULES_V07.ruleVersion) return aiSelectV05(hand, cards, rules);
   let best = null;
   for (const type of ["heavy", "light", "magic"]) {
     const ids = hand.filter((id) => cardOf(cards, id).type === type).sort((a, b) => cardOf(cards, b).attack - cardOf(cards, a).attack || a.localeCompare(b)).slice(0, rules.maxSelected);
@@ -499,6 +501,16 @@ function aiSelect(hand, cards, rules) {
   const fillers = hand.filter((id) => !chosen.includes(id)).sort((a, b) => cardOf(cards, a).attack - cardOf(cards, b).attack || a.localeCompare(b)).slice(0, requiredPicks(hand, rules) - chosen.length);
   const [leader, ...supports] = [...chosen, ...fillers];
   return { leader, supports };
+}
+function aiSelectV05(hand, cards, rules) {
+  if (hand.length === 0) throw new Error("AI has an empty hand");
+  const byPow = (a, b) => cardOf(cards, b).attack - cardOf(cards, a).attack || a.localeCompare(b);
+  const groups = ["heavy", "light", "magic"].map((type) => hand.filter((id) => cardOf(cards, id).type === type));
+  const colour = groups.reduce((best, g) => g.length > best.length || g.length === best.length && sumAttack(g, cards) > sumAttack(best, cards) ? g : best);
+  const leader = [...colour].sort((a, b) => cardOf(cards, b).draw - cardOf(cards, a).draw || byPow(a, b))[0];
+  const charges = colour.filter((id) => id !== leader).sort(byPow);
+  const fillers = hand.filter((id) => !colour.includes(id)).sort((a, b) => byPow(b, a));
+  return { leader, supports: [...charges, ...fillers].slice(0, requiredPicks(hand, rules) - 1) };
 }
 function runChain(side, picks, cards, rules, options) {
   const drawPile = [...side.drawPile];
@@ -880,6 +892,7 @@ function finalBlowGuard(side, cards, damage) {
   return best;
 }
 export {
+  AI_STRATEGY_V04,
   AI_STRATEGY_VERSION,
   ARMOR_KINDS,
   DECK_SLOTS,

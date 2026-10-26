@@ -46,5 +46,7 @@ export const RULES_V0: RuleConfig = {
  */
 export const RULES_V07: RuleConfig = { ...RULES_V0, ruleVersion: "0.7.0-draft" };
 
-/** Version of the defender AI strategy in battle.ts. */
-export const AI_STRATEGY_VERSION = "0.4.0";
+/** Version of the defender AI strategy in battle.ts used by new battles (rule 0.7.0-draft). */
+export const AI_STRATEGY_VERSION = "0.5.0";
+/** The defender AI that 0.6.0-draft battles keep. */
+export const AI_STRATEGY_V04 = "0.4.0";
