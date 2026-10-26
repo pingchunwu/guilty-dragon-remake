@@ -8,6 +8,7 @@ import { createAccountService, supabase } from "./game/supabase";
 import { errorText } from "./game/text";
 import { GameError, type GameService, type PlayerState } from "./game/types";
 import { Battle } from "./screens/Battle";
+import { CardToast } from "./screens/CardTile";
 import { Collection } from "./screens/Collection";
 import { DeckEditor } from "./screens/DeckEditor";
 import { Equipment } from "./screens/Equipment";
@@ -163,6 +164,7 @@ export function App() {
           )}
         </>
       )}
+      <CardToast />
     </div>
   );
 }
