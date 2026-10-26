@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { RULES_V0 } from "@gdr/engine";
+import { RULES_V07 } from "@gdr/engine";
 import { loadContent, type Content } from "./game/content";
 import { createGuestService } from "./game/guestService";
 import { createPvpService } from "./game/pvp";
@@ -103,7 +103,7 @@ export function App() {
     <div className={inBattle ? "shell in-battle" : "shell"}>
       <header hidden={inBattle}>
         <h1>Guilty Dragon Remake</h1>
-        {!service && <p className="muted small">開發版 · 規則 {RULES_V0.ruleVersion} · 卡片為佔位內容</p>}
+        {!service && <p className="muted small">開發版 · 規則 {RULES_V07.ruleVersion} · 卡片為佔位內容</p>}
       </header>
 
       {contentError && (
