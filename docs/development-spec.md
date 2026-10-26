@@ -238,11 +238,11 @@ None left. Resolved 2026-10-26: HP stays 3000; defense % comes from armor; level
 
 Still to check after building (not a decision): HP 3000 comes from the OG, but our placeholder weapons and armor are new. Step 7 below re-runs the AI-vs-AI simulation to confirm battles last several phases instead of ending in one, and tunes item values if not.
 
-### Implementation steps for `0.7.0-draft` (not started)
+### Implementation steps for `0.7.0-draft` (in progress)
 
 One PR per step, in order; each keeps the tests passing. Old battles stay on `0.6.0-draft`.
 
-1. **Card data:** add `draw` to cards, and set `attack` to the OG max POW scale. Replace the 110 placeholder cards (one per skill, so every skill stays covered) with POW and DRAW values from the OG ranges above, per rarity. `packages/engine/src/catalog.ts`, a new migration for `card_definitions.draw` and the new values, and the catalog-matches-database test.
+1. **Card data:** add `draw` to cards, and set `attack` to the OG max POW scale. Replace the 110 placeholder cards (one per skill, so every skill stays covered) with POW and DRAW values from the OG ranges above, per rarity. `packages/engine/src/catalog.ts`, a new migration for `card_definitions.draw` and the new values, and the catalog-matches-database test. **Built 2026-10-26.** Until step 4, battles still run `0.6.0-draft`, which was tuned for attack about a tenth of this scale, so battles (practice and PvP) usually end in one phase; the PvP tests scale card attack ÷10 to keep testing multi-phase battles. PvP snapshots now carry `draw`.
 2. **Equipment data:** 3 weapon slots (one per colour) and 4 armor slots (head, body, legs, back) with defense %; drop the flat armor value and the gear slot. Placeholder items on the OG scale (weapons 300–2000, armor pieces 2–10%); starter set of 3 weapons at 300 and 4 armor pieces. `equipment.ts`, `catalog.ts`, a migration for `item_definitions` and existing loadouts (move each player to the starter set), `apps/web/src/screens/Equipment.tsx`.
 3. **Skill values** (built): flat values back to OG values (no ÷10), checked against the wikiwiki skill table (パワーアップ1 = Lv×20, アイアンフィスト = 300); armor-type skills change defense %; ガード stays flat. `skills.ts`, `skills.test.ts`, `skill_definitions` migration. The defense skills were already stored as percents; until step 4 the `0.6.0-draft` engine scales flat armor by them as before, and it uses the new flat values as they are.
 4. **Engine rules** as rule version `0.7.0-draft` (`rules.ts`, `battle.ts`, `battle.test.ts`):

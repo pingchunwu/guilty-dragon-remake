@@ -14,7 +14,10 @@ import { DB_ERRORS, PvpError, handle, parseRequest, type PvpDb, type PvpRequest 
 import { ENGINE_BUNDLE, bundleEngine } from "../scripts/bundle-engine";
 import { ALICE, BOB, CAROL, as, createDb, db, rpc } from "./pglite";
 
-const cards = new Map(PLACEHOLDER_CARDS.map((c) => [c.id, c]));
+// Rule 0.6.0-draft was tuned for attack about a tenth of the OG POW now in the
+// catalog; at full POW a battle ends in one phase. Scale down until 0.7.0-draft.
+const POW_SCALE = 10;
+const cards = new Map(PLACEHOLDER_CARDS.map((c) => [c.id, { ...c, attack: Math.floor(c.attack / POW_SCALE) }]));
 const SEED: RngState = [11, 22, 33, 44];
 
 /** The Edge Function's database adapter, over PGlite as the service role. */
@@ -47,6 +50,7 @@ function play(uid: string, view: any) {
 
 beforeEach(async () => {
   await createDb();
+  await db.exec(`update public.card_definitions set attack = attack / ${POW_SCALE}`);
   await rpc(ALICE, "public.sync_player()");
   await rpc(BOB, "public.sync_player()");
 });

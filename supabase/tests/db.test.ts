@@ -107,7 +107,7 @@ describe("draw_ten", () => {
 
 describe("content", () => {
   it("stores cards, skills and item stats from the engine catalog", async () => {
-    const cards = await db.query("select id, name, type, attack, rarity, skill_id as skill from public.card_definitions");
+    const cards = await db.query("select id, name, type, attack, draw, rarity, skill_id as skill from public.card_definitions");
     expect(cards.rows).toEqual(expect.arrayContaining([...PLACEHOLDER_CARDS]));
     expect(cards.rows).toHaveLength(PLACEHOLDER_CARDS.length);
     const skills = await db.query<{ id: string; max_level: number; value: number }>(

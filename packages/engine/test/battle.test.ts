@@ -50,7 +50,7 @@ function playOut(seed: [number, number, number, number], rules = RULES_V0) {
 
 /** A tiny card set where every number is easy to check by hand. */
 function fixture(defs: [string, CardDefinition["type"], number][]): Cards {
-  return new Map(defs.map(([id, type, attack]) => [id, { id, name: id, type, attack, rarity: "N", skill: null }]));
+  return new Map(defs.map(([id, type, attack]) => [id, { id, name: id, type, attack, draw: 2, rarity: "N", skill: null }]));
 }
 
 /** `n` cards named prefix1..prefixN of one colour. */
@@ -285,7 +285,7 @@ describe("deck-out", () => {
   const runOut = (s: SideState): SideState => ({ ...s, drawPile: [], discard: s.drawPile, ranOut: true });
 
   it("compares hand totals when both run out, and resets both to full decks", () => {
-    const start = startBattle([9, 9, 9, 9], setup, setup, RULES_V0);
+    const start = startBattle([9, 9, 9, 9], setup, setup, LONG);
     const state: BattleState = {
       ...start,
       kind: "deck_out",
@@ -293,7 +293,7 @@ describe("deck-out", () => {
     };
     const total = (s: SideState) => s.hand.reduce((sum, id) => sum + cards.get(id)!.attack, 0);
     const totals = { challenger: total(state.sides.challenger), defender: total(state.sides.defender) };
-    const { result, state: next } = resolvePhase(state, null, cards, RULES_V0);
+    const { result, state: next } = resolvePhase(state, null, cards, LONG);
     if (totals.challenger === totals.defender) {
       expect(result.damage).toBe(0);
     } else {
@@ -302,7 +302,7 @@ describe("deck-out", () => {
       expect(result.winner).toBe(winner);
       expect(result.damage).toBe(totals[winner] - armor.defense);
       expect(result.ignoredArmor).toBe(false);
-      expect(next.sides[loser].hp).toBe(HP - result.damage);
+      expect(next.sides[loser].hp).toBe(LONG.startingHp - result.damage);
     }
     expect(result.reshuffled.sort()).toEqual(["challenger", "defender"]);
     for (const s of Object.values(next.sides)) {
@@ -314,16 +314,16 @@ describe("deck-out", () => {
   });
 
   it("lets a side that runs out alone hit for its hand total, ignoring armor", () => {
-    const start = startBattle([2, 7, 1, 8], setup, setup, RULES_V0);
+    const start = startBattle([2, 7, 1, 8], setup, setup, LONG);
     const defenderHand = start.sides.defender.hand;
     const state: BattleState = { ...start, kind: "deck_out", sides: { ...start.sides, challenger: runOut(start.sides.challenger) } };
     const total = state.sides.challenger.hand.reduce((s, id) => s + cards.get(id)!.attack, 0);
-    const { result, state: next } = resolvePhase(state, null, cards, RULES_V0);
+    const { result, state: next } = resolvePhase(state, null, cards, LONG);
     expect(result.winner).toBe("challenger");
     expect(result.damage).toBe(total);
     expect(result.ignoredArmor).toBe(true);
     expect(result.reshuffled).toEqual(["challenger"]);
-    expect(next.sides.defender.hp).toBe(HP - total);
+    expect(next.sides.defender.hp).toBe(LONG.startingHp - total);
     expect(next.sides.defender.hand).toEqual(defenderHand);
     expect(next.sides.challenger.hand).toHaveLength(8);
     expect(cardCount(next.sides.challenger)).toBe(32);
@@ -348,7 +348,7 @@ describe("whole battles", () => {
   });
 
   it("keep going through repeated deck-outs until someone falls", () => {
-    const { state, results } = playOut([8, 6, 7, 5], { ...RULES_V0, startingHp: 5_000 });
+    const { state, results } = playOut([8, 6, 7, 5], { ...RULES_V0, startingHp: 50_000 });
     expect(results.filter((r) => r.kind === "deck_out").length).toBeGreaterThan(1);
     expect(state.status).not.toBe("active");
   });
