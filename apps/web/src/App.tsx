@@ -9,20 +9,19 @@ import { errorText } from "./game/text";
 import { GameError, type GameService, type PlayerState } from "./game/types";
 import { Battle } from "./screens/Battle";
 import { CardToast } from "./screens/CardTile";
-import { Collection } from "./screens/Collection";
 import { DeckEditor } from "./screens/DeckEditor";
 import { Equipment } from "./screens/Equipment";
 import { Gacha } from "./screens/Gacha";
+import { Player } from "./screens/Player";
 import { Pvp } from "./screens/Pvp";
 import { SignIn } from "./screens/SignIn";
 
-type Tab = "collection" | "deck" | "equipment" | "battle" | "gacha";
+type Tab = "battle" | "deck" | "gacha" | "player";
 const TABS: { id: Tab; label: string }[] = [
-  { id: "collection", label: "收藏" },
-  { id: "deck", label: "牌組" },
-  { id: "equipment", label: "裝備" },
   { id: "battle", label: "對戰" },
+  { id: "deck", label: "牌組" },
   { id: "gacha", label: "抽卡" },
+  { id: "player", label: "玩家" },
 ];
 
 export function App() {
@@ -31,7 +30,7 @@ export function App() {
   const [service, setService] = useState<GameService | null>(null);
   const [state, setState] = useState<PlayerState | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [tab, setTab] = useState<Tab>("collection");
+  const [tab, setTab] = useState<Tab>("battle");
   const [content, setContent] = useState<Content | null>(null);
   const [contentError, setContentError] = useState<string | null>(null);
 
@@ -93,21 +92,14 @@ export function App() {
   async function signOut() {
     if (service?.mode === "account") await supabase?.auth.signOut();
     setService(null);
-    setTab("collection");
+    setTab("battle");
   }
 
   return (
     <div className="shell">
-      <header className="row between">
-        <div>
-          <h1>Guilty Dragon Remake</h1>
-          <p className="muted small">開發版 · 規則 {RULES_V0.ruleVersion} · 卡片為佔位內容</p>
-        </div>
-        {service && !pvpBattle.locked && (
-          <button type="button" className="link" onClick={signOut}>
-            {service.mode === "guest" ? "離開試玩" : "登出"}
-          </button>
-        )}
+      <header>
+        <h1>Guilty Dragon Remake</h1>
+        {!service && <p className="muted small">開發版 · 規則 {RULES_V0.ruleVersion} · 卡片為佔位內容</p>}
       </header>
 
       {contentError && (
@@ -119,16 +111,13 @@ export function App() {
         </div>
       )}
       {(!authReady || (!content && !contentError)) && <p className="muted">載入中…</p>}
-      {authReady && content && !service && (
+      {/* !userId: a restored session is about to create the account service, so don't flash the sign-in form. */}
+      {authReady && content && !service && !userId && (
         <SignIn client={supabase} onGuest={() => setService(createGuestService(content))} />
       )}
 
       {service && content && (
         <>
-          <div className="panel row between small">
-            <span>{service.mode === "guest" ? "訪客試玩（不保存）" : session?.user.email}</span>
-            {state && <span>抽卡券 {state.tickets}</span>}
-          </div>
           {loadError && (
             <div className="panel stack">
               <p className="error">{loadError}</p>
@@ -140,9 +129,12 @@ export function App() {
           {!state && !loadError && <p className="muted">載入玩家資料…</p>}
           {state && (
             <main>
-              {tab === "collection" && <Collection content={content} state={state} />}
-              {tab === "deck" && <DeckEditor content={content} service={service} state={state} onState={setState} />}
-              {tab === "equipment" && <Equipment content={content} service={service} state={state} onState={setState} />}
+              {tab === "deck" && (
+                <div className="stack">
+                  <DeckEditor content={content} service={service} state={state} onState={setState} />
+                  <Equipment content={content} service={service} state={state} onState={setState} />
+                </div>
+              )}
               {/* Kept mounted so switching tabs doesn't lose a battle in progress. */}
               <div hidden={tab !== "battle"}>
                 {pvp && <Pvp pvp={pvp} state={state} onBattle={onPvpBattle} />}
@@ -151,6 +143,9 @@ export function App() {
                 </div>
               </div>
               {tab === "gacha" && <Gacha content={content} service={service} state={state} onState={setState} />}
+              {tab === "player" && (
+                <Player content={content} service={service} state={state} email={session?.user.email} onSignOut={signOut} />
+              )}
             </main>
           )}
           {!pvpBattle.locked && (
