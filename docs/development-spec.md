@@ -241,17 +241,17 @@ Community sources give this order per phase: leader chosen → "on leader select
 
 This matches the engine's existing order (§6a), so playback needs no rule change: it replays `SideResult.chain` and the fields already in each `PhaseResult`.
 
-### Open decisions (ask before building)
+### Playback decisions (2026-10-26)
 
-- Both sides' chains play back side by side at the same time, or the challenger's first and then the defender's. Recommended: side by side, one step per beat, so a phase stays short.
-- Playback speed and skip: recommended about 0.5 s per step, a skip button, and no animation under `prefers-reduced-motion`.
-- Desktop equivalent of long-press: recommended right-click and a 450 ms mouse hold, same toast.
+- Both sides' chains play back side by side at the same time, one step per beat.
+- About 0.5 s per step, with a skip button; no animation under `prefers-reduced-motion`.
+- On desktop, right-click or holding the mouse button opens the same card toast as a long press.
 
 ### Implementation plan
 
 Three PRs, smallest first. Engine, database and Edge Function stay unchanged.
 
-1. **Navigation and session** (`App.tsx`, new `screens/Player.tsx`, `DeckEditor.tsx`, `Equipment.tsx`, `Gacha.tsx`):
+1. **Navigation and session** (built 2026-10-26; the re-sign-in report is not reproduced yet, only the sign-in form flashing while a saved session loads was fixed) (`App.tsx`, new `screens/Player.tsx`, `DeckEditor.tsx`, `Equipment.tsx`, `Gacha.tsx`):
    - Tabs become 對戰 / 牌組 / 抽卡 / 玩家. 牌組 shows the deck editor and equipment as two sections (or a chip switch, reusing `.chips`). 玩家 holds the account line (email or name), the build/rules line, sign-out and `Collection` as a section.
    - Ticket count moves from the app-wide bar into `Gacha`; the app-wide bar and header subtitle go away.
    - Session: supabase-js already keeps the session in `localStorage`, so first reproduce the reported re-login. Likely causes to check: an installed iOS PWA has storage separate from Safari, so a sign-in link opened in Safari doesn't carry over (the code path does); or the app briefly shows `SignIn` before `getSession` resolves. Fix whichever it is; no new auth code if neither.
