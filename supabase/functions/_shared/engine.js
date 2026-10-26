@@ -126,6 +126,7 @@ var RULES_V0 = {
   advantageMultiplier: 1.2,
   beats: { heavy: "light", light: "magic", magic: "heavy" }
 };
+var RULES_V07 = { ...RULES_V0, ruleVersion: "0.7.0-draft" };
 var AI_STRATEGY_VERSION = "0.4.0";
 
 function createRng(seed) {
@@ -536,6 +537,33 @@ function runChain(side, picks, cards, rules, options) {
     side: { ...side, drawPile, discard: [...side.discard, ...chain.map((s2) => s2.card)] }
   };
 }
+function runCharge(side, picks, cards, rules, options) {
+  const drawPile = [...side.drawPile];
+  const chain = [{ card: picks[0], from: "pick", counted: true }];
+  const spaces = rules.maxSelected - 1;
+  let blocks = 0;
+  let purge = options.purge;
+  const place = (card, from) => {
+    const counted = options.counts.has(cardOf(cards, card).type);
+    chain.push({ card, from, counted });
+    if (counted) return;
+    blocks++;
+    if (blocks === spaces && purge > 0) {
+      for (const blocker of chain.filter((s2) => !s2.counted && !s2.purged).slice(0, purge)) {
+        blocker.purged = true;
+        blocks--;
+      }
+      purge = 0;
+    }
+  };
+  for (const card of picks.slice(1)) place(card, "pick");
+  for (let left = options.drawLimit; left > 0 && blocks < spaces && drawPile.length > 0; left--) place(drawPile.shift(), "draw");
+  return {
+    chain,
+    blocks,
+    side: { ...side, drawPile, discard: [...side.discard, ...chain.map((s2) => s2.card)] }
+  };
+}
 function reshuffle(side, rng) {
   return {
     ...side,
@@ -594,6 +622,7 @@ function resolvePhase(state, selection, cards, rules) {
   if (state.status !== "active") throw new Error("battle is over");
   if (state.ruleVersion !== rules.ruleVersion) throw new Error(`rule version mismatch: ${state.ruleVersion}`);
   const rng = restoreRng(state.rng);
+  const v07 = rules.ruleVersion === RULES_V07.ruleVersion;
   const sides = { ...state.sides };
   let sideResults;
   let winner = null;
@@ -655,13 +684,13 @@ function resolvePhase(state, selection, cards, rules) {
     for (const id of SIDES) {
       const drawLimit = Math.max(
         0,
-        rules.maxChainDraws + total(active[id], (e) => e.kind === "draws" && e.target === "self") - total(active[other(id)], (e) => e.kind === "draws" && e.target === "enemy")
+        (v07 ? leaders[id].draw : rules.maxChainDraws) + total(active[id], (e) => e.kind === "draws" && e.target === "self") - total(active[other(id)], (e) => e.kind === "draws" && e.target === "enemy")
       );
       const counts = /* @__PURE__ */ new Set([leaders[id].type]);
       const charge = effectOf(active[id]);
       if (charge?.kind === "charge") for (const t of charge.types) counts.add(t);
       drawLimits[id] = drawLimit;
-      chains[id] = runChain(sides[id], picks[id], cards, rules, {
+      chains[id] = (v07 ? runCharge : runChain)(sides[id], picks[id], cards, rules, {
         counts,
         drawLimit,
         purge: total(active[id], (e) => e.kind === "purge")
@@ -696,9 +725,10 @@ function resolvePhase(state, selection, cards, rules) {
       );
       const combo = comboFor(comboCount, rules);
       const baseAttack = sumAttack(played, cards);
-      const weaponAttack = weaponAttackOf(sides[id].equipment);
+      const weaponAttack = v07 ? sides[id].equipment[leaders[id].type]?.attack ?? 0 : weaponAttackOf(sides[id].equipment);
       const cardAttack = Math.floor(baseAttack * perMille(combo) * perMille(advantage[id]) / 1e6);
-      const chainAttack = cardAttack + weaponAttack;
+      const attackWith = (weapon) => v07 ? Math.floor(Math.floor((baseAttack + weapon) * perMille(advantage[id]) / 1e3) * perMille(combo) / 1e3) : cardAttack + weapon;
+      const chainAttack = attackWith(weaponAttack);
       const hpCostEffect = effectOf(mine);
       const hpCost = hpCostEffect?.kind === "hpCost" ? skillValue(mine.skill, mine.level) : 0;
       const ratio = hpCostEffect?.kind === "hpCost" ? hpCostEffect.ratio : 0;
@@ -710,11 +740,11 @@ function resolvePhase(state, selection, cards, rules) {
       const ownFlat = total(mine, (e) => e.kind === "board" && e.colour === "same") * (played.length - 1) + total(mine, (e) => e.kind === "board" && e.colour === "other") * blocks + Math.floor(hpCost * ratio);
       const enemyPercent = total(theirs, (e) => e.kind === "power" && e.target === "enemy" && e.unit === "pct");
       const enemyFlat = total(theirs, (e) => e.kind === "power" && e.target === "enemy" && e.unit === "flat");
-      const withSkills = (pct, weaponFlat) => cardAttack + Math.max(0, Math.floor(weaponAttack * (100 + pct) / 100) + weaponFlat) + ownFlat;
+      const withSkills = (pct, weaponFlat) => attackWith(Math.max(0, Math.floor(weaponAttack * (100 + pct) / 100) + weaponFlat)) + ownFlat;
       const attack = withSkills(ownPercent - enemyPercent, ownWeaponFlat - enemyFlat);
       const ownAttack = withSkills(ownPercent, ownWeaponFlat);
       const defensePercent = total(mine, (e) => e.kind === "defense" && e.target === "self") - Math.floor(total(mine, (e) => e.kind === "reckless") / 4) - total(theirs, (e) => e.kind === "defense" && e.target === "enemy");
-      const defense = Math.max(0, Math.floor(defenseOf(sides[id].equipment) * (100 + defensePercent) / 100));
+      const defense = v07 ? Math.max(0, Math.min(100, defenseOf(sides[id].equipment) + defensePercent)) : Math.max(0, Math.floor(defenseOf(sides[id].equipment) * (100 + defensePercent) / 100));
       const heal = total(mine, (e) => e.kind === "heal" && e.unit === "flat") + Math.floor(rules.startingHp * total(mine, (e) => e.kind === "heal" && e.unit === "pct") / 100);
       const before = hp[id];
       hp[id] = Math.min(rules.startingHp, hp[id] + heal);
@@ -759,7 +789,8 @@ function resolvePhase(state, selection, cards, rules) {
     if (c.attack !== d.attack) {
       winner = c.attack > d.attack ? "challenger" : "defender";
       const loser = other(winner);
-      const raw = Math.max(0, sideResults[winner].attack - sideResults[loser].defense);
+      const [w, l] = [sideResults[winner], sideResults[loser]];
+      const raw = v07 ? Math.floor((w.attack - l.attack) * (100 - l.defense) / 100) : Math.max(0, w.attack - l.defense);
       damage = Math.max(
         0,
         raw + total(active[winner], (e) => e.kind === "finalDamage" && e.unit === "flat") + Math.floor(raw * total(active[winner], (e) => e.kind === "finalDamage" && e.unit === "pct") / 100) - total(active[loser], (e) => e.kind === "guard")
@@ -767,7 +798,8 @@ function resolvePhase(state, selection, cards, rules) {
     }
   } else {
     const deckOut = (id) => {
-      const weaponAttack = weaponAttackOf(sides[id].equipment);
+      const e = sides[id].equipment;
+      const weaponAttack = v07 ? WEAPON_KINDS.reduce((sum2, k) => sum2 + (e[k]?.attack ?? 0), 0) : weaponAttackOf(e);
       const sum = sumAttack(sides[id].hand, cards);
       return {
         played: sides[id].hand,
@@ -803,7 +835,8 @@ function resolvePhase(state, selection, cards, rules) {
       const { challenger: c, defender: d } = sideResults;
       if (c.attack !== d.attack) {
         winner = c.attack > d.attack ? "challenger" : "defender";
-        damage = Math.max(0, sideResults[winner].attack - sideResults[other(winner)].defense);
+        damage = v07 ? sideResults[winner].attack : Math.max(0, sideResults[winner].attack - sideResults[other(winner)].defense);
+        ignoredArmor = v07;
       }
     }
     if (winner) {
@@ -864,6 +897,7 @@ export {
   RARITIES,
   RARITY_WEIGHT,
   RULES_V0,
+  RULES_V07,
   SIDES,
   SKILLS,
   SKILL_BY_ID,

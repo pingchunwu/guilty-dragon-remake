@@ -7,6 +7,7 @@ import {
   PLACEHOLDER_ITEMS,
   PLACEHOLDER_STARTER_LOADOUT,
   RULES_V0,
+  RULES_V07,
   aiSelect,
   deckCardIds,
   defenseOf,
@@ -53,8 +54,10 @@ function playOut(seed: [number, number, number, number], rules = RULES_V0) {
 }
 
 /** A tiny card set where every number is easy to check by hand. */
-function fixture(defs: [string, CardDefinition["type"], number][]): Cards {
-  return new Map(defs.map(([id, type, attack]) => [id, { id, name: id, type, attack, draw: 2, rarity: "N", skill: null }]));
+function fixture(defs: [string, CardDefinition["type"], number, number?, string?][]): Cards {
+  return new Map(
+    defs.map(([id, type, attack, draw = 2, skill = null]) => [id, { id, name: id, type, attack, draw, rarity: "N", skill }]),
+  );
 }
 
 /** `n` cards named prefix1..prefixN of one colour. */
@@ -374,5 +377,130 @@ describe("whole battles", () => {
     expect(() => resolvePhase(state, null, cards, RULES_V0)).toThrow(/over/);
     const fresh = startBattle([4, 4, 4, 4], setup, setup, RULES_V0);
     expect(() => resolvePhase(fresh, { leader: "nope", supports: [] }, cards, RULES_V0)).toThrow(/LEADER_NOT_IN_HAND/);
+  });
+});
+
+describe("rule 0.7.0-draft", () => {
+  const v07 = (s: BattleState): BattleState => ({ ...s, ruleVersion: RULES_V07.ruleVersion });
+  const weapon = (kind: "heavy" | "light" | "magic", attack: number) => ({ id: `t-${kind}`, name: "t", kind, attack, defense: 0 });
+  /** A defender whose lone heavy leader (POW 1, DRAW 0) draws nothing and has no advantage over heavy. */
+  const weakCards: [string, CardDefinition["type"], number, number?][] = [["dw", "heavy", 1, 0], ...many("dp", "magic", 10)];
+  const weak = () => side(["dw"], ids("dp", 10));
+
+  it("replays the OG clip: weapon + leader + 4 charge cards, then DRAW 3 off-colour draws", () => {
+    const c = fixture([
+      ["L", "heavy", 856, 3], ["a", "heavy", 1000], ["b", "heavy", 1200], ["c", "heavy", 1400], ["d", "heavy", 1532],
+      ...many("m", "magic", 5), ["dh", "heavy", 100], ...many("dp", "magic", 10),
+    ]);
+    const armed: Equipment = { ...equipment, heavy: weapon("heavy", 1300), light: weapon("light", 999) };
+    const state = v07(stateWith({ ...side(["L", "a", "b", "c", "d"], ids("m", 5)), equipment: armed }, side(["dh"], ids("dp", 10))));
+    const { result, state: next } = resolvePhase(state, { leader: "L", supports: ["a", "b", "c", "d"] }, c, RULES_V07);
+    const me = result.sides.challenger;
+    expect(me.chain).toEqual([
+      { card: "L", from: "pick", counted: true },
+      ...["a", "b", "c", "d"].map((card) => ({ card, from: "pick", counted: true })),
+      ...["m1", "m2", "m3"].map((card) => ({ card, from: "draw", counted: false })),
+    ]);
+    expect(me).toMatchObject({ drawLimit: 3, blocks: 3, weaponAttack: 1300, baseAttack: 5988, comboCount: 5, attack: 10932 }); // 7288 × 1.5
+    expect(result.sides.defender).toMatchObject({ attack: 100, defense: 30, drawLimit: 2 });
+    // (10932 − 100) × (100 − 30)% = 7582.4
+    expect(result.damage).toBe(7582);
+    expect(next.sides.challenger.discard).toEqual(["L", "a", "b", "c", "d", "m1", "m2", "m3"]);
+  });
+
+  it("lets off-colour charge cards block, and stops drawing once all four spaces are blocked", () => {
+    const c = fixture([["h", "heavy", 10, 6], ["h2", "heavy", 20], ...many("l", "light", 3), ["m1", "magic", 99], ["h3", "heavy", 30], ["h4", "heavy", 40], ...weakCards]);
+    const { result, state } = resolvePhase(
+      v07(stateWith(side(["h", "l1", "l2", "l3", "h2"], ["m1", "h3", "h4"]), weak())),
+      { leader: "h", supports: ["l1", "l2", "l3", "h2"] },
+      c,
+      RULES_V07,
+    );
+    expect(result.sides.challenger.chain.map((s) => [s.card, s.from, s.counted])).toEqual([
+      ["h", "pick", true], ["l1", "pick", false], ["l2", "pick", false], ["l3", "pick", false], ["h2", "pick", true], ["m1", "draw", false],
+    ]);
+    expect(result.sides.challenger.blocks).toBe(4);
+    expect(result.sides.challenger.attack).toBe(33); // 30 × 1.1
+    // DRAW 6 was not used up, but h3 and h4 stay in the pile (and refill the hand).
+    expect(state.sides.challenger.hand).toEqual(["h3", "h4"]);
+  });
+
+  it("draws into the free spaces of a short hand and stops when the deck is empty", () => {
+    const c = fixture([["h", "heavy", 10, 6], ["l1", "light", 99], ["h3", "heavy", 30], ...many("m", "magic", 2), ...weakCards]);
+    const { result } = resolvePhase(v07(stateWith(side(["h", "l1"], ["h3", "m1", "m2"]), weak())), { leader: "h", supports: ["l1"] }, c, RULES_V07);
+    expect(result.sides.challenger.chain.filter((s) => s.from === "draw").map((s) => s.card)).toEqual(["h3", "m1", "m2"]);
+    expect(result.sides.challenger.blocks).toBe(3);
+  });
+
+  it("floors after the colour multiplier, then after the combo", () => {
+    // (57 + 50) × 1.2 = 128.4 → 128, × 1.1 = 140.8 → 140 (one multiply would give 141).
+    const c = fixture([["h", "heavy", 57, 0], ["h2", "heavy", 50], ["l", "light", 10, 0], ...many("x", "magic", 12)]);
+    const { result } = resolvePhase(v07(stateWith(side(["h", "h2"], ids("x", 6)), side(["l"], ids("x", 12).slice(6)))), { leader: "h", supports: ["h2"] }, c, RULES_V07);
+    expect(result.sides.challenger).toMatchObject({ advantage: true, attack: 140 });
+    expect(result.damage).toBe(91); // (140 − 10) × 70%
+  });
+
+  it("applies DRAW, 肅清 and cross-colour charge skills to the charge and draws", () => {
+    const c = fixture([
+      ["fm", "heavy", 10, 2, "friend-mail"], ["pg", "heavy", 10, 1, "purge-1"], ["cs", "heavy", 10, 1, "curse-support"],
+      ...many("l", "light", 4), ["h3", "heavy", 30], ...many("m", "magic", 4), ...weakCards,
+    ]);
+    const run = (hand: string[], pile: string[]) =>
+      resolvePhase(v07(stateWith(side(hand, pile), weak())), { leader: hand[0]!, supports: hand.slice(1) }, c, RULES_V07).result.sides.challenger;
+
+    const mail = run(["fm"], ids("m", 4));
+    expect(mail.drawLimit).toBe(3);
+    expect(mail.chain.filter((s) => s.from === "draw")).toHaveLength(3);
+
+    const purge = run(["pg", ...ids("l", 4)], ["h3", "m1"]);
+    expect(purge.chain.find((s) => s.card === "l1")).toMatchObject({ purged: true });
+    expect(purge.chain.at(-1)).toEqual({ card: "h3", from: "draw", counted: true });
+    expect(purge.played).toEqual(["pg", "h3"]);
+
+    const charge = run(["cs", "m1", "l1"], ["m2", "m3"]);
+    expect(charge.chain.map((s) => s.counted)).toEqual([true, true, false, true]);
+    expect(charge.played).toEqual(["cs", "m1", "m2"]);
+  });
+
+  it("adds defense skills to the defense % and takes the flat guard off last", () => {
+    const c = fixture([["h", "heavy", 1000, 0], ["g", "heavy", 100, 0, "guard-1"], ["a", "heavy", 100, 0, "hard-armor-1"], ...many("x", "magic", 12)]);
+    const hit = (defender: string) =>
+      resolvePhase(v07(stateWith(side(["h"], ids("x", 6)), side([defender], ids("x", 12).slice(6)))), { leader: "h", supports: [] }, c, RULES_V07).result;
+    expect(hit("g").damage).toBe(630 - 50); // 900 × 70% − guard
+    const armored = hit("a");
+    expect(armored.sides.defender.defense).toBe(31);
+    expect(armored.damage).toBe(621); // 900 × 69%
+  });
+
+  const armed: Equipment = { ...equipment, heavy: weapon("heavy", 300), light: weapon("light", 200), magic: weapon("magic", 100) };
+  const runOut = (s: SideState): SideState => ({ ...s, drawPile: [], discard: s.drawPile, ranOut: true });
+  const handTotal = (s: SideState) => s.hand.reduce((sum, id) => sum + cards.get(id)!.attack, 0);
+  const LONG07 = { ...RULES_V07, startingHp: 100_000 };
+
+  it("hits for the hand total plus all three weapons on deck-out, ignoring defense", () => {
+    const start = startBattle([3, 3, 3, 3], { deck, equipment: armed }, setup, LONG07);
+    const out = runOut(start.sides.challenger);
+    const { result } = resolvePhase({ ...start, kind: "deck_out", sides: { ...start.sides, challenger: out } }, null, cards, LONG07);
+    expect(result.sides.challenger.weaponAttack).toBe(600);
+    expect(result.damage).toBe(handTotal(out) + 600);
+    expect(result.ignoredArmor).toBe(true);
+  });
+
+  it("lets the higher total hit in full when both run out", () => {
+    const start = startBattle([9, 9, 9, 9], { deck, equipment: armed }, setup, LONG07);
+    const sides = { challenger: runOut(start.sides.challenger), defender: runOut(start.sides.defender) };
+    const totals = { challenger: handTotal(sides.challenger) + 600, defender: handTotal(sides.defender) };
+    const { result } = resolvePhase({ ...start, kind: "deck_out", sides }, null, cards, LONG07);
+    expect(result.damage).toBe(Math.max(totals.challenger, totals.defender));
+    expect(result.ignoredArmor).toBe(true);
+  });
+
+  it("plays whole battles to a winner, deterministically", () => {
+    expect(playOut([1, 2, 3, 4], RULES_V07)).toEqual(playOut([1, 2, 3, 4], RULES_V07));
+    for (let i = 0; i < 100; i++) {
+      const { state, results } = playOut([i, 5, 6, 7], RULES_V07);
+      expect(state.status).not.toBe("active");
+      for (const r of results) for (const s of Object.values(r.sides)) expect(s.blocks).toBeLessThanOrEqual(4);
+    }
   });
 });

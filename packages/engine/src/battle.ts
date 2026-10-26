@@ -1,11 +1,11 @@
 import { createRng, restoreRng, shuffle, type Rng, type RngState } from "./rng";
-import { AI_STRATEGY_VERSION, type RuleConfig } from "./rules";
+import { AI_STRATEGY_VERSION, RULES_V07, type RuleConfig } from "./rules";
 import { defenseOf, weaponAttackOf, type Equipment } from "./equipment";
 import { SKILL_BY_ID, clampSkillLevel, skillValue, type SkillDefinition, type SkillEffect } from "./skills";
-import type { CardDefinition, CardType } from "./types";
+import { WEAPON_KINDS, type CardDefinition, type CardType } from "./types";
 
 /**
- * Multi-phase battle, rule version 0.6.0-draft (docs/development-spec.md §6a).
+ * Multi-phase battle, rule versions 0.6.0-draft and 0.7.0-draft (docs/development-spec.md §6a).
  * Pure and deterministic: the same seed, decks and selections always give the
  * same result. State is plain JSON so it can be stored between phase requests.
  */
@@ -51,7 +51,7 @@ export interface Selection {
 
 export interface ChainStep {
   card: string;
-  /** Picked from the hand, or drawn from the deck during the chain. */
+  /** Picked from the hand (0.7.0: a charge card), or drawn from the deck. */
   from: "pick" | "draw";
   /** Merges into the attack and frees its space. Otherwise it blocks the space. */
   counted: boolean;
@@ -85,14 +85,18 @@ export interface SideResult {
   /** Colour multiplier after skills (1 when none). */
   advantageMultiplier: number;
   advantage: boolean;
-  /** Added after the multipliers; already included in `attack`. */
+  /**
+   * Weapon power before skills; already included in `attack`. 0.6.0: the strongest
+   * weapon, added after the multipliers. 0.7.0: the weapon of the leader's colour,
+   * inside the multiplied total; on deck-out all three.
+   */
   weaponAttack: number;
   /** Net attack change from both leaders' skills; already included in `attack`. */
   skillAttack: number;
   /** The part of skillAttack caused by the enemy leader's skill. */
   enemySkillAttack: number;
   attack: number;
-  /** Armor defense after skills. */
+  /** Defense after skills. 0.6.0: flat armor. 0.7.0: defense % (0–100). */
   defense: number;
   /** HP this side healed, paid (own skills) and lost to the enemy's direct damage. */
   healed: number;
@@ -100,7 +104,7 @@ export interface SideResult {
   hpDamageTaken: number;
   /** What skills did to this side's hand before the chain (counts only: PvP shows them to both players). */
   handChange: HandChange;
-  /** Chain-drawn cards that could count this phase, after draw skills. */
+  /** 0.6.0: chain-drawn cards that could count. 0.7.0: the leader's DRAW. Both after draw skills. */
   drawLimit: number;
   ranOut: boolean;
 }
@@ -329,6 +333,42 @@ function runChain(side: SideState, picks: readonly string[], cards: Cards, rules
   };
 }
 
+/**
+ * Rule 0.7.0-draft: the picks after the leader are charge cards in the
+ * maxSelected − 1 spaces, resolved in order; then the deck draws `drawLimit`
+ * cards one at a time into free spaces. A counted card adds its POW and frees
+ * its space; any other card blocks it. Drawing stops when the count is used,
+ * every space is blocked, or the pile is empty. 肅清 fires once when every
+ * space is blocked, removing the earliest blockers.
+ */
+function runCharge(side: SideState, picks: readonly string[], cards: Cards, rules: RuleConfig, options: ChainOptions) {
+  const drawPile = [...side.drawPile];
+  const chain: ChainStep[] = [{ card: picks[0]!, from: "pick", counted: true }];
+  const spaces = rules.maxSelected - 1;
+  let blocks = 0;
+  let purge = options.purge;
+  const place = (card: string, from: ChainStep["from"]) => {
+    const counted = options.counts.has(cardOf(cards, card).type);
+    chain.push({ card, from, counted });
+    if (counted) return;
+    blocks++;
+    if (blocks === spaces && purge > 0) {
+      for (const blocker of chain.filter((s) => !s.counted && !s.purged).slice(0, purge)) {
+        blocker.purged = true;
+        blocks--;
+      }
+      purge = 0;
+    }
+  };
+  for (const card of picks.slice(1)) place(card, "pick");
+  for (let left = options.drawLimit; left > 0 && blocks < spaces && drawPile.length > 0; left--) place(drawPile.shift()!, "draw");
+  return {
+    chain,
+    blocks,
+    side: { ...side, drawPile, discard: [...side.discard, ...chain.map((s) => s.card)] },
+  };
+}
+
 function reshuffle(side: SideState, rng: Rng): SideState {
   return {
     ...side,
@@ -417,6 +457,7 @@ export function resolvePhase(
   if (state.status !== "active") throw new Error("battle is over");
   if (state.ruleVersion !== rules.ruleVersion) throw new Error(`rule version mismatch: ${state.ruleVersion}`);
   const rng = restoreRng(state.rng);
+  const v07 = rules.ruleVersion === RULES_V07.ruleVersion;
   const sides = { ...state.sides };
   let sideResults: Record<SideId, SideResult>;
   let winner: SideId | null = null;
@@ -477,13 +518,13 @@ export function resolvePhase(
       }
     }
 
-    // 2. Chains.
+    // 2. Chains (0.7.0: charge spaces, then the leader's DRAW).
     const chains = {} as Record<SideId, ReturnType<typeof runChain>>;
     const drawLimits = {} as Record<SideId, number>;
     for (const id of SIDES) {
       const drawLimit = Math.max(
         0,
-        rules.maxChainDraws +
+        (v07 ? leaders[id].draw : rules.maxChainDraws) +
           total(active[id], (e) => e.kind === "draws" && e.target === "self") -
           total(active[other(id)], (e) => e.kind === "draws" && e.target === "enemy"),
       );
@@ -491,7 +532,7 @@ export function resolvePhase(
       const charge = effectOf(active[id]);
       if (charge?.kind === "charge") for (const t of charge.types) counts.add(t);
       drawLimits[id] = drawLimit;
-      chains[id] = runChain(sides[id], picks[id], cards, rules, {
+      chains[id] = (v07 ? runCharge : runChain)(sides[id], picks[id], cards, rules, {
         counts,
         drawLimit,
         purge: total(active[id], (e) => e.kind === "purge"),
@@ -532,9 +573,14 @@ export function resolvePhase(
       );
       const combo = comboFor(comboCount, rules);
       const baseAttack = sumAttack(played, cards);
-      const weaponAttack = weaponAttackOf(sides[id].equipment);
+      const weaponAttack = v07 ? (sides[id].equipment[leaders[id].type]?.attack ?? 0) : weaponAttackOf(sides[id].equipment);
       const cardAttack = Math.floor((baseAttack * perMille(combo) * perMille(advantage[id])) / 1_000_000);
-      const chainAttack = cardAttack + weaponAttack;
+      // 0.6.0 adds the weapon after the multipliers; 0.7.0 multiplies it in: floor(floor(total × colour) × combo).
+      const attackWith = (weapon: number) =>
+        v07
+          ? Math.floor((Math.floor(((baseAttack + weapon) * perMille(advantage[id])) / 1000) * perMille(combo)) / 1000)
+          : cardAttack + weapon;
+      const chainAttack = attackWith(weaponAttack);
 
       const hpCostEffect = effectOf(mine);
       const hpCost = hpCostEffect?.kind === "hpCost" ? skillValue(mine!.skill, mine!.level) : 0;
@@ -551,8 +597,9 @@ export function resolvePhase(
       const enemyPercent = total(theirs, (e) => e.kind === "power" && e.target === "enemy" && e.unit === "pct");
       const enemyFlat = total(theirs, (e) => e.kind === "power" && e.target === "enemy" && e.unit === "flat");
       // Power skills change only the weapon's power, as in the original (武器パワー), and it can't go below 0.
+      // Provisional (0.7.0): board and HP-for-attack bonuses stay outside the multipliers, as in 0.6.0.
       const withSkills = (pct: number, weaponFlat: number) =>
-        cardAttack + Math.max(0, Math.floor((weaponAttack * (100 + pct)) / 100) + weaponFlat) + ownFlat;
+        attackWith(Math.max(0, Math.floor((weaponAttack * (100 + pct)) / 100) + weaponFlat)) + ownFlat;
       const attack = withSkills(ownPercent - enemyPercent, ownWeaponFlat - enemyFlat);
       // Own skill alone, so the UI can credit each leader with its own effect.
       const ownAttack = withSkills(ownPercent, ownWeaponFlat);
@@ -561,7 +608,10 @@ export function resolvePhase(
         total(mine, (e) => e.kind === "defense" && e.target === "self") -
         Math.floor(total(mine, (e) => e.kind === "reckless") / 4) -
         total(theirs, (e) => e.kind === "defense" && e.target === "enemy");
-      const defense = Math.max(0, Math.floor((defenseOf(sides[id].equipment) * (100 + defensePercent)) / 100));
+      // 0.7.0: armor % plus defense skills in percentage points; 0.6.0 scales flat armor by them.
+      const defense = v07
+        ? Math.max(0, Math.min(100, defenseOf(sides[id].equipment) + defensePercent))
+        : Math.max(0, Math.floor((defenseOf(sides[id].equipment) * (100 + defensePercent)) / 100));
 
       // Heal, then pay HP, then hit the enemy; neither of the last two goes below 1.
       const heal =
@@ -611,11 +661,15 @@ export function resolvePhase(
     sideResults = results;
 
     // 5. Phase damage: winner's attack − loser's defense, then 追加傷害 etc., then the loser's 防護.
+    // 0.7.0: the attack difference, reduced by the loser's defense %.
     const { challenger: c, defender: d } = sideResults;
     if (c.attack !== d.attack) {
       winner = c.attack > d.attack ? "challenger" : "defender";
       const loser = other(winner);
-      const raw = Math.max(0, sideResults[winner].attack - sideResults[loser].defense);
+      const [w, l] = [sideResults[winner], sideResults[loser]];
+      const raw = v07
+        ? Math.floor(((w.attack - l.attack) * (100 - l.defense)) / 100)
+        : Math.max(0, w.attack - l.defense);
       damage = Math.max(
         0,
         raw +
@@ -626,7 +680,8 @@ export function resolvePhase(
     }
   } else {
     const deckOut = (id: SideId): SideResult => {
-      const weaponAttack = weaponAttackOf(sides[id].equipment);
+      const e = sides[id].equipment;
+      const weaponAttack = v07 ? WEAPON_KINDS.reduce((sum, k) => sum + (e[k]?.attack ?? 0), 0) : weaponAttackOf(e);
       const sum = sumAttack(sides[id].hand, cards);
       return {
         played: sides[id].hand,
@@ -662,7 +717,9 @@ export function resolvePhase(
       const { challenger: c, defender: d } = sideResults;
       if (c.attack !== d.attack) {
         winner = c.attack > d.attack ? "challenger" : "defender";
-        damage = Math.max(0, sideResults[winner].attack - sideResults[other(winner)].defense);
+        // Provisional (0.7.0): deck-out ignores defense, so the higher total hits in full.
+        damage = v07 ? sideResults[winner].attack : Math.max(0, sideResults[winner].attack - sideResults[other(winner)].defense);
+        ignoredArmor = v07;
       }
     }
     if (winner) {

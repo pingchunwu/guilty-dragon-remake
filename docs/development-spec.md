@@ -199,9 +199,9 @@ Product decisions are marked **decided**; values the product owner has not set a
 - **Ending** (decided): the battle ends only when a side reaches 0 HP. There is no safety cap; instead, balance must keep base armor below the lowest card attack so most won phases deal damage (levels and defense skills can now push armor above a single card). Deck-out hits ignore armor, so battles still end; the engine tests play full battles with every placeholder card to check this.
 - **Balance (open):** a phase typically counts about 5 cards for ×1.5, so attacks of 300–800 are common. With skills (0.6.0-draft), 400 simulated AI-vs-AI battles with the default deck averaged 11.0 phases at level 1 and 10.6 with every card and item at max level (at most 17), with about 2.5 deck-outs per battle; random decks drawn from all 110 cards at max level averaged 8.9 phases. Card attack, skill values, HP, the combo cap, or the chain limits need tuning before this feels right.
 
-### Rule version `0.7.0-draft`: picking, draws and weapons from the OG clip (spec only, not built)
+### Rule version `0.7.0-draft`: picking, draws and weapons from the OG clip (engine built, not used by the app yet)
 
-Source: the original game's battle footage, [YouTube od0P9ciUKe8](https://www.youtube.com/watch?v=od0P9ciUKe8) 00:21–00:37 (judgment screen after 00:37). The engine still runs `0.6.0-draft`; this section replaces the **Picking**, **Chain**, **Attack** and the weapon part of **Equipment** above once built. Everything else in §6a carries over. Old battles keep `0.6.0-draft`.
+Source: the original game's battle footage, [YouTube od0P9ciUKe8](https://www.youtube.com/watch?v=od0P9ciUKe8) 00:21–00:37 (judgment screen after 00:37). The engine has `RULES_V07` since step 4, but the app and PvP still create `0.6.0-draft` battles until steps 6 and 8; this section replaces the **Picking**, **Chain**, **Attack** and the weapon part of **Equipment** above once built. Everything else in §6a carries over. Old battles keep `0.6.0-draft`.
 
 What the clip shows (observed):
 
@@ -253,6 +253,12 @@ One PR per step, in order; each keeps the tests passing. Old battles stay on `0.
    - deck-out = hand total + all 3 weapons, ignoring defense;
    - `PhaseResult` gains what playback needs: each side's weapon used, charge results, draws, defense %.
    Keep `0.6.0-draft` working for stored battles.
+   **Built 2026-10-26** as `RULES_V07`; `RULES_V0` (0.6.0) is unchanged. `PhaseResult` keeps its shape, with 0.7.0 meanings: `chain` holds the charge results (`from: "pick"`) and the draws (`from: "draw"`) in order, leader first; `drawLimit` is the leader's DRAW after skills; `weaponAttack` is the weapon of the leader's colour (all three on deck-out); `defense` is the defense % (0–100); `leaderType` is the weapon colour. Provisional choices (not in the sources, smallest change from 0.6.0):
+   - Power skills change the weapon's power before it joins the multiplied total; 共闘/同郷 board bonuses and HP-for-attack gains are still added after the multipliers.
+   - Defense skills and the 不惜身命 penalty add or subtract percentage points; the defense % is clamped to 0–100.
+   - 肅清 fires when all 4 spaces hold blockers (during the charge or the draws) and only frees spaces; the leader's remaining DRAW then fills them.
+   - Final damage up skills apply after the defense %, before the loser's guard, as in 0.6.0.
+   - When both sides run out, the higher total (hand + all 3 weapons) hits in full, ignoring defense, like a one-sided deck-out.
 5. **Defender AI:** new `ai_strategy_version`; pick the leader by colour count, POW and DRAW, then 4 charge cards preferring the leader's colour. `battle.ts`, tests.
 6. **Server:** rebuild the engine bundle (`supabase/scripts` → `functions/_shared/engine.js`), have `pvp` create new battles on `0.7.0-draft`, and extend the sanitized view with the new result fields. `supabase/functions/pvp/logic.ts`.
 7. **Balance check:** run 400 AI-vs-AI battles with the default deck (as was done for 0.6.0) and record average and max phases and deck-outs. Target: several phases per battle, with a deck-out about round 3–4 as in the OG. Tune placeholder weapon and armor values if needed, and record the numbers in §6a.

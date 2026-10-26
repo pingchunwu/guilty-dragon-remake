@@ -16,7 +16,7 @@ export interface RuleConfig {
   startingHp: number;
   /** Cards played each phase: the leader plus maxSelected − 1 spaces behind it. */
   maxSelected: number;
-  /** At most this many chain-drawn cards can count in one phase. */
+  /** 0.6.0: at most this many chain-drawn cards can count in one phase. 0.7.0 draws the leader's DRAW instead. */
   maxChainDraws: number;
   /** Attack multiplier by number of counted cards (index 0 = leader alone); stays at the last value beyond. */
   comboMultipliers: readonly number[];
@@ -38,6 +38,13 @@ export const RULES_V0: RuleConfig = {
   advantageMultiplier: 1.2,
   beats: { heavy: "light", light: "magic", magic: "heavy" },
 };
+
+/**
+ * Rule 0.7.0-draft (docs/development-spec.md §6a): 4 charge spaces then the
+ * leader's DRAW, the weapon of the leader's colour inside the multiplied total,
+ * damage = attack difference reduced by defense %, deck-out adds all 3 weapons.
+ */
+export const RULES_V07: RuleConfig = { ...RULES_V0, ruleVersion: "0.7.0-draft" };
 
 /** Version of the defender AI strategy in battle.ts. */
 export const AI_STRATEGY_VERSION = "0.4.0";

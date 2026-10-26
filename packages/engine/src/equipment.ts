@@ -48,8 +48,7 @@ export function resolveEquipment(loadout: Loadout, items: Items, levels: Readonl
   return Object.fromEntries(ITEM_KINDS.map((k) => [k, get(k)])) as Equipment;
 }
 
-// Rule 0.6.0-draft has one flat armor value and one weapon. Until 0.7.0-draft
-// (defense %, weapon by leader colour) is built, it uses the sum of the armor
-// pieces as flat armor and the strongest weapon.
+// Sum of the armor pieces: the defense % in rule 0.7.0-draft, flat armor in
+// 0.6.0-draft, which also uses only the strongest weapon.
 export const defenseOf = (e: Equipment) => ARMOR_KINDS.reduce((sum, k) => sum + (e[k]?.defense ?? 0), 0);
 export const weaponAttackOf = (e: Equipment) => Math.max(0, ...WEAPON_KINDS.map((k) => e[k]?.attack ?? 0));
