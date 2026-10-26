@@ -1,5 +1,5 @@
 import { ITEM_MAX_LEVEL, leveledItem, type ItemDefinition, type OwnedCard } from "@gdr/engine";
-import { ITEM_KIND_LABEL, itemStatText } from "../game/text";
+import { ITEM_KIND_LABEL, isWeapon, itemStatText } from "../game/text";
 
 interface Props {
   item: ItemDefinition;
@@ -10,7 +10,7 @@ interface Props {
 }
 
 export function ItemTile({ item, owned, onClick, badge, selected }: Props) {
-  const className = `card item-${item.kind}${selected ? " card-selected" : ""}`;
+  const className = `card ${isWeapon(item.kind) ? `card-${item.kind}` : "item-armor"}${selected ? " card-selected" : ""}`;
   const body = (
     <>
       <span className="card-type">{ITEM_KIND_LABEL[item.kind]}</span>

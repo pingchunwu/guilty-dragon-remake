@@ -24,16 +24,24 @@ export interface CardDefinition {
   skill: string | null;
 }
 
-/** Equipment kinds; a player equips one of each (docs/development-spec.md §6a). */
-export type ItemKind = "armor" | "weapon" | "gear";
-
-export const ITEM_KINDS: readonly ItemKind[] = ["armor", "weapon", "gear"];
+/** Armor slots by body part, as in the original (頭, 胴, 脚, 背). */
+export type ArmorPart = "head" | "body" | "legs" | "back";
 
 /**
- * Equipment, separate from the deck. Armor defense reduces damage taken in a
- * lost phase; weapon attack is added to every phase's attack after the
- * multipliers. Both grow 10% per item level. Gear has no battle effect yet
- * (open decision).
+ * Equipment kinds; the kind is also the loadout slot, so a player equips one
+ * of each: a weapon per card colour and an armor piece per body part
+ * (docs/development-spec.md §6a, rule 0.7.0-draft).
+ */
+export type ItemKind = CardType | ArmorPart;
+
+export const WEAPON_KINDS: readonly CardType[] = ["heavy", "light", "magic"];
+export const ARMOR_KINDS: readonly ArmorPart[] = ["head", "body", "legs", "back"];
+export const ITEM_KINDS: readonly ItemKind[] = [...WEAPON_KINDS, ...ARMOR_KINDS];
+
+/**
+ * Equipment, separate from the deck. Weapons have attack (power on the card
+ * POW scale), armor pieces have defense (a percent). Both grow 10% per item
+ * level.
  */
 export interface ItemDefinition {
   id: string;
@@ -43,7 +51,6 @@ export interface ItemDefinition {
   defense: number;
 }
 
-/** Equipped item IDs; null is an empty slot. */
 export type Loadout = Record<ItemKind, string | null>;
 
 export type Deck = Record<DeckSlot, readonly string[]>;

@@ -1,11 +1,11 @@
-import { ITEM_KINDS, type ItemDefinition, type ItemKind, type Loadout } from "./types";
+import { ARMOR_KINDS, ITEM_KINDS, WEAPON_KINDS, type ItemDefinition, type ItemKind, type Loadout } from "./types";
 
 export type Items = ReadonlyMap<string, ItemDefinition>;
 
 /** Equipped items resolved to definitions; null is an empty slot. */
 export type Equipment = Record<ItemKind, ItemDefinition | null>;
 
-export const NO_EQUIPMENT: Equipment = { armor: null, weapon: null, gear: null };
+export const NO_EQUIPMENT = Object.fromEntries(ITEM_KINDS.map((k) => [k, null])) as Equipment;
 
 export type LoadoutError =
   | { code: "UNKNOWN_ITEM"; slot: ItemKind; itemId: string }
@@ -45,8 +45,11 @@ export function resolveEquipment(loadout: Loadout, items: Items, levels: Readonl
     const item = id === null ? undefined : items.get(id);
     return item ? leveledItem(item, levels[item.id] ?? 1) : null;
   };
-  return { armor: get("armor"), weapon: get("weapon"), gear: get("gear") };
+  return Object.fromEntries(ITEM_KINDS.map((k) => [k, get(k)])) as Equipment;
 }
 
-export const defenseOf = (e: Equipment) => e.armor?.defense ?? 0;
-export const weaponAttackOf = (e: Equipment) => e.weapon?.attack ?? 0;
+// Rule 0.6.0-draft has one flat armor value and one weapon. Until 0.7.0-draft
+// (defense %, weapon by leader colour) is built, it uses the sum of the armor
+// pieces as flat armor and the strongest weapon.
+export const defenseOf = (e: Equipment) => ARMOR_KINDS.reduce((sum, k) => sum + (e[k]?.defense ?? 0), 0);
+export const weaponAttackOf = (e: Equipment) => Math.max(0, ...WEAPON_KINDS.map((k) => e[k]?.attack ?? 0));

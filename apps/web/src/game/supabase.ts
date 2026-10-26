@@ -42,6 +42,6 @@ export function createAccountService(client: SupabaseClient): GameService {
     drawTen: (idempotencyKey) => call(client, "draw_ten", { p_idempotency_key: idempotencyKey }),
     drawItems: (idempotencyKey) => call(client, "draw_items_ten", { p_idempotency_key: idempotencyKey }),
     saveDeck: (kind, deck) => call(client, "save_deck", { p_kind: kind, p_slots: deck }),
-    saveLoadout: (l) => call(client, "save_loadout", { p_armor: l.armor, p_weapon: l.weapon, p_gear: l.gear }),
+    saveLoadout: (l) => call(client, "save_loadout", { p_loadout: l }),
   };
 }

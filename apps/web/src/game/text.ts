@@ -1,4 +1,5 @@
 import {
+  WEAPON_KINDS,
   skillValue,
   type CardType,
   type DeckError,
@@ -11,7 +12,17 @@ import {
 
 export const TYPE_LABEL: Record<CardType, string> = { heavy: "重裝", light: "輕裝", magic: "魔裝" };
 export const SLOT_LABEL: Record<DeckSlot, string> = { ...TYPE_LABEL, free: "自由" };
-export const ITEM_KIND_LABEL: Record<ItemKind, string> = { armor: "防具", weapon: "武器", gear: "飾品" };
+export const isWeapon = (kind: ItemKind): kind is CardType => WEAPON_KINDS.includes(kind as CardType);
+
+export const ITEM_KIND_LABEL: Record<ItemKind, string> = {
+  heavy: "重裝武器",
+  light: "輕裝武器",
+  magic: "魔裝武器",
+  head: "頭甲",
+  body: "胴甲",
+  legs: "腿甲",
+  back: "背甲",
+};
 
 const WHO = { self: "", enemy: "敵方" } as const;
 
@@ -66,9 +77,7 @@ export function skillEffectText(skill: SkillDefinition, level: number): string {
 }
 
 export function itemStatText(item: ItemDefinition): string {
-  if (item.kind === "armor") return `防禦 ${item.defense}`;
-  if (item.kind === "weapon") return `攻擊 +${item.attack}`;
-  return "效果待定";
+  return isWeapon(item.kind) ? `攻擊 ${item.attack}` : `防禦 ${item.defense}%`;
 }
 
 export function loadoutErrorText(e: LoadoutError): string {

@@ -13,14 +13,14 @@ import {
   type Deck,
   type Loadout,
 } from "@gdr/engine";
-import { ALICE, BOB, as, createDb, db, rpc } from "./pglite";
+import { ALICE, BOB, as, createDb, db, migrate, rpc } from "./pglite";
 
 beforeEach(createDb);
 
 const sync = (uid: string) => rpc(uid, "public.sync_player()");
 const draw = (uid: string, key: string) => rpc(uid, "public.draw_ten($1)", [key]);
 const drawItems = (uid: string, key: string) => rpc(uid, "public.draw_items_ten($1)", [key]);
-const saveLoadout = (uid: string, l: Loadout) => rpc(uid, "public.save_loadout($1, $2, $3)", [l.armor, l.weapon, l.gear]);
+const saveLoadout = (uid: string, l: Loadout) => rpc(uid, "public.save_loadout($1::jsonb)", [JSON.stringify(l)]);
 const saveDeck = (uid: string, kind: string, deck: Deck) =>
   rpc(uid, "public.save_deck($1::public.deck_kind, $2::jsonb)", [kind, JSON.stringify(deck)]);
 
@@ -98,10 +98,10 @@ describe("draw_ten", () => {
 
   it("caps item levels at 10", async () => {
     await sync(ALICE);
-    await db.exec(`update public.item_pool_entries set weight = case when item_id = 'ph-weapon-01' then 1 else 0 end;
-                   update public.player_items set level = 9 where item_id = 'ph-weapon-01'`);
+    await db.exec(`update public.item_pool_entries set weight = case when item_id = 'ph-weapon-heavy-01' then 1 else 0 end;
+                   update public.player_items set level = 9 where item_id = 'ph-weapon-heavy-01'`);
     const { state } = await drawItems(ALICE, "key-00000002");
-    expect(state.items["ph-weapon-01"]).toEqual({ level: 10, shards: 9 });
+    expect(state.items["ph-weapon-heavy-01"]).toEqual({ level: 10, shards: 9 });
   });
 });
 
@@ -143,10 +143,10 @@ describe("equipment", () => {
 
   it("saves an owned loadout and reports the same errors as the engine", async () => {
     await sync(ALICE);
-    expect(await saveLoadout(ALICE, { ...PLACEHOLDER_STARTER_LOADOUT, gear: null })).toEqual({ ok: true, errors: [] });
-    expect((await sync(ALICE)).loadout.gear).toBeNull();
+    expect(await saveLoadout(ALICE, { ...PLACEHOLDER_STARTER_LOADOUT, back: null })).toEqual({ ok: true, errors: [] });
+    expect((await sync(ALICE)).loadout.back).toBeNull();
 
-    const bad: Loadout = { armor: "ph-weapon-01", weapon: "ph-weapon-06", gear: "nope" };
+    const bad: Loadout = { ...PLACEHOLDER_STARTER_LOADOUT, head: "ph-weapon-heavy-01", light: "ph-weapon-light-06", body: "nope" };
     const items = new Map(PLACEHOLDER_ITEMS.map((i) => [i.id, i]));
     const expected = validateLoadout(bad, items, new Set(Object.values(PLACEHOLDER_STARTER_LOADOUT) as string[]));
     const result = await saveLoadout(ALICE, bad);
@@ -198,12 +198,40 @@ describe("row-level security", () => {
       as(ALICE, (tx) => tx.query("insert into public.player_cards (player_id, card_id) values ($1, 'ph-magic-16')", [ALICE])),
     ).rejects.toThrow(/permission denied/);
     await expect(
-      as(ALICE, (tx) => tx.query("update public.loadouts set weapon_id = 'ph-weapon-06' where player_id = $1", [ALICE])),
+      as(ALICE, (tx) => tx.query("update public.loadouts set heavy_id = 'ph-weapon-heavy-06' where player_id = $1", [ALICE])),
     ).rejects.toThrow(/permission denied/);
   });
 
   it("lets anyone read public card content", async () => {
     const res = await as(null, (tx) => tx.query<{ n: number }>("select count(*)::int as n from public.card_definitions"), "anon");
     expect(res.rows[0]!.n).toBe(PLACEHOLDER_CARDS.length);
+  });
+});
+
+describe("equipment slots migration", () => {
+  const SLOTS = "20261026120000_equipment_slots.sql";
+
+  it("moves existing players to the starter set and keeps stored 0.6.0 equipment", async () => {
+    await createDb(SLOTS);
+    await sync(ALICE);
+    await sync(BOB);
+    await drawItems(ALICE, "key-00000001");
+    const old = { id: "ph-weapon-03", name: "w", kind: "weapon", attack: 30, defense: 0 };
+    const armor = { id: "ph-armor-01", name: "a", kind: "armor", attack: 0, defense: 14 };
+    const state = { sides: { challenger: { equipment: { armor, weapon: old, gear: null } }, defender: { equipment: { armor: null, weapon: null, gear: null } } } };
+    await db.exec(`insert into public.pvp_battles (id, challenger_id, defender_id, phase, challenger_hp, defender_hp, deadline)
+      values ('00000000-0000-0000-0000-0000000000f1', '${ALICE}', '${BOB}', 1, 1, 1, now())`);
+    await db.query(
+      `insert into public.pvp_battle_secrets (battle_id, rule_version, ai_version, seed, snapshot, state)
+       values ('00000000-0000-0000-0000-0000000000f1', '0.6.0-draft', 'v', '[]', '{}', $1::jsonb)`,
+      [JSON.stringify(state)],
+    );
+
+    await migrate(SLOTS);
+    const after = await sync(ALICE);
+    expect(after.loadout).toEqual(PLACEHOLDER_STARTER_LOADOUT);
+    expect(Object.keys(after.items).sort()).toEqual(Object.values(PLACEHOLDER_STARTER_LOADOUT).sort());
+    const stored = await db.query<{ e: unknown }>("select state #> '{sides,challenger,equipment}' as e from public.pvp_battle_secrets");
+    expect(stored.rows[0]!.e).toEqual({ heavy: old, light: old, magic: old, head: null, body: armor, legs: null, back: null });
   });
 });

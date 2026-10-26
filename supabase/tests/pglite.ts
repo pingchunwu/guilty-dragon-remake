@@ -25,15 +25,20 @@ export const CAROL = "00000000-0000-0000-0000-00000000000c";
 
 export let db: PGlite;
 
-/** A fresh database with every migration applied; use in beforeEach. */
-export async function createDb() {
+/** A fresh database with every migration (or those before `until`) applied; use in beforeEach. */
+export async function createDb(until = "~") {
   db = new PGlite();
   await db.exec(SUPABASE_STUB);
-  for (const file of readdirSync(migrationsDir).filter((f) => f.endsWith(".sql")).sort()) {
-    await db.exec(readFileSync(migrationsDir + file, "utf8"));
-  }
+  await migrate("", until);
   await db.exec(`insert into auth.users (id, email) values
     ('${ALICE}', 'alice@example.com'), ('${BOB}', 'bob@example.com'), ('${CAROL}', 'carol@example.com')`);
+}
+
+/** Applies the migrations whose file names sort in [from, until). */
+export async function migrate(from: string, until = "~") {
+  for (const file of readdirSync(migrationsDir).filter((f) => f.endsWith(".sql")).sort()) {
+    if (file >= from && file < until) await db.exec(readFileSync(migrationsDir + file, "utf8"));
+  }
 }
 
 /** Runs `fn` as the given role with the given user ID (or none). */
