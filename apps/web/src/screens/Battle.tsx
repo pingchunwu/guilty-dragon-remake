@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import {
-  RULES_V0,
+  RULES_V07,
   deckCardIds,
   levelsOf,
   resolvePhase,
@@ -17,6 +17,8 @@ import { DeckOutPanel, HandPicker, HpBar, type SideLabels } from "./BattleParts"
 import { PhaseBoard } from "./Playback";
 
 const SIDE_LABEL: SideLabels = { challenger: "你", defender: "對手" };
+/** Practice runs rule 0.7.0-draft locally; nothing is stored, so old battles don't matter here. */
+const RULES = RULES_V07;
 
 function randomSeed(): [number, number, number, number] {
   const seed = new Uint32Array(4);
@@ -57,7 +59,7 @@ export function Battle({ content, state: player, onActive }: Props) {
         randomSeed(),
         { deck: deckCardIds(player.decks.attack), equipment, levels },
         { deck: deckCardIds(player.decks.defense), equipment, levels },
-        RULES_V0,
+        RULES,
       ),
     );
     setLast(null);
@@ -74,16 +76,14 @@ export function Battle({ content, state: player, onActive }: Props) {
             用你的進攻牌組挑戰你自己的防守牌組，對手由 AI 出牌。練習不保存、沒有獎勵。
           </p>
           <ul className="small rules">
-            <li>雙方 HP {RULES_V0.startingHp}，手牌 {RULES_V0.handSize} 張；沒出的牌留在手上，每階段補回 {RULES_V0.handSize} 張。</li>
-            <li>每階段一定出 {RULES_V0.maxSelected} 張：一張領導卡，後面 {RULES_V0.maxSelected - 1} 格。</li>
-            <li>後面的卡依序結算：與領導卡同色就併入攻擊並空出那格，從牌庫抽一張補到最後；不同色就擋住那格，不抽牌。{RULES_V0.maxSelected - 1} 格都被擋住、抽到的卡已計入 {RULES_V0.maxChainDraws} 張、或牌庫抽完時停止。</li>
-            <li>計入的張數越多連擊加成越高（最高 ×1.5）。</li>
+            <li>雙方 HP {RULES.startingHp}，手牌 {RULES.handSize} 張；沒出的牌留在手上，每階段補回 {RULES.handSize} 張。</li>
+            <li>先選領導卡（手牌顯示 DRAW），再選 {RULES.maxSelected - 1} 張任意顏色的充能卡（顯示 POW），選滿就出牌；選滿前可以點已選的卡收回。</li>
+            <li>充能卡依序結算：與領導卡同色就加入合計並空出那格；不同色就擋住那格。接著從牌庫抽領導卡的 DRAW 張，同樣規則；格子都被擋住或牌庫抽完就停。</li>
+            <li>合計＝領導卡顏色的武器＋領導卡＋計入的卡；攻擊＝合計 × 相剋 × 連擊（計入張數含領導卡，最高 5 連擊 ×1.5）。</li>
             <li>重裝剋輕裝、輕裝剋魔裝、魔裝剋重裝（領導卡相剋 ×1.2）。</li>
-            <li>裝備的武器攻擊每階段都加在倍率之後（牌庫耗盡時加在手牌總和上）。</li>
             <li>只有領導卡的技能會發動，技能等級就是卡片等級（重複抽到升級，上限依技能）。</li>
-            <li>防具、武器每級 +10%（上限 Lv 10）。</li>
-            <li>攻擊較高的一方造成「攻擊－對方防具」傷害；相同則無傷害。</li>
-            <li>牌庫抽完後的下一階段：用手牌總和結算，之後洗牌重置。</li>
+            <li>攻擊較高的一方造成「（攻擊差）×（100%－對方防禦%）」傷害；相同則無傷害。</li>
+            <li>牌庫抽完後的下一階段：用手牌總和＋三把武器直接攻擊（無視防禦），之後洗牌重置。</li>
           </ul>
           <button type="button" className="primary" onClick={start}>
             開始練習對戰
@@ -97,7 +97,7 @@ export function Battle({ content, state: player, onActive }: Props) {
 
   function play(selection: Selection | null) {
     if (!battle) return;
-    const step = resolvePhase(battle, selection, cards, RULES_V0);
+    const step = resolvePhase(battle, selection, cards, RULES);
     setHpBefore({ challenger: me.hp, defender: battle.sides.defender.hp });
     setBattle(step.state);
     setLast(step.result);
@@ -119,16 +119,18 @@ export function Battle({ content, state: player, onActive }: Props) {
           離開
         </button>
       </div>
-      <HpBar label={SIDE_LABEL.defender} hp={hpOf("defender")} equipment={battle.sides.defender.equipment} />
+      <HpBar label={SIDE_LABEL.defender} hp={hpOf("defender")} equipment={battle.sides.defender.equipment} rules={RULES} />
       <PhaseBoard
         key={last?.phase ?? 0}
         result={last}
         cards={cards}
         labels={SIDE_LABEL}
+        rules={RULES}
+        equipment={{ challenger: me.equipment, defender: battle.sides.defender.equipment }}
         animate={replaying}
         onDone={onReplayDone}
       />
-      <HpBar label={SIDE_LABEL.challenger} hp={hpOf("challenger")} equipment={me.equipment} />
+      <HpBar label={SIDE_LABEL.challenger} hp={hpOf("challenger")} equipment={me.equipment} rules={RULES} />
       {over && !replaying ? (
         <div className="panel stack">
           <strong className="big">{battle.status === "challenger_won" ? "勝利！" : "落敗"}</strong>
@@ -150,6 +152,7 @@ export function Battle({ content, state: player, onActive }: Props) {
           cards={cards}
           owned={player.cards}
           ranOut={{ challenger: me.ranOut, defender: battle.sides.defender.ranOut }}
+          rules={RULES}
           busy={replaying}
           onResolve={() => play(null)}
         />
@@ -160,6 +163,8 @@ export function Battle({ content, state: player, onActive }: Props) {
           cards={cards}
           owned={player.cards}
           drawPile={me.drawPile.length}
+          rules={RULES}
+          equipment={me.equipment}
           busy={replaying || over}
           onPlay={play}
         />

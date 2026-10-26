@@ -273,6 +273,7 @@ One PR per step, in order; each keeps the tests passing. Old battles stay on `0.
 6. **Server:** rebuild the engine bundle (`supabase/scripts` → `functions/_shared/engine.js`), have `pvp` create new battles on `0.7.0-draft`, and extend the sanitized view with the new result fields. `supabase/functions/pvp/logic.ts`. **Built 2026-10-27.** `pvp` starts new battles on `RULES_V07` and resolves each stored battle with the rules it started on (`0.6.0-draft` → `RULES_V0`); any other version still gets `RULE_VERSION_RETIRED`. No migration was needed: `pvp_view` already returns the whole last `PhaseResult` (through `pvp_public_result`, which still blanks the defender's kept hand after a one-sided deck-out) and the definitions of every card in the chain, so the client gets `chain` (`pick`/`draw`), `drawLimit`, `weaponAttack`, `defense` (%) and `leaderType`; the PvP tests check those fields and that no seed, RNG state, draw pile or defender hand is shown. The PvP tests now play at full POW. The web practice battle starts its own battles in `Battle.tsx`, so it switches to `RULES_V07` with the step 8 UI (guest play only uses the rules for deck validation, which did not change).
 7. **Balance check:** run 400 AI-vs-AI battles with the default deck (as was done for 0.6.0) and record average and max phases and deck-outs. Target: several phases per battle, with a deck-out about round 3–4 as in the OG. Tune placeholder weapon and armor values if needed, and record the numbers in §6a. **Built 2026-10-27:** armor pieces raised to 16–21%; numbers and the open product question are in the **Balance (step 7)** bullet above. Under `0.6.0-draft` the 4 pieces still sum to flat armor (64 at starter), which only matters for the practice battle until step 8 moves it to `0.7.0-draft`.
 8. **Battle UI** (§6c round 2): leader step showing DRAW, then charge step showing POW; the 4th charge pick starts the phase (no 出牌 button); playback in the clip's order (weapon light-up, cards fly into the total with combo pips, draws, leader last, judgment screen with attack and defense %, winner's attack, HP drop), both sides at once. `Playback.tsx`, `BattleParts.tsx`, `Battle.tsx`, `Pvp.tsx`. Check at 375 × 667 in the browser pane with reduced motion on and off.
+   **Built 2026-10-27.** Practice battles now start on `0.7.0-draft` (in the browser, nothing stored). PvP picks the screen by an optional `ruleVersion` in the battle view; until step 6 sends it, PvP battles show as `0.6.0-draft`, which still has the 出牌 button and the old playback. The picker's running 合計 includes the leader (weapon + leader + counted picks). Beats: leader reveal with the 3 weapons (leader's colour lit), a skill beat only when a leader has a skill, one beat per charge card, one per draw (both sides on the same beats; the side with fewer waits), the leader joins the total, judgment (attack formula and defense %), damage with the HP drop. Differences from the clip are listed in the PR.
 
 ### OG card library (research, 2026-10-26)
 
@@ -321,7 +322,7 @@ After signing in:
 3. The ticket count shows only on the gacha tab.
 4. Deck and equipment share one tab; the collection becomes a section of the player tab.
 
-### Requirements, round 2 (2026-10-26; not built yet)
+### Requirements, round 2 (2026-10-26; built 2026-10-27 for rule `0.7.0-draft`, see step 8 of the 0.7.0 plan)
 
 Reference: the original game's battle footage, [YouTube od0P9ciUKe8](https://www.youtube.com/watch?v=od0P9ciUKe8), **00:21–00:37** (also listed in the plan's reference list as an OG reference). It is the authority for how a phase looks and plays; the earlier playback decisions below (side by side, 0.5 s per step) give way to it wherever they differ.
 
@@ -329,7 +330,7 @@ Reference: the original game's battle footage, [YouTube od0P9ciUKe8](https://www
 2. **Ignore the clip's semi-auto and auto buttons.** We do not build them.
 3. **Remove the 出牌 (confirm) button.** Picking the fifth card (leader + 4) starts the phase at once, as the original did ([wiki tips](https://wikiwiki.jp/guildra/%E5%B0%8F%E3%83%8D%E3%82%BF)). Picked support cards can still be taken back one at a time before the fifth. When the hand has fewer than 5 cards, the phase starts when every card is picked.
 
-Open: the clip has not been frame-checked against our beats yet; list the differences (timing, camera, effects, layout) in the PR before changing `playbackSteps`.
+The differences between our beats and the clip (timing, camera, effects, layout) are listed in the step 8 PR.
 
 ### Original playback order (research)
 

@@ -532,7 +532,8 @@ p.error {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .hp-fill {
+  .hp-fill,
+  .weapon {
     transition: none;
   }
 
@@ -593,6 +594,12 @@ p.error {
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr) auto auto;
   gap: 8px;
+}
+
+/* Long one-line prompts must ellipsize instead of widening the screen. */
+.battle-screen > *,
+.battle-screen .stack > * {
+  min-width: 0;
 }
 
 .battle-screen .panel {
@@ -682,6 +689,12 @@ p.error {
   animation: chip-draw 0.35s ease-out;
 }
 
+/* 0.7.0: the leader joins the total last. */
+.chip-leader.chip-fresh {
+  color: var(--accent);
+  animation: chip-merge 0.35s ease-out;
+}
+
 @keyframes chip-merge {
   50% {
     transform: scale(1.18);
@@ -693,6 +706,53 @@ p.error {
     opacity: 0;
     transform: translateY(-12px) scale(0.8);
   }
+}
+
+/* 0.7.0 leader step: the hand shows DRAW instead of POW. */
+.card-draw {
+  right: 6px;
+  font-size: 0.62rem;
+  letter-spacing: -0.02em;
+}
+
+/* 0.7.0: combo pips and the 3 weapon slots (the leader's colour lights up). */
+.pips {
+  display: inline-flex;
+  gap: 3px;
+  vertical-align: middle;
+}
+
+.pip {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  border: 1px solid var(--muted);
+}
+
+.pip-on {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.weapons {
+  display: flex;
+  gap: 4px;
+}
+
+.weapon {
+  padding: 0 5px;
+  border: 1px solid;
+  border-radius: 4px;
+  opacity: 0.35;
+  filter: grayscale(1);
+  font-variant-numeric: tabular-nums;
+  transition: opacity 0.3s ease, filter 0.3s ease;
+}
+
+.weapon-lit {
+  opacity: 1;
+  filter: none;
+  font-weight: 700;
 }
 
 .hand-grid {

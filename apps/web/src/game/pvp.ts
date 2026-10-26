@@ -27,6 +27,8 @@ export interface PvpBattle {
   drawPile: Record<SideId, number>;
   ranOut: Record<SideId, boolean>;
   last: PhaseResult | null;
+  /** The battle's rule version; missing means 0.6.0-draft (servers before step 6 of the 0.7.0 plan). */
+  ruleVersion?: string;
   /** Definitions as snapshotted at battle start, for the cards shown. */
   cards: Record<string, CardDefinition>;
   levels: Record<string, number>;
