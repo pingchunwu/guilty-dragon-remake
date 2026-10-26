@@ -217,7 +217,7 @@ Implementation:
 - Name, friends, surrender and lobby are ordinary RPCs (`pvp_lobby`, `pvp_set_name`, `pvp_add_friend`, `pvp_remove_friend`, `pvp_surrender`).
 - **Provisional:** the server accepts an action up to 5 seconds after the 60-second deadline for network delay (`game_config.pvp_grace_seconds`); timeouts are applied lazily on the next request.
 
-## 6c. UI revision (requested 2026-10-26, not built yet)
+## 6c. UI revision (requested and built 2026-10-26 in PRs #6, #8 and #10; the re-sign-in report is not reproduced)
 
 ### Requirements
 
