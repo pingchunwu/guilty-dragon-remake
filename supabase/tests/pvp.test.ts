@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import {
   PLACEHOLDER_CARDS,
   RULES_V0,
+  RULES_V07,
   aiSelect,
   resolveEquipment,
   resolvePhase,
@@ -14,10 +15,7 @@ import { DB_ERRORS, PvpError, handle, parseRequest, type PvpDb, type PvpRequest 
 import { ENGINE_BUNDLE, bundleEngine } from "../scripts/bundle-engine";
 import { ALICE, BOB, CAROL, as, createDb, db, rpc } from "./pglite";
 
-// Rule 0.6.0-draft was tuned for attack about a tenth of the OG POW now in the
-// catalog; at full POW a battle ends in one phase. Scale down until 0.7.0-draft.
-const POW_SCALE = 10;
-const cards = new Map(PLACEHOLDER_CARDS.map((c) => [c.id, { ...c, attack: Math.floor(c.attack / POW_SCALE) }]));
+const cards = new Map(PLACEHOLDER_CARDS.map((c) => [c.id, c]));
 const SEED: RngState = [11, 22, 33, 44];
 
 /** The Edge Function's database adapter, over PGlite as the service role. */
@@ -44,13 +42,12 @@ const lobby = (uid: string) => rpc(uid, "public.pvp_lobby()");
 
 /** Plays the challenger's phase with the defender AI's own strategy. */
 function play(uid: string, view: any) {
-  const selection = view.kind === "normal" ? aiSelect(view.hand, cards, RULES_V0) : null;
+  const selection = view.kind === "normal" ? aiSelect(view.hand, cards, RULES_V07) : null;
   return call(uid, { action: "play", phase: view.phase, selection });
 }
 
 beforeEach(async () => {
   await createDb();
-  await db.exec(`update public.card_definitions set attack = attack / ${POW_SCALE}`);
   await rpc(ALICE, "public.sync_player()");
   await rpc(BOB, "public.sync_player()");
 });
@@ -134,16 +131,13 @@ describe("battles", () => {
   it("plays a battle to the end, reproducibly, and records it for both players", async () => {
     let view = await start(ALICE, BOB);
     let phases = 0;
-    let deckOuts = 0;
     while (view.status === "active") {
-      if (view.kind === "deck_out") deckOuts++;
       view = await play(ALICE, view);
       phases++;
       expect(view.last.phase).toBe(phases);
       expect(phases).toBeLessThan(100);
     }
     expect(view.endReason).toBe("hp");
-    expect(deckOuts).toBeGreaterThan(0);
     expect(Math.min(view.hp.challenger, view.hp.defender)).toBe(0);
     expect((await lobby(ALICE)).active).toBeNull();
 
@@ -160,10 +154,46 @@ describe("battles", () => {
     const steps = (await db.query<any>("select selection from public.pvp_phases order by phase")).rows;
     const items = new Map(Object.entries<any>(secret.snapshot.items));
     const side = (s: any) => ({ deck: s.deck, equipment: resolveEquipment(s.loadout, items, s.itemLevels), levels: s.levels });
-    let state: BattleState = startBattle(secret.seed, side(secret.snapshot.challenger), side(secret.snapshot.defender), RULES_V0);
-    for (const { selection } of steps) state = resolvePhase(state, selection, cards, RULES_V0).state;
+    let state: BattleState = startBattle(secret.seed, side(secret.snapshot.challenger), side(secret.snapshot.defender), RULES_V07);
+    for (const { selection } of steps) state = resolvePhase(state, selection, cards, RULES_V07).state;
     expect(state).toEqual(secret.state);
     expect(steps).toHaveLength(phases);
+  });
+
+  it("shows the 0.7.0 playback fields but not the defender's hand or draw pile", async () => {
+    const view = await start(ALICE, BOB);
+    expect((await pgDb.load(ALICE)).state.ruleVersion).toBe(RULES_V07.ruleVersion);
+    const next = await play(ALICE, view);
+    const secret = (await db.query<any>("select state from public.pvp_battle_secrets")).rows[0].state;
+    for (const id of ["challenger", "defender"]) {
+      const s = next.last.sides[id];
+      expect(s.chain[0]).toMatchObject({ from: "pick", counted: true });
+      expect(s.chain.every((c: any) => c.from === "pick" || c.from === "draw")).toBe(true);
+      for (const key of ["drawLimit", "weaponAttack", "defense"]) expect(typeof s[key]).toBe("number");
+      expect(["heavy", "light", "magic"]).toContain(s.leaderType);
+      for (const c of s.chain) expect(next.cards[c.card]).toEqual(cards.get(c.card));
+    }
+    // Both decks hold the same card IDs, so look for the hidden lists, not single IDs.
+    const text = JSON.stringify(next);
+    for (const ids of [secret.sides.defender.hand, secret.sides.defender.drawPile, secret.sides.challenger.drawPile]) {
+      expect(text).not.toContain(JSON.stringify(ids.slice(0, 3)).slice(1, -1));
+    }
+    expect(text).not.toMatch(/"(rng|seed|discard)"/);
+  });
+
+  it("keeps resolving stored 0.6.0-draft battles with the old rules", async () => {
+    const view = await start(ALICE, BOB);
+    const secret = (await db.query<any>("select seed, snapshot from public.pvp_battle_secrets")).rows[0];
+    const items = new Map(Object.entries<any>(secret.snapshot.items));
+    const side = (s: any) => ({ deck: s.deck, equipment: resolveEquipment(s.loadout, items, s.itemLevels), levels: s.levels });
+    const old = startBattle(secret.seed, side(secret.snapshot.challenger), side(secret.snapshot.defender), RULES_V0);
+    await db.query("update public.pvp_battle_secrets set state = $1", [JSON.stringify({ ...old, ruleVersion: "0.1.0" })]);
+    await expect(play(ALICE, view)).rejects.toThrow("RULE_VERSION_RETIRED");
+
+    await db.query("update public.pvp_battle_secrets set state = $1, rule_version = $2", [JSON.stringify(old), RULES_V0.ruleVersion]);
+    const selection = aiSelect(old.sides.challenger.hand, cards, RULES_V0);
+    const next = await call(ALICE, { action: "play", phase: view.phase, selection });
+    expect(next.last).toEqual(resolvePhase(old, selection, cards, RULES_V0).result);
   });
 
   it("applies each phase once and validates the selection on the server", async () => {
@@ -208,7 +238,7 @@ describe("battles", () => {
     const view = await start(ALICE, BOB);
     const loaded = await pgDb.load(ALICE);
     await db.exec("update public.pvp_battles set deadline = now() - interval '6 seconds'");
-    const step = resolvePhase(loaded.state, aiSelect(view.hand, cards, RULES_V0), cards, RULES_V0);
+    const step = resolvePhase(loaded.state, aiSelect(view.hand, cards, RULES_V07), cards, RULES_V07);
     const result: any = await pgDb.recordPhase(loaded.battleId, 1, null, step.result, step.state);
     expect(result).toMatchObject({ status: "defender_won", endReason: "timeout", phase: 1 });
   });

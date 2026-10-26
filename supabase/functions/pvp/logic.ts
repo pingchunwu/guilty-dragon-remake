@@ -3,6 +3,7 @@
 // this module runs the engine, which the database cannot.
 import {
   RULES_V0,
+  RULES_V07,
   resolveEquipment,
   resolvePhase,
   startBattle,
@@ -72,6 +73,9 @@ export const DB_ERRORS = [
   "PHASE_CONFLICT",
 ];
 
+/** New battles use the last entry; stored battles resolve with the rules they started on. */
+const RULES = [RULES_V0, RULES_V07];
+
 const isString = (v: unknown): v is string => typeof v === "string";
 
 /** Validates the untrusted request body. */
@@ -111,18 +115,19 @@ export async function handle(
       equipment: resolveEquipment(s.loadout, items, s.itemLevels),
       levels: s.levels,
     });
-    const state = startBattle(seed, side(snapshot.challenger), side(snapshot.defender), RULES_V0);
+    const state = startBattle(seed, side(snapshot.challenger), side(snapshot.defender), RULES_V07);
     return db.create(player, request.opponentId, snapshot, seed, state);
   }
 
   const battle = await db.load(player);
   if (battle.phase !== request.phase) throw new PvpError("PHASE_CONFLICT", 409);
-  if (battle.state.ruleVersion !== RULES_V0.ruleVersion) throw new PvpError("RULE_VERSION_RETIRED", 409);
+  const rules = RULES.find((r) => r.ruleVersion === battle.state.ruleVersion);
+  if (!rules) throw new PvpError("RULE_VERSION_RETIRED", 409);
   const selection = battle.state.kind === "normal" ? request.selection : null;
   if (battle.state.kind === "normal" && !selection) throw new PvpError("INVALID_SELECTION");
   let step;
   try {
-    step = resolvePhase(battle.state, selection, contentOf(battle.snapshot).cards, RULES_V0);
+    step = resolvePhase(battle.state, selection, contentOf(battle.snapshot).cards, rules);
   } catch (e) {
     if (e instanceof Error && e.message.startsWith("invalid selection")) throw new PvpError("INVALID_SELECTION");
     throw e;
