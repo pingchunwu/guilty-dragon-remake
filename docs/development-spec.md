@@ -217,6 +217,54 @@ Implementation:
 - Name, friends, surrender and lobby are ordinary RPCs (`pvp_lobby`, `pvp_set_name`, `pvp_add_friend`, `pvp_remove_friend`, `pvp_surrender`).
 - **Provisional:** the server accepts an action up to 5 seconds after the 60-second deadline for network delay (`game_config.pvp_grace_seconds`); timeouts are applied lazily on the next request.
 
+## 6c. UI revision (requested 2026-10-26, not built yet)
+
+### Requirements
+
+In a battle (practice and PvP):
+
+1. **Long-press card info:** long-pressing any card shows a toast with its name, colour, attack, rarity, level and skill effect at that level. The original showed a card's attack and effect while it was held ([Bahamut guide](https://forum.gamer.com.tw/Co.php?bsn=4005&sn=30247)).
+2. **Phase playback:** after confirming a selection, the phase plays back step by step: the chain resolves one card at a time; a card of the leader's colour merges into the attack while one card is drawn into the end of the row; another colour blocks its space.
+3. **One screen:** the whole battle fits on one screen without scrolling.
+4. **No tab bar** during a battle.
+
+After signing in:
+
+1. A signed-in player reopening the game is not asked to sign in again.
+2. The build/rules line ("Guilty Dragon Remake 開發版 · 規則 0.6.0-draft…") moves to a player tab.
+3. The ticket count shows only on the gacha tab.
+4. Deck and equipment share one tab; the collection becomes a section of the player tab.
+
+### Original playback order (research)
+
+Community sources give this order per phase: leader chosen → "on leader select" skills (乱舞) → charge one card at a time (same colour adds attack and +1 combo; draws come from the deck per the leader's draw count; an off-colour card takes a space and the draw stops when spaces run out) → "after charge" skills (追撃) → "when drawing ends" skills (見切り) → attack/defense judgment with combo and attribute multipliers → the winner deals damage. Sources: [system wiki](https://wikiwiki.jp/guildra/%E3%82%B7%E3%82%B9%E3%83%86%E3%83%A0), [skill table](https://wikiwiki.jp/guildra/%E3%82%B9%E3%82%AD%E3%83%AB), [Bahamut guide](https://forum.gamer.com.tw/Co.php?bsn=4005&sn=30247), [AppBank 2012](https://www.appbank.net/2012/10/28/iphone-application/490608.php). No source says whether the two sides play back at the same time or in turn.
+
+This matches the engine's existing order (§6a), so playback needs no rule change: it replays `SideResult.chain` and the fields already in each `PhaseResult`.
+
+### Open decisions (ask before building)
+
+- Both sides' chains play back side by side at the same time, or the challenger's first and then the defender's. Recommended: side by side, one step per beat, so a phase stays short.
+- Playback speed and skip: recommended about 0.5 s per step, a skip button, and no animation under `prefers-reduced-motion`.
+- Desktop equivalent of long-press: recommended right-click and a 450 ms mouse hold, same toast.
+
+### Implementation plan
+
+Three PRs, smallest first. Engine, database and Edge Function stay unchanged.
+
+1. **Navigation and session** (`App.tsx`, new `screens/Player.tsx`, `DeckEditor.tsx`, `Equipment.tsx`, `Gacha.tsx`):
+   - Tabs become 對戰 / 牌組 / 抽卡 / 玩家. 牌組 shows the deck editor and equipment as two sections (or a chip switch, reusing `.chips`). 玩家 holds the account line (email or name), the build/rules line, sign-out and `Collection` as a section.
+   - Ticket count moves from the app-wide bar into `Gacha`; the app-wide bar and header subtitle go away.
+   - Session: supabase-js already keeps the session in `localStorage`, so first reproduce the reported re-login. Likely causes to check: an installed iOS PWA has storage separate from Safari, so a sign-in link opened in Safari doesn't carry over (the code path does); or the app briefly shows `SignIn` before `getSession` resolves. Fix whichever it is; no new auth code if neither.
+2. **Long-press toast** (`CardTile.tsx`, `BattleParts.tsx`, `styles.css`):
+   - `CardTile` gets an `onInfo` prop: pointer down starts a 450 ms timer, moving or lifting cancels it, and `contextmenu` also opens it; a click right after a long press is ignored so it doesn't also pick the card.
+   - One `CardToast` (fixed at the top of the battle screen, `role="status"`, closes on tap or after a few seconds) shows the card with `skillEffectText` at the card's level. Used in the hand picker, chain rows and deck-out panel.
+3. **Playback and one-screen layout** (`BattleParts.tsx`, `Battle.tsx`, `Pvp.tsx`, `App.tsx`, `styles.css`):
+   - A pure `playbackSteps(result)` turns a `PhaseResult` into ordered beats: leader reveal and leader-time skill (with `handChange`), one beat per chain step (counted: attack and combo tick up while the next drawn card enters the row; blocked: the space is marked; purged blockers drop out), then multipliers, attack compare, defense and HP effects, damage. It gets a unit test against a fixed engine result.
+   - `PhasePlayback` steps through the beats on a timer, with a skip button; the HP bars update only at the damage beat. `PhaseSummary` stays as the end state.
+   - Battle layout uses a fixed `100dvh` grid: opponent HP and row on top, playback in the middle, own HP, hand (8 cards, 4 × 2) and confirm button at the bottom. The rules list moves behind a disclosure on the start screen. Target: no scrolling at 375 × 667.
+   - Practice battles report "in battle" to `App` like PvP does, and `App` hides the tab bar and header during any battle. Practice keeps a back/quit button; PvP keeps surrender.
+   - Check in the browser pane at mobile size, with reduced motion on and off, and run the existing tests.
+
 ## 7. Open decisions — do not invent during implementation
 
 Resolve these before locking battle-engine behavior or pool data:
