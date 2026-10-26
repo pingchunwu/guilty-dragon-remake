@@ -15,7 +15,7 @@ import {
   STARTING_TICKETS,
 } from "@gdr/engine";
 
-const OUT = "20261026000100_placeholder_content.sql";
+const OUT = "20261026233000_placeholder_content.sql";
 
 const q = (s: string) => `'${s.replaceAll("'", "''")}'`;
 
@@ -31,12 +31,12 @@ on conflict (id) do update
   set name = excluded.name, original = excluded.original, max_level = excluded.max_level, timing = excluded.timing,
       effect = excluded.effect, value = excluded.value, per_level = excluded.per_level;
 
-insert into public.card_definitions (id, name, type, attack, rarity, skill_id) values
+insert into public.card_definitions (id, name, type, attack, draw, rarity, skill_id) values
 ${PLACEHOLDER_CARDS.map(
-  (c) => `  (${q(c.id)}, ${q(c.name)}, ${q(c.type)}, ${c.attack}, ${q(c.rarity)}, ${c.skill ? q(c.skill) : "null"})`,
+  (c) => `  (${q(c.id)}, ${q(c.name)}, ${q(c.type)}, ${c.attack}, ${c.draw}, ${q(c.rarity)}, ${c.skill ? q(c.skill) : "null"})`,
 ).join(",\n")}
 on conflict (id) do update
-  set name = excluded.name, type = excluded.type, attack = excluded.attack, rarity = excluded.rarity,
+  set name = excluded.name, type = excluded.type, attack = excluded.attack, draw = excluded.draw, rarity = excluded.rarity,
       skill_id = excluded.skill_id;
 
 -- One active pool at a time (card_pools_one_active).

@@ -4,8 +4,9 @@ import type { CardType } from "./types";
  * Leader skills, recreated from the original game's community skill table
  * (https://wikiwiki.jp/guildra/スキル, last edited 2014). Only the leader card's
  * skill fires, at that card's level (one level per duplicate, capped at
- * maxLevel). Percent values are kept from the original; flat values are
- * divided by 10 to fit HP 3000 and card attack ~30–100 (provisional balance).
+ * maxLevel). Values are the original's (rule 0.7.0-draft put flat values back
+ * on the OG scale; 0.6.0 divided them by 10). Defense skills are percents: 0.6.0
+ * scales flat armor by them, 0.7.0 adds them to the defense %.
  * Event-only, synthesis and sale skills are left out: this game has none of
  * those systems. See docs/development-spec.md §6a for the resolution order.
  */
@@ -25,7 +26,7 @@ export type SkillEffect =
   | { kind: "combo"; target: Side }
   /** Self: +value weapon power (flat, or % of the weapon), as in the original. Enemy: −value, not below 0. */
   | { kind: "power"; target: Side; unit: Unit }
-  /** +value % attack, −value/4 % own defense (不借身命). */
+  /** +value % weapon power, −value/4 % own defense (不借身命). */
   | { kind: "reckless" }
   /** Self: +value % defense. Enemy: −value % defense. */
   | { kind: "defense"; target: Side }
@@ -113,47 +114,47 @@ export const SKILLS: readonly SkillDefinition[] = [
   s("mikiri", "看穿", "見切り", 3, "endOfDraw", { kind: "combo", target: "enemy" }, 1),
   s("mind-eye", "心眼", "心眼", 5, "endOfDraw", { kind: "combo", target: "enemy" }, 1),
   // Own attack up
-  s("iron-fist", "鐵拳", "アイアンフィスト", 1, "battle", { kind: "power", target: "self", unit: "flat" }, 30),
-  ...tiers("power-up", "力量提升", "パワーアップ", [2, 4, 6], "battle", { kind: "power", target: "self", unit: "flat" }),
+  s("iron-fist", "鐵拳", "アイアンフィスト", 1, "battle", { kind: "power", target: "self", unit: "flat" }, 300),
+  ...tiers("power-up", "力量提升", "パワーアップ", [20, 40, 60], "battle", { kind: "power", target: "self", unit: "flat" }),
   s("gift-of-power", "力量之賜", "ギフトオブパワー", 1, "battle", { kind: "power", target: "self", unit: "pct" }, 15),
   ...tiers("power-gaze", "力量凝視", "パワーゲイズ", [1, 2, 3], "battle", { kind: "power", target: "self", unit: "pct" }),
   s("soul-breath", "魂之氣息", "魂の息吹", 5, "battle", { kind: "power", target: "self", unit: "pct" }, 10),
   s("reckless", "不惜身命", "不借身命", 3, "battle", { kind: "reckless" }, 60),
   // Enemy attack down
-  s("belly-laugh", "捧腹大笑", "腹筋崩壊", 1, "battle", { kind: "power", target: "enemy", unit: "flat" }, 30),
-  ...tiers("weaken", "脫力", "脱力", [2, 4, 6], "battle", { kind: "power", target: "enemy", unit: "flat" }),
+  s("belly-laugh", "捧腹大笑", "腹筋崩壊", 1, "battle", { kind: "power", target: "enemy", unit: "flat" }, 300),
+  ...tiers("weaken", "脫力", "脱力", [20, 40, 60], "battle", { kind: "power", target: "enemy", unit: "flat" }),
   s("disarm", "武裝解除", "武装解除", 1, "battle", { kind: "power", target: "enemy", unit: "pct" }, 15),
   ...tiers("power-seal", "力之封印", "力の封印", [1, 2, 3], "battle", { kind: "power", target: "enemy", unit: "pct" }),
   s("arms-curse", "武裝封咒", "武装封咒", 1, "battle", { kind: "power", target: "enemy", unit: "pct" }, 100),
   // Damage taken down
-  s("scout", "攻擊調查", "攻撃調査", 1, "battle", { kind: "guard" }, 50),
-  ...tiers("guard", "防護", "ガード", [5, 10, 15], "battle", { kind: "guard" }),
+  s("scout", "攻擊調查", "攻撃調査", 1, "battle", { kind: "guard" }, 500),
+  ...tiers("guard", "防護", "ガード", [50, 100, 150], "battle", { kind: "guard" }),
   // Own defense up
   s("silver-crown", "銀冠穴熊", "銀冠穴熊", 1, "battle", { kind: "defense", target: "self" }, 40),
   s("watchful", "守望之心", "見守る心", 1, "battle", { kind: "defense", target: "self" }, 15),
   ...tiers("hard-armor", "硬甲", "ハードアーマー", [1, 2, 3], "battle", { kind: "defense", target: "self" }),
   s("soul-armor", "魄之甲冑", "魄の甲冑", 5, "battle", { kind: "defense", target: "self" }, 10),
   // Healing
-  s("paw", "治癒肉球", "癒しの肉球", 1, "battle", { kind: "heal", unit: "flat" }, 80),
-  ...tiers("healing-water", "治癒之水", "癒しの水", [5, 10, 15, 20], "battle", { kind: "heal", unit: "flat" }),
+  s("paw", "治癒肉球", "癒しの肉球", 1, "battle", { kind: "heal", unit: "flat" }, 800),
+  ...tiers("healing-water", "治癒之水", "癒しの水", [50, 100, 150, 200], "battle", { kind: "heal", unit: "flat" }),
   s("high-heal", "高階治療", "ハイヒール", 1, "battle", { kind: "heal", unit: "pct" }, 15),
   ...tiers("heal", "治療", "ヒール", [1, 2, 3, 4], "battle", { kind: "heal", unit: "pct" }),
   // Direct damage
-  s("prank", "惡作劇", "いたずら", 1, "battle", { kind: "hpDamage", unit: "flat" }, 80),
-  ...tiers("shadow-strike", "影討", "影討ち", [5, 10, 15], "battle", { kind: "hpDamage", unit: "flat" }),
+  s("prank", "惡作劇", "いたずら", 1, "battle", { kind: "hpDamage", unit: "flat" }, 800),
+  ...tiers("shadow-strike", "影討", "影討ち", [50, 100, 150], "battle", { kind: "hpDamage", unit: "flat" }),
   s("jump-the-gun", "搶先一步", "先走り", 1, "battle", { kind: "hpDamage", unit: "pct" }, 10),
   ...tiers("ambush", "突襲", "不意討ち", [1, 2, 3], "battle", { kind: "hpDamage", unit: "pct" }),
   // HP for attack
-  ...tiers("price-of-power", "力量的代價", "力の代償", [10, 20, 30], "battle", { kind: "hpCost", ratio: 0.5 }),
-  ...tiers("price-of-violence", "暴力的代價", "暴力の代償", [10, 20, 30], "battle", { kind: "hpCost", ratio: 1 }),
-  s("last-stand", "背水之陣", "背水の陣", 5, "battle", { kind: "hpCost", ratio: 1 }, 80),
+  ...tiers("price-of-power", "力量的代價", "力の代償", [100, 200, 300], "battle", { kind: "hpCost", ratio: 0.5 }),
+  ...tiers("price-of-violence", "暴力的代價", "暴力の代償", [100, 200, 300], "battle", { kind: "hpCost", ratio: 1 }),
+  s("last-stand", "背水之陣", "背水の陣", 5, "battle", { kind: "hpCost", ratio: 1 }, 800),
   // Final damage up
-  ...tiers("plus-damage", "追加傷害", "プラスダメージ", [5, 10, 15], "battle", { kind: "finalDamage", unit: "flat" }),
+  ...tiers("plus-damage", "追加傷害", "プラスダメージ", [50, 100, 150], "battle", { kind: "finalDamage", unit: "flat" }),
   s("raise-damage-2", "增幅傷害Ⅱ", "レイズダメージ2", 10, "battle", { kind: "finalDamage", unit: "pct" }, 2),
   s("raise-damage-3", "增幅傷害Ⅲ", "レイズダメージ3", 10, "battle", { kind: "finalDamage", unit: "pct" }, 3),
   s("war-hammer", "戰神之鎚", "戦神の鉄槌", 5, "battle", { kind: "finalDamage", unit: "pct" }, 10),
   // Final blow (deck-out) damage taken down
-  ...tiers("slim-hope", "一縷希望", "いちるの望み", [20, 40, 60], "finalBlow", { kind: "finalBlowGuard", unit: "flat" }),
+  ...tiers("slim-hope", "一縷希望", "いちるの望み", [200, 400, 600], "finalBlow", { kind: "finalBlowGuard", unit: "flat" }),
   ...tiers("guardian", "守護神", "守護神", [2, 4, 6], "finalBlow", { kind: "finalBlowGuard", unit: "pct" }),
   // Enemy defense down
   ...tiers("break-armor", "破甲", "ブレイクアーマー", [1, 2, 3], "battle", { kind: "defense", target: "enemy" }),
@@ -174,10 +175,10 @@ export const SKILLS: readonly SkillDefinition[] = [
   s("friend-mail", "好友信件", "フレンドメール", 3, "leader", { kind: "draws", target: "self" }, 1),
   s("friend-call", "好友來電", "フレンドコール", 5, "leader", { kind: "draws", target: "self" }, 1),
   // Chain board
-  s("joint-fight", "共鬥", "共闘", 3, "battle", { kind: "board", colour: "other" }, 30),
-  s("alliance", "同盟", "同盟", 3, "battle", { kind: "board", colour: "other" }, 50),
-  s("hometown", "同鄉之友", "同郷の友", 3, "battle", { kind: "board", colour: "same" }, 10),
-  s("compatriot", "同國之友", "同国の友", 3, "battle", { kind: "board", colour: "same" }, 20),
+  s("joint-fight", "共鬥", "共闘", 3, "battle", { kind: "board", colour: "other" }, 300),
+  s("alliance", "同盟", "同盟", 3, "battle", { kind: "board", colour: "other" }, 500),
+  s("hometown", "同鄉之友", "同郷の友", 3, "battle", { kind: "board", colour: "same" }, 100),
+  s("compatriot", "同國之友", "同国の友", 3, "battle", { kind: "board", colour: "same" }, 200),
   // Shuffles
   s("regroup", "隊伍重編", "PT再編成", 1, "leader", { kind: "shuffle", target: "self", scope: "hand" }, 0),
   s("shuffle", "洗牌", "シャッフル", 1, "leader", { kind: "shuffle", target: "self", scope: "all" }, 0),

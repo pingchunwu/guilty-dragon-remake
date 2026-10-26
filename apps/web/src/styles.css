@@ -14,7 +14,6 @@
   --magic: #7b4fd6;
   --armor: #5b7fb8;
   --weapon: #c9a03a;
-  --gear: #9a6fa8;
   --hp-low: #e2574c;
   color-scheme: dark;
   font-family: system-ui, "Noto Sans TC", "PingFang TC", sans-serif;
@@ -190,13 +189,24 @@ p.error {
   position: relative;
   display: grid;
   align-content: start;
-  gap: 4px;
-  min-height: 96px;
-  padding: 8px;
+  gap: 2px;
+  grid-template-columns: minmax(0, 1fr);
+  aspect-ratio: 1;
+  min-height: 88px;
+  padding: 6px;
+  overflow: hidden;
   border-radius: 10px;
   border: 2px solid var(--line);
   background: var(--panel-2);
   text-align: left;
+}
+
+/* Keep every line inside the square; the full text is in the long-press toast. */
+.card > * {
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .card-heavy {
@@ -213,14 +223,6 @@ p.error {
 
 .item-armor {
   border-color: var(--armor);
-}
-
-.item-weapon {
-  border-color: var(--weapon);
-}
-
-.item-gear {
-  border-color: var(--gear);
 }
 
 .card-stat {
@@ -530,7 +532,8 @@ p.error {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .hp-fill {
+  .hp-fill,
+  .weapon {
     transition: none;
   }
 
@@ -591,6 +594,12 @@ p.error {
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr) auto auto;
   gap: 8px;
+}
+
+/* Long one-line prompts must ellipsize instead of widening the screen. */
+.battle-screen > *,
+.battle-screen .stack > * {
+  min-width: 0;
 }
 
 .battle-screen .panel {
@@ -680,6 +689,12 @@ p.error {
   animation: chip-draw 0.35s ease-out;
 }
 
+/* 0.7.0: the leader joins the total last. */
+.chip-leader.chip-fresh {
+  color: var(--accent);
+  animation: chip-merge 0.35s ease-out;
+}
+
 @keyframes chip-merge {
   50% {
     transform: scale(1.18);
@@ -693,6 +708,53 @@ p.error {
   }
 }
 
+/* 0.7.0 leader step: the hand shows DRAW instead of POW. */
+.card-draw {
+  right: 6px;
+  font-size: 0.62rem;
+  letter-spacing: -0.02em;
+}
+
+/* 0.7.0: combo pips and the 3 weapon slots (the leader's colour lights up). */
+.pips {
+  display: inline-flex;
+  gap: 3px;
+  vertical-align: middle;
+}
+
+.pip {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  border: 1px solid var(--muted);
+}
+
+.pip-on {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.weapons {
+  display: flex;
+  gap: 4px;
+}
+
+.weapon {
+  padding: 0 5px;
+  border: 1px solid;
+  border-radius: 4px;
+  opacity: 0.35;
+  filter: grayscale(1);
+  font-variant-numeric: tabular-nums;
+  transition: opacity 0.3s ease, filter 0.3s ease;
+}
+
+.weapon-lit {
+  opacity: 1;
+  filter: none;
+  font-weight: 700;
+}
+
 .hand-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -700,6 +762,8 @@ p.error {
 }
 
 .hand-grid .card {
+  /* The battle screen fits one viewport, so hand cards size to the grid instead. */
+  aspect-ratio: auto;
   min-height: 0;
   padding: 6px;
   gap: 2px;

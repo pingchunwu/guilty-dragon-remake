@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { RULES_V0, deckCardIds, validateDeck, type CardDefinition, type CardType, type Deck } from "../src";
 
 function makeCards(type: CardType, count: number): CardDefinition[] {
-  return Array.from({ length: count }, (_, i) => ({ id: `${type}-${i}`, name: `${type} ${i}`, type, attack: 50, rarity: "N" as const, skill: null }));
+  return Array.from({ length: count }, (_, i) => ({ id: `${type}-${i}`, name: `${type} ${i}`, type, attack: 50, draw: 2, rarity: "N" as const, skill: null }));
 }
 
 const all = [...makeCards("heavy", 11), ...makeCards("light", 11), ...makeCards("magic", 10)];

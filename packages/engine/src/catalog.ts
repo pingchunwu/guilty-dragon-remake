@@ -1,10 +1,19 @@
-import type { CardDefinition, CardType, Deck, ItemDefinition, ItemKind, Loadout } from "./types";
+import {
+  ITEM_KINDS,
+  WEAPON_KINDS,
+  type CardDefinition,
+  type CardType,
+  type Deck,
+  type ItemDefinition,
+  type ItemKind,
+  type Loadout,
+} from "./types";
 import { SKILLS, type Rarity } from "./skills";
 
 /**
  * PLACEHOLDER content for development: one card per skill (skills.ts), dealt
  * to the three types in turn, no art. Rarity follows the original game's
- * tiers (N … SR+) and sets the attack range and draw weight; the numbers are
+ * tiers (N … SR+) and sets the POW, DRAW and gacha weight ranges; the numbers are
  * not balanced. Replace once the card design (original vs. recreated) is
  * decided. supabase/seed is generated from this file; keep them in sync with
  * `npm run gen:seed`. IDs ph-<type>-01…16 existed before skills and are kept.
@@ -33,27 +42,40 @@ export function placeholderRarity(skillId: string): Rarity {
   return SKILL_RARITY[skillId] ?? TIER_RARITY[Number(tier?.[1] ?? 1) - 1]!;
 }
 
-/** Attack range by rarity, about a tenth of the original's starting POW. */
+/** Attack (max POW) range by rarity, from the original game's card library (spec §6a). */
 const ATTACK_RANGE: Record<Rarity, readonly [number, number]> = {
-  N: [30, 45],
-  "N+": [35, 55],
-  R: [45, 65],
-  "R+": [50, 72],
-  SR: [60, 85],
-  "SR+": [70, 100],
+  N: [320, 800],
+  "N+": [220, 924],
+  R: [644, 1150],
+  "R+": [864, 1272],
+  SR: [750, 1775],
+  "SR+": [1410, 2070],
 };
+
+/** DRAW range by rarity: mostly 1–3 low, 3–5 at SR/SR+; N+ spans 0–4 as in the original. */
+const DRAW_RANGE: Record<Rarity, readonly [number, number]> = {
+  N: [1, 3],
+  "N+": [0, 4],
+  R: [1, 3],
+  "R+": [1, 4],
+  SR: [3, 5],
+  "SR+": [3, 5],
+};
+
+const spread = ([low, high]: readonly [number, number], seed: number) => low + (seed % (high - low + 1));
 
 export const PLACEHOLDER_CARDS: readonly CardDefinition[] = SKILLS.map((skill, i) => {
   const type = TYPES[i % TYPES.length]!;
   const n = Math.floor(i / TYPES.length) + 1;
   const rarity = placeholderRarity(skill.id);
-  const [low, high] = ATTACK_RANGE[rarity];
   return {
     id: placeholderCardId(type, n),
     name: `${TYPE_LABEL[type]}試作 ${String(n).padStart(2, "0")}`,
     type,
-    // Spread across the rarity's range so hands differ; not balanced.
-    attack: low + ((i * 37) % (high - low + 1)),
+    // Spread across the rarity's ranges so hands differ; POW and DRAW use
+    // unrelated steps so a leader trades one for the other. Not balanced.
+    attack: spread(ATTACK_RANGE[rarity], i * 37),
+    draw: spread(DRAW_RANGE[rarity], i * 7 + 1),
     rarity,
     skill: skill.id,
   };
@@ -90,36 +112,40 @@ export const PLACEHOLDER_POOL: Pool = {
   entries: PLACEHOLDER_CARDS.map((c) => ({ id: c.id, weight: RARITY_WEIGHT[c.rarity] })),
 };
 
-const ITEM_LABEL: Record<ItemKind, string> = { armor: "防具", weapon: "武器", gear: "飾品" };
+const ITEM_LABEL: Record<ItemKind, string> = {
+  heavy: "重裝武器",
+  light: "輕裝武器",
+  magic: "魔裝武器",
+  head: "頭甲",
+  body: "胴甲",
+  legs: "腿甲",
+  back: "背甲",
+};
 const PER_KIND = 6;
-const itemId = (kind: ItemKind, n: number) => `ph-${kind}-${String(n).padStart(2, "0")}`;
+const isWeapon = (kind: ItemKind): kind is CardType => WEAPON_KINDS.includes(kind as CardType);
+const itemId = (kind: ItemKind, n: number) =>
+  `ph-${isWeapon(kind) ? "weapon" : "armor"}-${kind}-${String(n).padStart(2, "0")}`;
 
 /**
- * PLACEHOLDER equipment, 6 of each kind. Item 01 of each kind is the starter.
- * Balance rule: armor defense (up to ×1.9 at level 10) should stay well below
- * a typical phase attack so most won phases deal damage; deck-outs ignore
- * armor, so battles always end. Weapon attack is added after multipliers.
- * Gear has no stats until its effect is decided.
+ * PLACEHOLDER equipment, 6 per slot on the original's scale. Item 01 of each
+ * kind is the starter. Weapons 300–2000 (card POW scale), armor pieces 2–10%
+ * defense; a side's defense % is the sum of its 4 pieces.
  */
-export const PLACEHOLDER_ITEMS: readonly ItemDefinition[] = (["armor", "weapon", "gear"] as const).flatMap((kind) =>
+export const PLACEHOLDER_ITEMS: readonly ItemDefinition[] = ITEM_KINDS.flatMap((kind) =>
   Array.from({ length: PER_KIND }, (_, i) => ({
     id: itemId(kind, i + 1),
     name: i === 0 ? `見習${ITEM_LABEL[kind]}` : `${ITEM_LABEL[kind]}試作 ${String(i + 1).padStart(2, "0")}`,
     kind,
-    attack: kind === "weapon" ? 10 * (i + 1) : 0,
-    defense: kind === "armor" ? 14 + 3 * i : 0,
+    attack: isWeapon(kind) ? 300 + 340 * i : 0,
+    defense: isWeapon(kind) ? 0 : 2 + Math.floor((8 * i) / (PER_KIND - 1)),
   })),
 );
 
-/** PLACEHOLDER loadout granted to every player (and guests). */
-export const PLACEHOLDER_STARTER_LOADOUT: Loadout = {
-  armor: itemId("armor", 1),
-  weapon: itemId("weapon", 1),
-  gear: itemId("gear", 1),
-};
+/** PLACEHOLDER loadout granted to every player (and guests): 3 weapons at 300 and 4 armor pieces at 2%. */
+export const PLACEHOLDER_STARTER_LOADOUT = Object.fromEntries(ITEM_KINDS.map((k) => [k, itemId(k, 1)])) as Loadout;
 
 /** PLACEHOLDER item pool: every item, equal weight, same tickets as cards. */
 export const PLACEHOLDER_ITEM_POOL: Pool = {
-  id: "item-pool-v0",
+  id: "item-pool-v1",
   entries: PLACEHOLDER_ITEMS.map((item) => ({ id: item.id, weight: 1 })),
 };

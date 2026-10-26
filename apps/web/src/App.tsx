@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { RULES_V0 } from "@gdr/engine";
+import { RULES_V07 } from "@gdr/engine";
 import { loadContent, type Content } from "./game/content";
 import { createGuestService } from "./game/guestService";
 import { createPvpService } from "./game/pvp";
@@ -31,6 +31,7 @@ export function App() {
   const [state, setState] = useState<PlayerState | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("battle");
+  const [deckView, setDeckView] = useState<"deck" | "equipment">("deck");
   const [content, setContent] = useState<Content | null>(null);
   const [contentError, setContentError] = useState<string | null>(null);
 
@@ -102,7 +103,7 @@ export function App() {
     <div className={inBattle ? "shell in-battle" : "shell"}>
       <header hidden={inBattle}>
         <h1>Guilty Dragon Remake</h1>
-        {!service && <p className="muted small">開發版 · 規則 {RULES_V0.ruleVersion} · 卡片為佔位內容</p>}
+        {!service && <p className="muted small">開發版 · 規則 {RULES_V07.ruleVersion} · 卡片為佔位內容</p>}
       </header>
 
       {contentError && (
@@ -134,8 +135,20 @@ export function App() {
             <main>
               {tab === "deck" && (
                 <div className="stack">
-                  <DeckEditor content={content} service={service} state={state} onState={setState} />
-                  <Equipment content={content} service={service} state={state} onState={setState} />
+                  <div className="chips">
+                    {(["deck", "equipment"] as const).map((v) => (
+                      <button key={v} type="button" className={deckView === v ? "chip active" : "chip"} onClick={() => setDeckView(v)}>
+                        {v === "deck" ? "牌組" : "裝備"}
+                      </button>
+                    ))}
+                  </div>
+                  {/* Both stay mounted so switching keeps unsaved drafts. */}
+                  <div hidden={deckView !== "deck"}>
+                    <DeckEditor content={content} service={service} state={state} onState={setState} />
+                  </div>
+                  <div hidden={deckView !== "equipment"}>
+                    <Equipment content={content} service={service} state={state} onState={setState} />
+                  </div>
                 </div>
               )}
               {/* Kept mounted so switching tabs doesn't lose a battle in progress. */}

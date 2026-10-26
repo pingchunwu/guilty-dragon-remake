@@ -199,6 +199,92 @@ Product decisions are marked **decided**; values the product owner has not set a
 - **Ending** (decided): the battle ends only when a side reaches 0 HP. There is no safety cap; instead, balance must keep base armor below the lowest card attack so most won phases deal damage (levels and defense skills can now push armor above a single card). Deck-out hits ignore armor, so battles still end; the engine tests play full battles with every placeholder card to check this.
 - **Balance (open):** a phase typically counts about 5 cards for ×1.5, so attacks of 300–800 are common. With skills (0.6.0-draft), 400 simulated AI-vs-AI battles with the default deck averaged 11.0 phases at level 1 and 10.6 with every card and item at max level (at most 17), with about 2.5 deck-outs per battle; random decks drawn from all 110 cards at max level averaged 8.9 phases. Card attack, skill values, HP, the combo cap, or the chain limits need tuning before this feels right.
 
+### Rule version `0.7.0-draft`: picking, draws and weapons from the OG clip (engine and PvP built, practice UI pending)
+
+Source: the original game's battle footage, [YouTube od0P9ciUKe8](https://www.youtube.com/watch?v=od0P9ciUKe8) 00:21–00:37 (judgment screen after 00:37). The engine has `RULES_V07` since step 4 and PvP creates `0.7.0-draft` battles since step 6; the practice battle still creates `0.6.0-draft` battles until step 8; this section replaces the **Picking**, **Chain**, **Attack** and the weapon part of **Equipment** above once built. Everything else in §6a carries over. Old battles keep `0.6.0-draft`.
+
+What the clip shows (observed):
+
+- The hand refills to 8; each side shows its deck count.
+- **Leader step:** the prompt asks for a leader. Every hand card shows its **DRAW** number, not its attack.
+- The leader's colour lights the weapon of that colour (3 weapon slots, one per colour, 1300 each in the clip); the other two grey out, and the attack total starts at that weapon's power.
+- **Charge step:** the prompt asks for power-charge units. Hand cards now show their **POW** (attack). All 4 picks in the clip are the leader's colour. No button: the phase starts after the 4th charge pick.
+- **Playback:** each picked card flies into the total (1300 → 4037 → 6432 → 7288) and lights one combo pip; at the same time cards are drawn from the deck (24 → 21) into a row. The leader was the last card of the bottom hand row and shows **DRAW 3**, and exactly 3 cards were drawn. They were off-colour and added nothing. The leader is added last. 7288 = weapon 1300 + 4 supports + leader 856, a plain sum.
+- The opponent does the same at the same time in the top row.
+- After 00:37: a judgment screen shows each side's attack and defense as a **percentage** (11%, 16%), then only the winner attacks (プレイヤーアタック) with several hits.
+
+Rules (decided 2026-10-26 by the product owner, following the clip and the [system wiki](https://wikiwiki.jp/guildra/%E3%82%B7%E3%82%B9%E3%83%86%E3%83%A0), unless marked provisional):
+
+- **Cards gain a DRAW stat (0–6):** how many cards the leader draws from the deck. Only the leader's DRAW is used, so the two sides usually draw different amounts. Values come from the OG card library (see "OG card library" below).
+- **Picking:** each side picks a leader, then 4 charge cards of **any colour** from the hand. Picking the 4th charge card starts the phase (no confirm button). Before that, a picked charge card can be taken back one at a time; taking back the leader clears the picks. A hand with fewer than 5 cards starts the phase when every card is picked.
+- **Charge:** the 4 charge cards sit in 4 spaces behind the leader and resolve in order. A card of the leader's colour adds its POW and +1 combo and frees its space. A card of another colour is a **blocker**: it stays in its space and adds nothing.
+- **Draws:** then the deck draws the leader's DRAW count, one card at a time, into the free spaces. A card of the leader's colour adds its POW and +1 combo and frees its space; another colour blocks a space. Drawing stops when the DRAW count is used up, when every space holds a blocker (even with draws left; wiki: 同色でないカードがドロー枠を埋めてしまうと、残りドロー回数が残っていてもそこでドロー終了), or when the deck is empty. In the clip the 4 charge cards all counted, so the 3 off-colour draws took 3 of the 4 freed spaces.
+- **Discard:** every played and drawn card, counted or blocking, goes to the discard pile after the phase (as in the OG). Unpicked hand cards stay in hand.
+- **Weapons:** the equipment loadout gets 3 weapon slots, one per colour (Heavy, Light, Magic). The leader's colour picks which weapon is used; the others do nothing that phase. This reverses the 2026-10-25 "one weapon slot" decision. Weapon power is on the same scale as card POW, as in the OG ([装備変更](https://wikiwiki.jp/guildra/%E8%A3%85%E5%82%99%E5%A4%89%E6%9B%B4): starter weapons 300, story weapons 1000; 1000–2000 in the Final Blow table; 1300 in the clip).
+- **Armor:** as in the OG, 4 armor slots by body part: head (頭), body (胴), legs (脚) and back (背). Each piece gives a defense %, and a side's defense % is the sum of its 4 pieces (OG examples: starter body 2%, event body 10%, head 3%; the clip shows totals of 11% and 16%). The armor pieces replace the old flat armor and the gear slot.
+- **Attack:** total = weapon + leader POW + every counted card's POW, a plain sum, shown counting up during playback. At judgment: attack = floor(floor(total × advantage) × combo). Combo counts the leader and every counted card, ×1.0/1.1/1.2/1.3/1.5 for 1–5, ×1.5 beyond, and is capped at 5 combo as in the OG (最大で5まで溜まる).
+- **Damage** (OG): the higher attack wins the phase. In a normal phase the two sides' numbers are subtracted and the difference hits the loser ([Bahamut guide](https://forum.gamer.com.tw/Co.php?bsn=4005&sn=30247): 雙方數字相減後的差值扣對方體力). Then the loser's defense % reduces it, then flat guard: damage = max(0, floor((winner's attack − loser's attack) × (100 − loser's defense %) / 100) − loser's guard). Equal attack deals nothing. Defense % applies only after the subtraction (decided 2026-10-26; the OG sources don't say). Defense skills change the % (ハードアーマー +Lv×1–3%, 見守る心 +15%, 銀冠穴熊 +40%, 魄の甲冑 +Lv×10%, ブレイクアーマー −Lv×1–3% and 鎧通し −8% on the enemy); ガード is the flat guard (−Lv×50/100/150).
+- **HP:** the OG had no separate PvP HP. Duels used the player's HP from the player-level table ([ステータス](https://wikiwiki.jp/guildra/%E3%82%B9%E3%83%86%E3%83%BC%E3%82%BF%E3%82%B9): Lv 5 810, Lv 20 2070, Lv 58 3400, Lv 80 4500; 3200 in the clip). Because damage is only the difference between attacks, OG duels usually lasted until a deck ran out, around round 3–4. This game has no player level, so HP stays a fixed 3000 for both sides (provisional; that is a mid-level OG player).
+- **Deck-out:** the side's total is its hand total + **all three** weapons' power. As before it ignores defense. The OG Final Blow formula (deck POW ÷ 8 + weapons ÷ 3) is not used, because the clip is a raid fight, not PvP.
+- **Card level** (decided 2026-10-26): a card's level only sets its skill level. It rises only by pulling a duplicate in the gacha. POW and DRAW do not change with level, so each card has one POW value (see open questions).
+- **Playback order:** leader reveal and weapon light-up → leader-time skills → charge cards resolve one at a time (count with a combo pip, or block) → deck draws one at a time → leader added last → judgment screen (attack, defense %, multipliers) → winner's attack with damage and HP drop. Both sides play back at the same time.
+- **Skill values:** with OG-scale numbers, flat skill values use the OG values again (no more ÷10), e.g. アイアンフィスト = weapon +300, パワーアップ1 = weapon +Lv×20, 影討ち1 = −Lv×50 HP (corrected 2026-10-26 from the wikiwiki skill table).
+- **Skills that touched the old chain:** chain-draw up/down change the leader's DRAW count; 肅清 fires when all 4 spaces hold blockers; cross-colour charge lets the named extra colour count, both as a charge pick and as a draw.
+- **Defender AI:** picks a leader and 4 charge cards, preferring the leader's colour. Its leader choice must now weigh DRAW too, so the AI gets a new version.
+
+Open questions (do not invent during implementation):
+
+None left. Resolved 2026-10-26: HP stays 3000; defense % comes from armor; level only affects skills; a deck-out uses all three weapons; the deck-out keeps the hand total, not the OG Final Blow; each card uses its OG **max POW**; defense % applies only after the two attacks are subtracted (as in the damage formula above).
+
+Still to check after building (not a decision): HP 3000 comes from the OG, but our placeholder weapons and armor are new. Step 7 below re-runs the AI-vs-AI simulation to confirm battles last several phases instead of ending in one, and tunes item values if not.
+
+- **Balance (step 7, 2026-10-27):** 400 AI-vs-AI battles (`ai 0.5.0` on both sides) with the default deck and the starter loadout. The first deck-out comes at round 4 in every battle that reaches one, as in the OG, so the question is whether battles survive that long:
+
+  | Armor pieces | Starter defense | Avg phases | Max | Battles reaching a deck-out | Ended in phase 1 |
+  |---|---|---|---|---|---|
+  | 2–10% (OG scale, kept) | 8% | 2.1 | 5 | 52 / 400 | 141 / 400 |
+  | 16–21% (tried, rejected) | 64% | 3.6 | 9 | 296 / 400 | 5 / 400 |
+
+  Weapons barely matter (both sides gain one); only armor moved the result, because damage is the attack difference and one 5-combo phase is often more than 3000 ahead. Reaching round 4 through armor needed ~60% starter defense, and at item level 10 a full set passes 100%. **Decided 2026-10-27: keep OG armor values (2–10% per piece).** **Open:** battles are still too short (2.1 phases); the fix must come from outside items — HP, the combo cap, or the damage formula. Not decided; do not invent.
+
+### Implementation steps for `0.7.0-draft` (in progress)
+
+One PR per step, in order; each keeps the tests passing. Old battles stay on `0.6.0-draft`.
+
+1. **Card data:** add `draw` to cards, and set `attack` to the OG max POW scale. Replace the 110 placeholder cards (one per skill, so every skill stays covered) with POW and DRAW values from the OG ranges above, per rarity. `packages/engine/src/catalog.ts`, a new migration for `card_definitions.draw` and the new values, and the catalog-matches-database test. **Built 2026-10-26.** Until step 4, battles still run `0.6.0-draft`, which was tuned for attack about a tenth of this scale, so battles (practice and PvP) usually end in one phase; the PvP tests scale card attack ÷10 to keep testing multi-phase battles. PvP snapshots now carry `draw`.
+2. **Equipment data** (built): 3 weapon slots (one per colour) and 4 armor slots (head, body, legs, back) with defense %; drop the flat armor value and the gear slot. Placeholder items on the OG scale (weapons 300–2000, armor pieces 2–10%); starter set of 3 weapons at 300 and 4 armor pieces. `equipment.ts`, `catalog.ts`, a migration for `item_definitions` and existing loadouts (move each player to the starter set), `apps/web/src/screens/Equipment.tsx`. Item kinds are the slots (`heavy`, `light`, `magic`, `head`, `body`, `legs`, `back`); the old armor/weapon/gear items are removed. Until step 4, rule `0.6.0-draft` reads the new loadout as: strongest weapon for the weapon bonus, sum of the 4 armor % as flat armor; stored 0.6.0 battles were mapped so their numbers do not change.
+3. **Skill values** (built): flat values back to OG values (no ÷10), checked against the wikiwiki skill table (パワーアップ1 = Lv×20, アイアンフィスト = 300); armor-type skills change defense %; ガード stays flat. `skills.ts`, `skills.test.ts`, `skill_definitions` migration. The defense skills were already stored as percents; until step 4 the `0.6.0-draft` engine scales flat armor by them as before, and it uses the new flat values as they are.
+4. **Engine rules** as rule version `0.7.0-draft` (`rules.ts`, `battle.ts`, `battle.test.ts`):
+   - picking: leader + 4 charge cards of any colour;
+   - charge spaces then leader-DRAW draws, blockers, stop conditions;
+   - attack = floor(floor((weapon of leader colour + leader + counted POW) × advantage) × combo);
+   - damage = max(0, floor((winner − loser) × (100 − loser's defense %) / 100) − guard);
+   - deck-out = hand total + all 3 weapons, ignoring defense;
+   - `PhaseResult` gains what playback needs: each side's weapon used, charge results, draws, defense %.
+   Keep `0.6.0-draft` working for stored battles.
+   **Built 2026-10-26** as `RULES_V07`; `RULES_V0` (0.6.0) is unchanged. `PhaseResult` keeps its shape, with 0.7.0 meanings: `chain` holds the charge results (`from: "pick"`) and the draws (`from: "draw"`) in order, leader first; `drawLimit` is the leader's DRAW after skills; `weaponAttack` is the weapon of the leader's colour (all three on deck-out); `defense` is the defense % (0–100); `leaderType` is the weapon colour. Provisional choices (not in the sources, smallest change from 0.6.0):
+   - Power skills change the weapon's power before it joins the multiplied total; 共闘/同郷 board bonuses and HP-for-attack gains are still added after the multipliers.
+   - Defense skills and the 不惜身命 penalty add or subtract percentage points; the defense % is clamped to 0–100.
+   - 肅清 fires when all 4 spaces hold blockers (during the charge or the draws) and only frees spaces; the leader's remaining DRAW then fills them.
+   - Final damage up skills apply after the defense %, before the loser's guard, as in 0.6.0.
+   - When both sides run out, the higher total (hand + all 3 weapons) hits in full, ignoring defense, like a one-sided deck-out.
+5. **Defender AI:** new `ai_strategy_version`; pick the leader by colour count, POW and DRAW, then 4 charge cards preferring the leader's colour. `battle.ts`, tests. **Built 2026-10-26** as `ai 0.5.0` (`AI_STRATEGY_VERSION`), used only under `0.7.0-draft`; `0.6.0-draft` battles keep `ai 0.4.0` (`AI_STRATEGY_V04`), and `startBattle` records the matching `aiVersion`. The colour with the most hand cards leads (ties: higher total POW, then Heavy, Light, Magic); its highest-DRAW card is the leader (ties: higher POW); the charge picks are its other cards of that colour by POW, highest first, then the lowest-POW cards of other colours. It still ignores skills and weapons.
+6. **Server:** rebuild the engine bundle (`supabase/scripts` → `functions/_shared/engine.js`), have `pvp` create new battles on `0.7.0-draft`, and extend the sanitized view with the new result fields. `supabase/functions/pvp/logic.ts`. **Built 2026-10-27.** `pvp` starts new battles on `RULES_V07` and resolves each stored battle with the rules it started on (`0.6.0-draft` → `RULES_V0`); any other version still gets `RULE_VERSION_RETIRED`. No migration was needed: `pvp_view` already returns the whole last `PhaseResult` (through `pvp_public_result`, which still blanks the defender's kept hand after a one-sided deck-out) and the definitions of every card in the chain, so the client gets `chain` (`pick`/`draw`), `drawLimit`, `weaponAttack`, `defense` (%) and `leaderType`; the PvP tests check those fields and that no seed, RNG state, draw pile or defender hand is shown. The PvP tests now play at full POW. The web practice battle starts its own battles in `Battle.tsx`, so it switches to `RULES_V07` with the step 8 UI (guest play only uses the rules for deck validation, which did not change).
+7. **Balance check:** run 400 AI-vs-AI battles with the default deck (as was done for 0.6.0) and record average and max phases and deck-outs. Target: several phases per battle, with a deck-out about round 3–4 as in the OG. Tune placeholder weapon and armor values if needed, and record the numbers in §6a. **Run 2026-10-27:** numbers in the **Balance (step 7)** bullet above; armor stays on the OG scale and the rebalance is open.
+8. **Battle UI** (§6c round 2): leader step showing DRAW, then charge step showing POW; the 4th charge pick starts the phase (no 出牌 button); playback in the clip's order (weapon light-up, cards fly into the total with combo pips, draws, leader last, judgment screen with attack and defense %, winner's attack, HP drop), both sides at once. `Playback.tsx`, `BattleParts.tsx`, `Battle.tsx`, `Pvp.tsx`. Check at 375 × 667 in the browser pane with reduced motion on and off.
+   **Built 2026-10-27.** Practice battles now start on `0.7.0-draft` (in the browser, nothing stored). PvP picks the screen by `ruleVersion` in the battle view (`pvp_view` returns it since migration `20261027010000`); `0.6.0-draft` battles keep the 出牌 button and the old playback. The picker's running 合計 includes the leader (weapon + leader + counted picks). Beats: leader reveal with the 3 weapons (leader's colour lit), a skill beat only when a leader has a skill, one beat per charge card, one per draw (both sides on the same beats; the side with fewer waits), the leader joins the total, judgment (attack formula and defense %), damage with the HP drop. Differences from the clip are listed in the PR.
+
+### OG card library (research, 2026-10-26)
+
+Source: [ユニット早見表](https://wikiwiki.jp/guildra/%E3%83%A6%E3%83%8B%E3%83%83%E3%83%88%E6%97%A9%E8%A6%8B%E8%A1%A8) (community quick-reference, last edited 2014) with per-colour/rarity pages (e.g. [重装SUPERRARE](https://wikiwiki.jp/guildra/%E9%87%8D%E8%A3%85SUPERRARE)), plus [ドロー順](https://wikiwiki.jp/guildra/%E3%83%A6%E3%83%8B%E3%83%83%E3%83%88%E6%97%A9%E8%A6%8B%E8%A1%A8/%E3%82%BD%E3%83%BC%E3%83%88%E3%83%89%E3%83%AD%E3%83%BC) and [最大POW順](https://wikiwiki.jp/guildra/%E3%83%A6%E3%83%8B%E3%83%83%E3%83%88%E6%97%A9%E8%A6%8B%E8%A1%A8/%E3%82%BD%E3%83%BC%E3%83%88%E6%9C%80%E5%A4%A7POW) sorts.
+
+- **Size:** about 730 units, roughly 245 per colour (重装 ~247, 軽装 ~243, 魔装 ~243), plus ~18 material items (EXP cores, ナビコ) that are not battle cards.
+- **Columns:** rarity (N, N+, R, R+, SR, SR+), name, initial POW, max POW, DRAW, skill, notes (where obtained, e.g. a seasonal gacha).
+- **POW by rarity (initial / max):** N 160–400 / 320–800; N+ 100–420 / 220–924; R 280–500 / 644–1150; R+ 360–530 / 864–1272; SR 300–710 / 750–1775; SR+ 470–700 / 1410–2070. Max ÷ initial is about 2.0 (N), 2.2 (N+), 2.3 (R), 2.4 (R+), 2.5 (SR), 3.0 (SR+).
+- **DRAW:** 0–6. Low rarities are mostly 1–3 and SR/SR+ mostly 3–5, but it does not track POW: e.g. 昴 (N+, 100/220) has DRAW 4 while エンデュランス (N+, 420/924) has DRAW 0. That trade-off (high POW or high DRAW) is the main leader choice.
+- **Examples:** 寺島良子 N 260/520 DRAW 2 ガード1; 楓 N+ 360/792 DRAW 2 パワーアップ3; 殴られ屋碧 R 280/644 DRAW 3 見切り; 剣舞のブラックローズ SR 540/1350 DRAW 4 ガード3; 灼紅覚醒のエレミア SR+ 650/1950 DRAW 5 魂の息吹; 迷いし志乃 R 340/782 DRAW 3 天秤の武技; 魔蒼覚醒のココレ SR+ 650/1950 DRAW 5 癒しの水4.
+- **Remake plan:** the long-term goal is to recreate the OG card set: same rarity, max POW, DRAW and skill per card, with original names and art (characters and art are not copied, §1). For this dev stage, a **testable subset** is enough: replace the 110 placeholder cards (one per skill) with POW and DRAW values drawn from the ranges above, so every skill stays covered. Importing the full table is a later step.
+
 ## 6b. Friend PvP (decided 2026-10-26)
 
 Product decisions (asked 2026-10-26):
@@ -234,6 +320,16 @@ After signing in:
 2. The build/rules line ("Guilty Dragon Remake 開發版 · 規則 0.6.0-draft…") moves to a player tab.
 3. The ticket count shows only on the gacha tab.
 4. Deck and equipment share one tab; the collection becomes a section of the player tab.
+
+### Requirements, round 2 (2026-10-26; built 2026-10-27 for rule `0.7.0-draft`, see step 8 of the 0.7.0 plan)
+
+Reference: the original game's battle footage, [YouTube od0P9ciUKe8](https://www.youtube.com/watch?v=od0P9ciUKe8), **00:21–00:37** (also listed in the plan's reference list as an OG reference). It is the authority for how a phase looks and plays; the earlier playback decisions below (side by side, 0.5 s per step) give way to it wherever they differ.
+
+1. **Mimic the OG phase presentation:** the animation, the phase order and the on-screen effects (card selection, leader reveal, charge/draw chain, skill callouts, attack compare, damage and HP change) follow that clip. Only the rule engine's results are shown; animation never changes damage.
+2. **Ignore the clip's semi-auto and auto buttons.** We do not build them.
+3. **Remove the 出牌 (confirm) button.** Picking the fifth card (leader + 4) starts the phase at once, as the original did ([wiki tips](https://wikiwiki.jp/guildra/%E5%B0%8F%E3%83%8D%E3%82%BF)). Picked support cards can still be taken back one at a time before the fifth. When the hand has fewer than 5 cards, the phase starts when every card is picked.
+
+The differences between our beats and the clip (timing, camera, effects, layout) are listed in the step 8 PR.
 
 ### Original playback order (research)
 
