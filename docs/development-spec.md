@@ -251,7 +251,7 @@ This matches the engine's existing order (§6a), so playback needs no rule chang
 
 Three PRs, smallest first. Engine, database and Edge Function stay unchanged.
 
-1. **Navigation and session** (built 2026-10-26; the re-sign-in report is not reproduced yet, only the sign-in form flashing while a saved session loads was fixed) (`App.tsx`, new `screens/Player.tsx`, `DeckEditor.tsx`, `Equipment.tsx`, `Gacha.tsx`):
+1. **Navigation and session** (built 2026-10-26. The re-sign-in report did not reproduce in a desktop browser: a reload and an expired access token both kept the player signed in, with the token refreshed. Only the sign-in form flashing while a saved session loads was fixed. Remaining suspects are device-side: an installed iOS PWA keeps storage apart from Safari, and Safari may clear a site's storage after 7 days without a visit; also check the Supabase Auth session time-box and inactivity timeout settings.) (`App.tsx`, new `screens/Player.tsx`, `DeckEditor.tsx`, `Equipment.tsx`, `Gacha.tsx`):
    - Tabs become 對戰 / 牌組 / 抽卡 / 玩家. 牌組 shows the deck editor and equipment as two sections (or a chip switch, reusing `.chips`). 玩家 holds the account line (email or name), the build/rules line, sign-out and `Collection` as a section.
    - Ticket count moves from the app-wide bar into `Gacha`; the app-wide bar and header subtitle go away.
    - Session: supabase-js already keeps the session in `localStorage`, so first reproduce the reported re-login. Likely causes to check: an installed iOS PWA has storage separate from Safari, so a sign-in link opened in Safari doesn't carry over (the code path does); or the app briefly shows `SignIn` before `getSession` resolves. Fix whichever it is; no new auth code if neither.
