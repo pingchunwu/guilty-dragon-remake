@@ -16,7 +16,8 @@ import { ENGINE_BUNDLE, bundleEngine } from "../scripts/bundle-engine";
 import { ALICE, BOB, CAROL, as, createDb, db, rpc } from "./pglite";
 
 const cards = new Map(PLACEHOLDER_CARDS.map((c) => [c.id, c]));
-const SEED: RngState = [11, 22, 33, 44];
+// A seed whose battle reaches a deck-out (about 3 in 4 do at starter gear).
+const SEED: RngState = [12, 22, 33, 44];
 
 /** The Edge Function's database adapter, over PGlite as the service role. */
 function serviceCall<T>(fn: string, args: unknown[]): Promise<T> {
@@ -131,13 +132,16 @@ describe("battles", () => {
   it("plays a battle to the end, reproducibly, and records it for both players", async () => {
     let view = await start(ALICE, BOB);
     let phases = 0;
+    let deckOuts = 0;
     while (view.status === "active") {
+      if (view.kind === "deck_out") deckOuts++;
       view = await play(ALICE, view);
       phases++;
       expect(view.last.phase).toBe(phases);
       expect(phases).toBeLessThan(100);
     }
     expect(view.endReason).toBe("hp");
+    expect(deckOuts).toBeGreaterThan(0);
     expect(Math.min(view.hp.challenger, view.hp.defender)).toBe(0);
     expect((await lobby(ALICE)).active).toBeNull();
 

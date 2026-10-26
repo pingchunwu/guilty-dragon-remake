@@ -323,7 +323,7 @@ var PLACEHOLDER_ITEMS = ITEM_KINDS.flatMap(
     name: i === 0 ? `\u898B\u7FD2${ITEM_LABEL[kind]}` : `${ITEM_LABEL[kind]}\u8A66\u4F5C ${String(i + 1).padStart(2, "0")}`,
     kind,
     attack: isWeapon(kind) ? 300 + 340 * i : 0,
-    defense: isWeapon(kind) ? 0 : 2 + Math.floor(8 * i / (PER_KIND - 1))
+    defense: isWeapon(kind) ? 0 : 16 + i
   }))
 );
 var PLACEHOLDER_STARTER_LOADOUT = Object.fromEntries(ITEM_KINDS.map((k) => [k, itemId(k, 1)]));
