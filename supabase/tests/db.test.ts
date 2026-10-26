@@ -110,9 +110,11 @@ describe("content", () => {
     const cards = await db.query("select id, name, type, attack, rarity, skill_id as skill from public.card_definitions");
     expect(cards.rows).toEqual(expect.arrayContaining([...PLACEHOLDER_CARDS]));
     expect(cards.rows).toHaveLength(PLACEHOLDER_CARDS.length);
-    const skills = await db.query<{ id: string; max_level: number }>("select id, max_level from public.skill_definitions");
-    expect(Object.fromEntries(skills.rows.map((r) => [r.id, r.max_level]))).toEqual(
-      Object.fromEntries(SKILLS.map((k) => [k.id, k.maxLevel])),
+    const skills = await db.query<{ id: string; max_level: number; value: number }>(
+      "select id, max_level, value from public.skill_definitions",
+    );
+    expect(Object.fromEntries(skills.rows.map((r) => [r.id, [r.max_level, r.value]]))).toEqual(
+      Object.fromEntries(SKILLS.map((k) => [k.id, [k.maxLevel, k.value]])),
     );
     const active = await db.query("select id from public.card_pools where active");
     expect(active.rows).toEqual([{ id: "pool-v1" }]);

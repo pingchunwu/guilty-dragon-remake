@@ -228,7 +228,7 @@ Rules (decided 2026-10-26 by the product owner, following the clip and the [syst
 - **Deck-out:** the side's total is its hand total + **all three** weapons' power. As before it ignores defense. The OG Final Blow formula (deck POW ÷ 8 + weapons ÷ 3) is not used, because the clip is a raid fight, not PvP.
 - **Card level** (decided 2026-10-26): a card's level only sets its skill level. It rises only by pulling a duplicate in the gacha. POW and DRAW do not change with level, so each card has one POW value (see open questions).
 - **Playback order:** leader reveal and weapon light-up → leader-time skills → charge cards resolve one at a time (count with a combo pip, or block) → deck draws one at a time → leader added last → judgment screen (attack, defense %, multipliers) → winner's attack with damage and HP drop. Both sides play back at the same time.
-- **Skill values:** with OG-scale numbers, flat skill values use the OG values again (no more ÷10), e.g. パワーアップ1 = weapon +300, 影討ち1 = −Lv×50 HP.
+- **Skill values:** with OG-scale numbers, flat skill values use the OG values again (no more ÷10), e.g. アイアンフィスト = weapon +300, パワーアップ1 = weapon +Lv×20, 影討ち1 = −Lv×50 HP (corrected 2026-10-26 from the wikiwiki skill table).
 - **Skills that touched the old chain:** chain-draw up/down change the leader's DRAW count; 肅清 fires when all 4 spaces hold blockers; cross-colour charge lets the named extra colour count, both as a charge pick and as a draw.
 - **Defender AI:** picks a leader and 4 charge cards, preferring the leader's colour. Its leader choice must now weigh DRAW too, so the AI gets a new version.
 
@@ -244,7 +244,7 @@ One PR per step, in order; each keeps the tests passing. Old battles stay on `0.
 
 1. **Card data:** add `draw` to cards, and set `attack` to the OG max POW scale. Replace the 110 placeholder cards (one per skill, so every skill stays covered) with POW and DRAW values from the OG ranges above, per rarity. `packages/engine/src/catalog.ts`, a new migration for `card_definitions.draw` and the new values, and the catalog-matches-database test.
 2. **Equipment data:** 3 weapon slots (one per colour) and 4 armor slots (head, body, legs, back) with defense %; drop the flat armor value and the gear slot. Placeholder items on the OG scale (weapons 300–2000, armor pieces 2–10%); starter set of 3 weapons at 300 and 4 armor pieces. `equipment.ts`, `catalog.ts`, a migration for `item_definitions` and existing loadouts (move each player to the starter set), `apps/web/src/screens/Equipment.tsx`.
-3. **Skill values:** flat values back to OG values (no ÷10); armor-type skills change defense %; ガード stays flat. `skills.ts`, `skills.test.ts`, `skill_definitions` migration.
+3. **Skill values** (built): flat values back to OG values (no ÷10), checked against the wikiwiki skill table (パワーアップ1 = Lv×20, アイアンフィスト = 300); armor-type skills change defense %; ガード stays flat. `skills.ts`, `skills.test.ts`, `skill_definitions` migration. The defense skills were already stored as percents; until step 4 the `0.6.0-draft` engine scales flat armor by them as before, and it uses the new flat values as they are.
 4. **Engine rules** as rule version `0.7.0-draft` (`rules.ts`, `battle.ts`, `battle.test.ts`):
    - picking: leader + 4 charge cards of any colour;
    - charge spaces then leader-DRAW draws, blockers, stop conditions;

@@ -89,7 +89,10 @@ describe("skill catalog", () => {
   it("caps card levels at the skill's max and scales per level", () => {
     const card = PLACEHOLDER_CARDS.find((c) => c.skill === "rengeki")!;
     expect(cardMaxLevel(card)).toBe(3);
-    expect(skillValue(skillOf("power-up-2"), 3)).toBe(12);
+    expect(skillValue(skillOf("power-up-2"), 3)).toBe(120);
+    expect(skillValue(skillOf("shadow-strike-1"), 2)).toBe(100);
+    expect(skillValue(skillOf("armor-pierce"), 1)).toBe(8);
+    expect(skillValue(skillOf("hard-armor-3"), 2)).toBe(6);
     expect(skillValue(skillOf("rengeki"), 9)).toBe(3);
     expect(skillValue(skillOf("ranbu"), 1)).toBe(3);
   });
@@ -142,7 +145,7 @@ describe("attack and defense skills", () => {
     expect(lone("soul-breath", 2).result.sides.challenger).toMatchObject({ attack: 50, skillAttack: 0 });
     const armed = lone("soul-breath", 2, { equipment: { ...NO_EQUIPMENT, weapon: sword } });
     expect(armed.result.sides.challenger).toMatchObject({ attack: 62, skillAttack: 2 });
-    expect(lone("power-up-3", 2).result.sides.challenger.attack).toBe(62);
+    expect(lone("power-up-3", 2).result.sides.challenger.attack).toBe(170);
   });
 
   it("enemy attack-down skills come off the other side", () => {
@@ -174,9 +177,9 @@ describe("attack and defense skills", () => {
   });
 
   it("共鬥 and 同鄉之友 count blockers and same-colour cards", () => {
-    expect(lone("joint-fight", 2).result.sides.challenger.attack).toBe(50 + 60 * 4);
+    expect(lone("joint-fight", 2).result.sides.challenger.attack).toBe(50 + 600 * 4);
     const same = phase([["L", "heavy", 50, "hometown"]], { hand: ["L", "h2", "h3", "m1", "m2"], levels: { L: 3 } });
-    expect(same.result.sides.challenger.attack).toBe(Math.floor(150 * 1.2) + 30 * 2);
+    expect(same.result.sides.challenger.attack).toBe(Math.floor(150 * 1.2) + 300 * 2);
   });
 });
 
@@ -190,7 +193,7 @@ describe("damage and HP skills", () => {
       { hand: ["L", ...ids("m", 4)], levels: { L: 2 } },
       { hand: ["k"], levels: { k: 3 } },
     );
-    expect(won.result).toMatchObject({ winner: "challenger", damage: 50 + 20 - 15 });
+    expect(won.result).toMatchObject({ winner: "challenger", damage: 50 + 200 - 150 });
     expect(lone("war-hammer", 2).result.damage).toBe(60);
   });
 
@@ -198,10 +201,10 @@ describe("damage and HP skills", () => {
     const healed = lone("healing-water-2", 3, { hp: 2990 }).result;
     expect(healed.sides.challenger.healed).toBe(10);
     const paid = lone("price-of-violence-1", 2).result;
-    expect(paid.sides.challenger).toMatchObject({ hpCost: 20, attack: 70 });
-    expect(paid.hpAfter.challenger).toBe(980);
+    expect(paid.sides.challenger).toMatchObject({ hpCost: 200, attack: 250 });
+    expect(paid.hpAfter.challenger).toBe(800);
     const hit = lone("prank", 1, {});
-    expect(hit.result.sides.defender.hpDamageTaken).toBe(80);
+    expect(hit.result.sides.defender.hpDamageTaken).toBe(800);
     const weak = phase([["L", "heavy", 50, "prank"]], { hand: ["L", ...ids("m", 4)] }, { hand: ["d"], hp: 30 });
     expect(weak.result.sides.defender.hpDamageTaken).toBe(29);
   });
@@ -302,13 +305,13 @@ describe("final blow guard", () => {
       kind: "deck_out",
       sides: {
         challenger: { ...sideOf({ hand: ids("h", 5) }), ranOut: true },
-        defender: sideOf({ hand: ["g"], pile: ids("p", 5), levels: { g: 2 } }),
+        defender: sideOf({ hand: ["g"], pile: ids("p", 5), levels: { g: 1 } }),
       },
       status: "active",
     };
     const { result } = resolvePhase(state, null, cards, RULES_V0);
-    expect(result).toMatchObject({ winner: "challenger", damage: 250 - 40 });
-    expect(result.sides.defender.skill).toMatchObject({ id: "slim-hope-1", level: 2 });
+    expect(result).toMatchObject({ winner: "challenger", damage: 250 - 200 });
+    expect(result.sides.defender.skill).toMatchObject({ id: "slim-hope-1", level: 1 });
   });
 });
 
