@@ -32,13 +32,13 @@ export function HpBar({ label, hp, equipment }: { label: string; hp: number; equ
   return (
     <div className="stack hp">
       <div className="row between small">
-        <span>
+        <span className="one-line">
           {label}{" "}
           <span className="muted">
             防具 {defenseOf(equipment)} · 武器 +{weaponAttackOf(equipment)}
           </span>
         </span>
-        <span>
+        <span className="nowrap">
           {hp} / {RULES_V0.startingHp}
         </span>
       </div>
@@ -52,7 +52,7 @@ export function HpBar({ label, hp, equipment }: { label: string; hp: number; equ
 const skillName = (id: string) => SKILL_BY_ID.get(id)?.name ?? id;
 
 /** 「連擊 Lv 2」, 「模仿→連擊 Lv 2」, or the skill crossed out when a shield cancelled it. */
-function SkillTag({ use }: { use: SkillUse }) {
+export function SkillTag({ use }: { use: SkillUse }) {
   const name = `${use.via ? `${skillName(use.via)}→` : ""}${skillName(use.id)} Lv ${use.level}`;
   const skill = SKILL_BY_ID.get(use.id);
   return use.blocked ? (
@@ -138,7 +138,7 @@ export function skillOutcome(effect: SkillEffect, mine: SideResult, theirs: Side
 }
 
 /** Animated banner for each leader skill that fired (or was cancelled) this phase. */
-function SkillBursts({ result, labels }: { result: PhaseResult; labels: SideLabels }) {
+export function SkillBursts({ result, labels }: { result: PhaseResult; labels: SideLabels }) {
   const bursts = (["challenger", "defender"] as const).flatMap((id) => {
     const mine = result.sides[id];
     const use = mine.skill;
@@ -180,74 +180,6 @@ function SkillBursts({ result, labels }: { result: PhaseResult; labels: SideLabe
   ) : null;
 }
 
-export function PhaseSummary({ result, cards, labels }: { result: PhaseResult; cards: CardMap; labels: SideLabels }) {
-  const cardName = (id: string) => cards.get(id)?.name ?? id;
-  const line = (id: SideId, s: SideResult) =>
-    result.kind === "deck_out" && !s.ranOut ? (
-      <li key={id}>
-        <strong>{labels[id]}</strong>：本階段不出手，手牌保留。
-      </li>
-    ) : (
-      <li key={id} className="stack chain-line">
-        <span>
-          <strong>{labels[id]}</strong>：攻擊 {s.attack}
-          {result.kind === "normal" && (
-            <span className="muted">
-              {" "}
-              （{s.played.length} 張計入，連擊 {s.comboCount} ×{s.combo}
-              {s.blocks > 0 && `，阻擋 ${s.blocks} 格`}）
-            </span>
-          )}
-          {s.skill && <SkillTag use={s.skill} />}
-          {s.advantage && <span className="tag">相剋 ×{s.advantageMultiplier}</span>}
-          {s.weaponAttack > 0 && <span className="tag">武器 +{s.weaponAttack}</span>}
-          {s.skillAttack !== 0 && <span className="tag">技能攻擊 {signed(s.skillAttack)}</span>}
-          {s.healed > 0 && <span className="tag">回復 {s.healed}</span>}
-          {s.hpCost > 0 && <span className="tag">消耗 HP {s.hpCost}</span>}
-          {s.hpDamageTaken > 0 && <span className="tag">受到技能傷害 {s.hpDamageTaken}</span>}
-          {s.ranOut && <span className="tag">牌庫耗盡</span>}
-        </span>
-        {result.kind === "normal" ? (
-          <span className="chain">
-            {s.chain.map((step, i) => (
-              <span
-                key={step.card}
-                className={`chain-step card-${cards.get(step.card)?.type}${step.counted ? "" : " chain-blocked"}${
-                  step.purged ? " chain-purged" : ""
-                }`}
-                title={step.counted ? "計入" : step.purged ? "被肅清移除" : "阻擋"}
-              >
-                {i === 0 ? "領 " : step.from === "draw" ? "抽 " : ""}
-                {cards.get(step.card)?.attack}
-                {!step.counted && (step.purged ? " ↺" : " ✕")}
-              </span>
-            ))}
-          </span>
-        ) : (
-          <span className="muted">{s.played.map(cardName).join("、") || "（無）"}</span>
-        )}
-      </li>
-    );
-  const outcome = result.winner
-    ? `${labels[result.winner]}贏下這階段，造成 ${result.damage} 傷害${result.ignoredArmor ? "（無視防具）" : ""}。`
-    : "攻擊相同，雙方都沒有受到傷害。";
-  return (
-    <div className="panel stack small">
-      <strong>第 {result.phase} 階段結果</strong>
-      {/* Keyed by phase so the animation replays every phase. */}
-      <SkillBursts key={result.phase} result={result} labels={labels} />
-      <ul className="result-list">
-        {line("challenger", result.sides.challenger)}
-        {line("defender", result.sides.defender)}
-      </ul>
-      <p>{outcome}</p>
-      {result.reshuffled.length > 0 && (
-        <p className="muted">{result.reshuffled.map((id) => labels[id]).join("、")}的牌庫已洗牌重置。</p>
-      )}
-    </div>
-  );
-}
-
 interface DeckOutProps {
   hand: readonly string[];
   cards: CardMap;
@@ -260,15 +192,17 @@ interface DeckOutProps {
 export function DeckOutPanel({ hand, cards, owned, ranOut, busy, onResolve }: DeckOutProps) {
   return (
     <div className="panel stack">
-      <strong>牌庫耗盡！</strong>
-      <p className="small muted">
-        {ranOut.challenger && ranOut.defender
-          ? "雙方牌庫同時耗盡：比較手牌攻擊總和，較高者造成「總和－對方防具」傷害，之後雙方洗牌重置。"
-          : ranOut.challenger
-            ? "你的牌庫耗盡：手牌攻擊總和直接打給對手（無視防具），之後你的牌庫洗牌重置。"
-            : "對手牌庫耗盡：對手手牌攻擊總和直接打給你（無視防具）。你的手牌保留。"}
+      <p className="small">
+        <strong>牌庫耗盡！</strong>
+        <span className="muted">
+          {ranOut.challenger && ranOut.defender
+            ? "比較雙方手牌總和，較高者造成「總和－防具」傷害，之後洗牌重置。"
+            : ranOut.challenger
+              ? "你的手牌總和直接打給對手（無視防具），之後洗牌重置。"
+              : "對手手牌總和直接打給你（無視防具），你的手牌保留。"}
+        </span>
       </p>
-      <div className="grid compact">
+      <div className="hand-grid">
         {hand.map((id) => (
           <CardTile key={id} card={cards.get(id)!} owned={owned[id]} />
         ))}
@@ -309,22 +243,20 @@ export function HandPicker({ hand, cards, owned, drawPile, busy, onPlay }: HandP
 
   return (
     <div className="panel stack">
-      <div className="row between">
-        <strong>你的手牌</strong>
-        <span className="muted small">牌庫剩 {drawPile}</span>
+      <div className="row between small">
+        <span className="one-line grow">
+          {leaderSkill ? (
+            <>
+              領導技能 <strong>{leaderSkill.skill.name} Lv {leaderSkill.level}</strong>：
+              {skillEffectText(leaderSkill.skill, leaderSkill.level)}
+            </>
+          ) : (
+            <span className="muted">選一張領導卡，共出 {required} 張；只有領導卡的技能會發動</span>
+          )}
+        </span>
+        <span className="muted">牌庫 {drawPile}</span>
       </div>
-      <p className="muted small">
-        {leader
-          ? `再選 ${required - picked.length} 張（共 ${required} 張）；${[...counts].map((t) => TYPE_LABEL[t]).join("、")}以外的卡會擋住一格。點領導卡可重選。`
-          : `點一張卡作為領導卡，共要出 ${required} 張。只有領導卡的技能會發動。`}
-      </p>
-      {leaderSkill && (
-        <p className="small">
-          領導技能：<strong>{leaderSkill.skill.name} Lv {leaderSkill.level}</strong>（
-          {skillEffectText(leaderSkill.skill, leaderSkill.level)}）
-        </p>
-      )}
-      <div className="grid compact">
+      <div className="hand-grid">
         {hand.map((id) => {
           const card = cards.get(id)!;
           const index = picked.indexOf(id);
@@ -343,7 +275,9 @@ export function HandPicker({ hand, cards, owned, drawPile, busy, onPlay }: HandP
       <div className="row between">
         <span className="small">
           {picked.length > 0
-            ? `選牌攻擊 ${preview}（計入 ${pickedCounted} 張${picked.length > pickedCounted ? `，阻擋 ${picked.length - pickedCounted} 格` : ""}）`
+            ? `攻擊 ${preview}（計入 ${pickedCounted}${picked.length > pickedCounted ? `，阻擋 ${picked.length - pickedCounted}` : ""}）${
+                picked.length < required ? ` · 再選 ${required - picked.length} 張` : ""
+              }`
             : "尚未選牌"}
         </span>
         <button
@@ -355,7 +289,6 @@ export function HandPicker({ hand, cards, owned, drawPile, busy, onPlay }: HandP
           出牌
         </button>
       </div>
-      <p className="muted small">連鎖抽牌、技能和相剋加成在出牌後計算。</p>
     </div>
   );
 }

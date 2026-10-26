@@ -537,7 +537,9 @@ p.error {
   .skill-burst,
   .burst-icon,
   .burst-line,
-  .card-toast {
+  .card-toast,
+  .chip-fresh,
+  .chip-counted {
     animation: none;
   }
 }
@@ -576,4 +578,170 @@ p.error {
 .card-attack-inline {
   font-weight: 700;
   color: var(--accent);
+}
+
+/* Battle: one screen, no page scroll, no header or tabs (§6c). */
+.shell.in-battle {
+  padding-bottom: max(12px, env(safe-area-inset-bottom));
+  padding-top: max(12px, env(safe-area-inset-top));
+}
+
+.battle-screen {
+  height: calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto auto;
+  gap: 8px;
+}
+
+.battle-screen .panel {
+  padding: 10px;
+}
+
+.board {
+  position: relative;
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.board-side {
+  display: grid;
+  gap: 4px;
+}
+
+.board-won .board-attack {
+  color: var(--accent);
+}
+
+/* Up to 10 cards (leader, 4 picks, 5 draws) stay on one line by shrinking. */
+.board-row {
+  display: flex;
+  gap: 4px;
+}
+
+.board-outcome {
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.chip-card {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: 0 1 34px;
+  min-width: 0;
+  height: 40px;
+  border: 2px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel-2);
+  font-size: 0.85rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  -webkit-touch-callout: none;
+  user-select: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.chip-mark {
+  position: absolute;
+  top: 1px;
+  right: 3px;
+  font-size: 0.6rem;
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.chip-leader {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.chip-pending {
+  opacity: 0.5;
+}
+
+.chip-counted {
+  color: var(--accent);
+  animation: chip-merge 0.35s ease-out;
+}
+
+.chip-blocked {
+  opacity: 0.4;
+}
+
+.chip-purged {
+  opacity: 0.25;
+  border-style: dashed;
+}
+
+.chip-fresh {
+  animation: chip-draw 0.35s ease-out;
+}
+
+@keyframes chip-merge {
+  50% {
+    transform: scale(1.18);
+  }
+}
+
+@keyframes chip-draw {
+  from {
+    opacity: 0;
+    transform: translateY(-12px) scale(0.8);
+  }
+}
+
+.hand-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.hand-grid .card {
+  min-height: 0;
+  padding: 6px;
+  gap: 2px;
+}
+
+/* The level shows in the long-press toast. */
+.hand-grid .card-level {
+  display: none;
+}
+
+.hand-grid .card-name,
+.hand-grid .card-skill {
+  font-size: 0.78rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hand-grid .card-type {
+  padding-right: 22px;
+  font-size: 0.62rem;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.one-line {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Leader skills announce over the board for the first beats, without pushing the rows. */
+.board-overlay {
+  position: absolute;
+  top: 34px;
+  left: 10px;
+  right: 10px;
+  z-index: 1;
+}
+
+.nowrap {
+  white-space: nowrap;
+  flex: none;
 }
