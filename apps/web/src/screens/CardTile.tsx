@@ -10,6 +10,8 @@ interface Props {
   selected?: boolean;
   /** Shown but not choosable right now (e.g. wrong colour for the leader). */
   dimmed?: boolean;
+  /** Show DRAW instead of POW (rule 0.7.0 leader step). */
+  showDraw?: boolean;
 }
 
 const LONG_PRESS_MS = 450;
@@ -61,7 +63,7 @@ export function useCardInfoPress(card: CardDefinition, owned: OwnedCard | undefi
   };
 }
 
-export function CardTile({ card, owned, onClick, badge, selected, dimmed }: Props) {
+export function CardTile({ card, owned, onClick, badge, selected, dimmed, showDraw }: Props) {
   const press = useCardInfoPress(card, owned);
   const className = `card card-${card.type}${owned ? "" : " card-locked"}${selected ? " card-selected" : ""}${
     dimmed ? " card-dimmed" : ""
@@ -74,9 +76,15 @@ export function CardTile({ card, owned, onClick, badge, selected, dimmed }: Prop
       <span className="card-type">
         <span className="card-rarity">{card.rarity}</span>
       </span>
-      <span className="card-attack" aria-label={`攻擊 ${card.attack}`}>
-        {card.attack}
-      </span>
+      {showDraw ? (
+        <span className="card-attack card-draw" aria-label={`DRAW ${card.draw}`}>
+          DRAW {card.draw}
+        </span>
+      ) : (
+        <span className="card-attack" aria-label={`攻擊 ${card.attack}`}>
+          {card.attack}
+        </span>
+      )}
       <span className="card-name">{card.name}</span>
       {skill && (
         <span className="card-skill" title={skillEffectText(skill, owned?.level ?? 1)}>
@@ -121,7 +129,9 @@ export function CardToast() {
         <button type="button" key={shown.at} className={`card-toast card-${card.type}`} onClick={() => setInfo(null)}>
           <span className="row between">
             <strong>{card.name}</strong>
-            <span className="card-attack-inline">攻擊 {card.attack}</span>
+            <span className="card-attack-inline">
+              攻擊 {card.attack} · DRAW {card.draw}
+            </span>
           </span>
           <span className="small muted">
             {TYPE_LABEL[card.type]} · {card.rarity}

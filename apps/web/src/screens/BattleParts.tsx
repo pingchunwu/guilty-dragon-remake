@@ -1,7 +1,9 @@
 import { useState } from "react";
 import {
   RULES_V0,
+  RULES_V07,
   SKILL_BY_ID,
+  WEAPON_KINDS,
   cardSkill,
   chargeTypes,
   defenseOf,
@@ -12,6 +14,7 @@ import {
   type Collection,
   type Equipment,
   type PhaseResult,
+  type RuleConfig,
   type Selection,
   type SideId,
   type SideResult,
@@ -27,19 +30,30 @@ import { CardTile } from "./CardTile";
 export type CardMap = ReadonlyMap<string, CardDefinition>;
 export type SideLabels = Record<SideId, string>;
 
-export function HpBar({ label, hp, equipment }: { label: string; hp: number; equipment: Equipment }) {
-  const pct = Math.round((hp / RULES_V0.startingHp) * 100);
+export const isV07 = (rules: RuleConfig) => rules.ruleVersion === RULES_V07.ruleVersion;
+
+interface HpBarProps {
+  label: string;
+  hp: number;
+  equipment: Equipment;
+  rules: RuleConfig;
+}
+
+export function HpBar({ label, hp, equipment, rules }: HpBarProps) {
+  const pct = Math.round((hp / rules.startingHp) * 100);
   return (
     <div className="stack hp">
       <div className="row between small">
         <span className="one-line">
           {label}{" "}
           <span className="muted">
-            防具 {defenseOf(equipment)} · 武器 +{weaponAttackOf(equipment)}
+            {isV07(rules)
+              ? `防禦 ${defenseOf(equipment)}% · 武器 ${WEAPON_KINDS.map((k) => equipment[k]?.attack ?? 0).join("/")}`
+              : `防具 ${defenseOf(equipment)} · 武器 +${weaponAttackOf(equipment)}`}
           </span>
         </span>
         <span className="nowrap">
-          {hp} / {RULES_V0.startingHp}
+          {hp} / {rules.startingHp}
         </span>
       </div>
       <div className="hp-track">
@@ -110,7 +124,7 @@ const FAMILY_ICON: Record<Family, string> = {
 };
 
 /** What the skill actually did this phase, as short lines; results stored before 2026-10-27 lack the hand fields. */
-export function skillOutcome(effect: SkillEffect, mine: SideResult, theirs: SideResult): string[] {
+export function skillOutcome(effect: SkillEffect, mine: SideResult, theirs: SideResult, v07 = false): string[] {
   const lines: string[] = [];
   const hand = (h: SideResult["handChange"] | undefined, who: string) => {
     if (!h) return;
@@ -122,7 +136,9 @@ export function skillOutcome(effect: SkillEffect, mine: SideResult, theirs: Side
   if (effect.kind === "shuffle" && effect.target !== "self") hand(theirs.handChange, "對手");
   if (effect.kind === "shuffle" ? effect.target !== "enemy" : true) hand(mine.handChange, "");
   const limit = (s: SideResult, who: string) => {
-    if (s.drawLimit !== undefined && s.drawLimit !== RULES_V0.maxChainDraws)
+    // 0.7.0: the leader's DRAW after skills; the card's own DRAW is not in the result.
+    if (v07) lines.push(`${who}DRAW 變為 ${s.drawLimit}`);
+    else if (s.drawLimit !== undefined && s.drawLimit !== RULES_V0.maxChainDraws)
       lines.push(`${who}抽牌上限 ${RULES_V0.maxChainDraws}→${s.drawLimit}`);
   };
   if (effect.kind === "draws") limit(effect.target === "self" ? mine : theirs, effect.target === "self" ? "" : "對手");
@@ -138,7 +154,7 @@ export function skillOutcome(effect: SkillEffect, mine: SideResult, theirs: Side
 }
 
 /** Animated banner for each leader skill that fired (or was cancelled) this phase. */
-export function SkillBursts({ result, labels }: { result: PhaseResult; labels: SideLabels }) {
+export function SkillBursts({ result, labels, v07 }: { result: PhaseResult; labels: SideLabels; v07: boolean }) {
   const bursts = (["challenger", "defender"] as const).flatMap((id) => {
     const mine = result.sides[id];
     const use = mine.skill;
@@ -160,7 +176,7 @@ export function SkillBursts({ result, labels }: { result: PhaseResult; labels: S
           <span className="burst-text">{skillEffectText(skill, use.level)}</span>
           {!use.blocked && (
             <span className="burst-lines">
-              {skillOutcome(skill.effect, mine, theirs)
+              {skillOutcome(skill.effect, mine, theirs, v07)
                 .filter((line) => line !== skillEffectText(skill, use.level))
                 .map((line, i) => (
                 <span key={line} className="burst-line" style={{ animationDelay: `${0.25 + i * 0.12}s` }}>
@@ -185,21 +201,29 @@ interface DeckOutProps {
   cards: CardMap;
   owned: Collection;
   ranOut: Record<SideId, boolean>;
+  rules: RuleConfig;
   busy?: boolean;
   onResolve: () => void;
 }
 
-export function DeckOutPanel({ hand, cards, owned, ranOut, busy, onResolve }: DeckOutProps) {
+export function DeckOutPanel({ hand, cards, owned, ranOut, rules, busy, onResolve }: DeckOutProps) {
+  const v07 = isV07(rules);
   return (
     <div className="panel stack">
       <p className="small">
         <strong>牌庫耗盡！</strong>
         <span className="muted">
-          {ranOut.challenger && ranOut.defender
-            ? "比較雙方手牌總和，較高者造成「總和－防具」傷害，之後洗牌重置。"
-            : ranOut.challenger
-              ? "你的手牌總和直接打給對手（無視防具），之後洗牌重置。"
-              : "對手手牌總和直接打給你（無視防具），你的手牌保留。"}
+          {v07
+            ? ranOut.challenger && ranOut.defender
+              ? "比較雙方「手牌總和＋三把武器」，較高者直接打給對方（無視防禦），之後洗牌重置。"
+              : ranOut.challenger
+                ? "你的手牌總和＋三把武器直接打給對手（無視防禦），之後洗牌重置。"
+                : "對手的手牌總和＋三把武器直接打給你（無視防禦），你的手牌保留。"
+            : ranOut.challenger && ranOut.defender
+              ? "比較雙方手牌總和，較高者造成「總和－防具」傷害，之後洗牌重置。"
+              : ranOut.challenger
+                ? "你的手牌總和直接打給對手（無視防具），之後洗牌重置。"
+                : "對手手牌總和直接打給你（無視防具），你的手牌保留。"}
         </span>
       </p>
       <div className="hand-grid">
@@ -219,26 +243,50 @@ interface HandPickerProps {
   cards: CardMap;
   owned: Collection;
   drawPile: number;
+  rules: RuleConfig;
+  /** 0.7.0: the leader's colour picks the weapon shown in the total. */
+  equipment: Equipment;
   busy?: boolean;
   onPlay: (selection: Selection) => void;
 }
 
-/** Pick a leader and fill the spaces behind it. Remount (key) each phase to clear the picks. */
-export function HandPicker({ hand, cards, owned, drawPile, busy, onPlay }: HandPickerProps) {
+/**
+ * Pick a leader and fill the spaces behind it. Remount (key) each phase to clear the picks.
+ * 0.7.0: the hand shows DRAW until a leader is picked, then POW; the last pick plays at once.
+ */
+export function HandPicker({ hand, cards, owned, drawPile, rules, equipment, busy, onPlay }: HandPickerProps) {
   const [picked, setPicked] = useState<string[]>([]);
+  const v07 = isV07(rules);
   const leader = picked[0];
   const leaderCard = leader ? cards.get(leader)! : null;
   const levels = levelsOf(owned);
   const counts = leaderCard ? chargeTypes(leaderCard, levels) : new Set<CardDefinition["type"]>();
   const leaderSkill = leaderCard ? cardSkill(leaderCard, levels) : null;
-  const preview = previewAttack(picked, cards, RULES_V0, counts);
   const pickedCounted = picked.filter((id) => counts.has(cards.get(id)!.type)).length;
-  const required = requiredPicks(hand, RULES_V0);
+  const required = requiredPicks(hand, rules);
+  const left = required - picked.length;
+  const blocked = picked.length - pickedCounted;
+  const status = !leaderCard
+    ? "尚未選牌"
+    : v07
+      ? `合計 ${
+          (equipment[leaderCard.type]?.attack ?? 0) +
+          picked.filter((id) => counts.has(cards.get(id)!.type)).reduce((n, id) => n + cards.get(id)!.attack, 0)
+        }（連擊 ${pickedCounted}${blocked ? `，阻擋 ${blocked}` : ""}）${left > 0 ? ` · 再選 ${left} 張充能卡` : " · 出牌中…"}`
+      : `攻擊 ${previewAttack(picked, cards, rules, counts)}（計入 ${pickedCounted}${blocked ? `，阻擋 ${blocked}` : ""}）${
+          left > 0 ? ` · 再選 ${left} 張` : ""
+        }`;
 
   function toggle(id: string) {
+    if (busy) return;
     if (id === leader) setPicked([]);
     else if (picked.includes(id)) setPicked(picked.filter((x) => x !== id));
-    else if (picked.length < required) setPicked([...picked, id]);
+    else if (picked.length < required) {
+      const next = [...picked, id];
+      setPicked(next);
+      // 0.7.0 has no confirm button: the last pick starts the phase.
+      if (v07 && next.length === required) onPlay({ leader: next[0]!, supports: next.slice(1) });
+    }
   }
 
   return (
@@ -250,11 +298,15 @@ export function HandPicker({ hand, cards, owned, drawPile, busy, onPlay }: HandP
               領導技能 <strong>{leaderSkill.skill.name} Lv {leaderSkill.level}</strong>：
               {skillEffectText(leaderSkill.skill, leaderSkill.level)}
             </>
+          ) : leaderCard ? (
+            <span className="muted">領導卡沒有技能</span>
+          ) : v07 ? (
+            <span className="muted">選領導卡：DRAW 是領導卡從牌庫抽的張數；只有領導卡的技能會發動</span>
           ) : (
             <span className="muted">選一張領導卡，共出 {required} 張；只有領導卡的技能會發動</span>
           )}
         </span>
-        <span className="muted">牌庫 {drawPile}</span>
+        <span className="muted nowrap">牌庫 {drawPile}</span>
       </div>
       <div className="hand-grid">
         {hand.map((id) => {
@@ -266,28 +318,33 @@ export function HandPicker({ hand, cards, owned, drawPile, busy, onPlay }: HandP
               card={card}
               owned={owned[id]}
               selected={index >= 0}
-              badge={index === 0 ? "領導" : index > 0 ? (counts.has(card.type) ? `支援 ${index}` : `阻擋 ${index}`) : undefined}
+              showDraw={v07 && !leaderCard}
+              badge={
+                index === 0
+                  ? "領導"
+                  : index > 0
+                    ? counts.has(card.type)
+                      ? `${v07 ? "充能" : "支援"} ${index}`
+                      : `阻擋 ${index}`
+                    : undefined
+              }
               onClick={() => toggle(id)}
             />
           );
         })}
       </div>
       <div className="row between">
-        <span className="small">
-          {picked.length > 0
-            ? `攻擊 ${preview}（計入 ${pickedCounted}${picked.length > pickedCounted ? `，阻擋 ${picked.length - pickedCounted}` : ""}）${
-                picked.length < required ? ` · 再選 ${required - picked.length} 張` : ""
-              }`
-            : "尚未選牌"}
-        </span>
-        <button
-          type="button"
-          className="primary"
-          disabled={busy || !leader || picked.length !== required}
-          onClick={() => leader && onPlay({ leader, supports: picked.slice(1) })}
-        >
-          出牌
-        </button>
+        <span className="small">{status}</span>
+        {!v07 && (
+          <button
+            type="button"
+            className="primary"
+            disabled={busy || !leader || picked.length !== required}
+            onClick={() => leader && onPlay({ leader, supports: picked.slice(1) })}
+          >
+            出牌
+          </button>
+        )}
       </div>
     </div>
   );

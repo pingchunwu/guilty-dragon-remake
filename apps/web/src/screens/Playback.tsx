@@ -1,5 +1,15 @@
 import { useEffect, useState } from "react";
-import type { CardDefinition, PhaseResult, SideId, SideResult } from "@gdr/engine";
+import {
+  RULES_V07,
+  WEAPON_KINDS,
+  type CardDefinition,
+  type Equipment,
+  type PhaseResult,
+  type RuleConfig,
+  type SideId,
+  type SideResult,
+} from "@gdr/engine";
+import { TYPE_LABEL } from "../game/text";
 import { useCardInfoPress } from "./CardTile";
 import { SkillBursts, SkillTag, type CardMap, type SideLabels } from "./BattleParts";
 
@@ -12,13 +22,16 @@ export interface Chip {
   card: string;
   state: ChipState;
   drawn: boolean;
-  /** Appeared on this beat (drawn as a same-colour card merged). */
+  /** Appeared or resolved on this beat (0.6.0: drawn as a same-colour card merged; 0.7.0: drawn, or the leader added). */
   fresh: boolean;
 }
 
 export interface SideFrame {
   row: Chip[];
-  /** Raw sum and count of the cards counted so far, before combo, colour, weapon and skills. */
+  /**
+   * Raw sum and count of the cards counted so far, before combo, colour and skills.
+   * 0.6.0: cards only. 0.7.0: starts at the weapon, and the leader joins last.
+   */
   sum: number;
   counted: number;
 }
@@ -27,6 +40,8 @@ export interface Frame {
   /** chain: cards resolve one by one; total: final attack with multipliers; damage: who hits. */
   stage: "chain" | "total" | "damage";
   sides: Record<SideId, SideFrame>;
+  /** Leader skills are announced on this beat. */
+  skills?: boolean;
 }
 
 const SIDES = ["challenger", "defender"] as const;
@@ -36,8 +51,9 @@ const SIDES = ["challenger", "defender"] as const;
  * each card behind it one at a time (same colour merges and a card is drawn into
  * the end of the row; another colour blocks), then the attack judgment, then damage.
  */
-export function playbackFrames(result: PhaseResult, cards: CardMap): Frame[] {
+export function playbackFrames(result: PhaseResult, cards: CardMap, rules?: RuleConfig): Frame[] {
   const attackOf = (id: string) => cards.get(id)?.attack ?? 0;
+  if (rules?.ruleVersion === RULES_V07.ruleVersion && result.kind === "normal") return framesV07(result, attackOf);
   if (result.kind === "deck_out") {
     const sides = {} as Record<SideId, SideFrame>;
     for (const id of SIDES) {
@@ -94,11 +110,61 @@ export function playbackFrames(result: PhaseResult, cards: CardMap): Frame[] {
       sides[id] = at(result.sides[id], t, drawn[id]);
       drawn[id] = sides[id].row.filter((c) => c.drawn).length;
     }
-    frames.push({ stage: "chain", sides });
+    frames.push({ stage: "chain", sides, skills: t <= 1 });
   }
   const last = frames[frames.length - 1]!.sides;
   const settled = {} as Record<SideId, SideFrame>;
   for (const id of SIDES) settled[id] = { ...last[id], row: last[id].row.map((c) => ({ ...c, fresh: false })) };
+  frames.push({ stage: "total", sides: settled }, { stage: "damage", sides: settled });
+  return frames;
+}
+
+/**
+ * Rule 0.7.0-draft, in the OG clip's order with both sides at once: leader reveal
+ * and weapon light-up, leader-time skills, each charge card (counts or blocks),
+ * each deck draw, the leader added last, then the judgment and damage.
+ */
+function framesV07(result: PhaseResult, attackOf: (id: string) => number): Frame[] {
+  const charges = (s: SideResult) => s.chain.filter((c, k) => k > 0 && c.from === "pick").length;
+  const draws = (s: SideResult) => s.chain.filter((c) => c.from === "draw").length;
+  const most = (count: (s: SideResult) => number) => Math.max(0, ...SIDES.map((id) => count(result.sides[id])));
+
+  const at = (s: SideResult, charged: number, drawn: number, leaderIn: boolean): SideFrame => {
+    const shown = 1 + charges(s) + Math.min(drawn, draws(s));
+    const resolved = 1 + Math.min(charged, charges(s)) + Math.min(drawn, draws(s));
+    const behind = s.chain.slice(1, resolved);
+    // 肅清 fires once all 4 spaces are blocked; until then purged cards still block.
+    const purgeFired = behind.filter((c) => !c.counted).length >= 4;
+    const row = s.chain.slice(0, shown).map((step, k): Chip => {
+      const state: ChipState =
+        k === 0 ? "leader" : k >= resolved ? "pending" : step.counted ? "counted" : step.purged && purgeFired ? "purged" : "blocked";
+      // The card resolving on this beat: a draw drops in; the leader flashes as it joins the total.
+      const fresh = k === 0 ? leaderIn : step.from === "draw" && k === shown - 1 && drawn <= draws(s);
+      return { card: step.card, state, drawn: step.from === "draw", fresh };
+    });
+    const counted = behind.filter((c) => c.counted);
+    return {
+      row,
+      sum: s.weaponAttack + counted.reduce((n, c) => n + attackOf(c.card), 0) + (leaderIn ? attackOf(s.chain[0]!.card) : 0),
+      counted: counted.length + (leaderIn ? 1 : 0),
+    };
+  };
+  const frame = (charged: number, drawn: number, leaderIn = false, skills = false): Frame => ({
+    stage: "chain",
+    sides: { challenger: at(result.sides.challenger, charged, drawn, leaderIn), defender: at(result.sides.defender, charged, drawn, leaderIn) },
+    skills,
+  });
+
+  const frames: Frame[] = [frame(0, 0)];
+  if (SIDES.some((id) => result.sides[id].skill)) frames.push(frame(0, 0, false, true));
+  for (let c = 1; c <= most(charges); c++) frames.push(frame(c, 0));
+  for (let d = 1; d <= most(draws); d++) frames.push(frame(Infinity, d));
+  frames.push(frame(Infinity, Infinity, true));
+  const settled = {} as Record<SideId, SideFrame>;
+  for (const id of SIDES) {
+    const last = frames[frames.length - 1]!.sides[id];
+    settled[id] = { ...last, row: last.row.map((c) => ({ ...c, fresh: false })) };
+  }
   frames.push({ stage: "total", sides: settled }, { stage: "damage", sides: settled });
   return frames;
 }
@@ -128,12 +194,42 @@ interface SideLineProps {
   stage: Frame["stage"];
   label: string;
   cards: CardMap;
+  v07: boolean;
+  equipment: Equipment;
 }
 
-function SideLine({ id, result, frame, stage, label, cards }: SideLineProps) {
+/** Combo count so far as 5 pips (the combo caps at 5). */
+function Pips({ count }: { count: number }) {
+  return (
+    <span className="pips" aria-label={`連擊 ${count}`}>
+      {[0, 1, 2, 3, 4].map((i) => (
+        <span key={i} className={i < count ? "pip pip-on" : "pip"} />
+      ))}
+    </span>
+  );
+}
+
+/** 0.7.0: the 3 weapon slots; the leader's colour lights up (all three on deck-out). */
+function Weapons({ side, equipment, all }: { side: SideResult; equipment: Equipment; all: boolean }) {
+  return (
+    <span className="weapons small">
+      {WEAPON_KINDS.map((k) => {
+        const lit = all || k === side.leaderType;
+        return (
+          <span key={k} className={`weapon card-${k}${lit ? " weapon-lit" : ""}`}>
+            {TYPE_LABEL[k].slice(0, 1)} {lit && !all ? side.weaponAttack : (equipment[k]?.attack ?? 0)}
+          </span>
+        );
+      })}
+    </span>
+  );
+}
+
+function SideLine({ id, result, frame, stage, label, cards, v07, equipment }: SideLineProps) {
   const s = result.sides[id];
   const idle = result.kind === "deck_out" && !s.ranOut;
   const won = stage === "damage" && result.winner === id;
+  const skill = s.skillAttack !== 0 && ` ${s.skillAttack > 0 ? "+" : "−"} 技能 ${Math.abs(s.skillAttack)}`;
   return (
     <div className={`board-side${won ? " board-won" : ""}`}>
       <div className="row between small">
@@ -142,15 +238,42 @@ function SideLine({ id, result, frame, stage, label, cards }: SideLineProps) {
           {s.skill && <SkillTag use={s.skill} />}
         </span>
         <strong className="board-attack">
-          {idle ? "不出手" : stage === "chain" ? `${frame.sum}（${frame.counted} 張）` : `攻擊 ${s.attack}`}
+          {idle ? (
+            "不出手"
+          ) : stage !== "chain" ? (
+            `攻擊 ${s.attack}`
+          ) : v07 ? (
+            <>
+              合計 {frame.sum} <Pips count={frame.counted} />
+            </>
+          ) : (
+            `${frame.sum}（${frame.counted} 張）`
+          )}
         </strong>
       </div>
-      {stage !== "chain" && !idle && result.kind === "normal" && (
+      {v07 && !idle && (stage === "chain" || result.kind === "deck_out") && (
+        <div className="row between">
+          <Weapons side={s} equipment={equipment} all={result.kind === "deck_out"} />
+          {result.kind === "deck_out" && (
+            <span className="muted small">
+              手牌 {s.baseAttack} + 武器 {s.weaponAttack}
+            </span>
+          )}
+        </div>
+      )}
+      {v07 && stage !== "chain" && result.kind === "normal" && (
+        <div className="muted small">
+          ({s.weaponAttack + s.baseAttack}
+          {s.advantage && ` × 相剋 ${s.advantageMultiplier}`}) × 連擊 {s.combo}
+          {skill} · 防禦 {s.defense}%
+        </div>
+      )}
+      {!v07 && stage !== "chain" && !idle && result.kind === "normal" && (
         <div className="muted small">
           {frame.sum} × 連擊 {s.combo}
           {s.advantage && ` × 相剋 ${s.advantageMultiplier}`}
           {s.weaponAttack > 0 && ` + 武器 ${s.weaponAttack}`}
-          {s.skillAttack !== 0 && ` ${s.skillAttack > 0 ? "+" : "−"} 技能 ${Math.abs(s.skillAttack)}`}
+          {skill}
         </div>
       )}
       <div className="board-row">
@@ -171,6 +294,9 @@ interface BoardProps {
   result: PhaseResult | null;
   cards: CardMap;
   labels: SideLabels;
+  /** The battle's rules: 0.6.0 and 0.7.0 battles play back differently. */
+  rules: RuleConfig;
+  equipment: Record<SideId, Equipment>;
   /** Play from the first beat; otherwise show the end state (e.g. after a reload). */
   animate: boolean;
   onDone: () => void;
@@ -179,8 +305,9 @@ interface BoardProps {
 const reducedMotion = () => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
 
 /** The last phase, replayed beat by beat with a skip button. Remount (key) per phase. */
-export function PhaseBoard({ result, cards, labels, animate, onDone }: BoardProps) {
-  const frames = result ? playbackFrames(result, cards) : [];
+export function PhaseBoard({ result, cards, labels, rules, equipment, animate, onDone }: BoardProps) {
+  const v07 = rules.ruleVersion === RULES_V07.ruleVersion;
+  const frames = result ? playbackFrames(result, cards, rules) : [];
   const end = Math.max(0, frames.length - 1);
   const [beat, setBeat] = useState(() => (animate && !reducedMotion() ? 0 : end));
   const [details, setDetails] = useState(false);
@@ -195,13 +322,19 @@ export function PhaseBoard({ result, cards, labels, animate, onDone }: BoardProp
   if (!result) {
     return (
       <div className="board panel">
-        <p className="muted small">點一張卡當領導卡，再選後面 4 格出牌。長按卡片可查看技能。</p>
+        <p className="muted small">
+          {v07
+            ? "先選領導卡（看 DRAW），再選 4 張充能卡（看 POW），選滿就出牌。長按卡片可查看技能。"
+            : "點一張卡當領導卡，再選後面 4 格出牌。長按卡片可查看技能。"}
+        </p>
       </div>
     );
   }
   const frame = frames[beat]!;
   const outcome = result.winner
-    ? `${labels[result.winner]}造成 ${result.damage} 傷害${result.ignoredArmor ? "（無視防具）" : ""}`
+    ? `${labels[result.winner]}${v07 ? "攻擊！" : ""}造成 ${result.damage} 傷害${
+        result.ignoredArmor ? (v07 ? "（無視防禦）" : "（無視防具）") : ""
+      }`
     : "攻擊相同，沒有傷害";
 
   return (
@@ -220,13 +353,13 @@ export function PhaseBoard({ result, cards, labels, animate, onDone }: BoardProp
           </button>
         )}
       </div>
-      {/* Leader skills announce themselves while the first cards resolve, or on demand afterwards. */}
-      {beat <= 1 && !done && (
+      {/* Leader skills announce themselves on their beat, or on demand afterwards. */}
+      {frame.skills && !done && (
         <div className="board-overlay">
-          <SkillBursts result={result} labels={labels} />
+          <SkillBursts result={result} labels={labels} v07={v07} />
         </div>
       )}
-      {details && <SkillBursts result={result} labels={labels} />}
+      {details && <SkillBursts result={result} labels={labels} v07={v07} />}
       {(["defender", "challenger"] as const).map((id) => (
         <SideLine
           key={id}
@@ -236,6 +369,8 @@ export function PhaseBoard({ result, cards, labels, animate, onDone }: BoardProp
           stage={frame.stage}
           label={labels[id]}
           cards={cards}
+          v07={v07}
+          equipment={equipment[id]}
         />
       ))}
       <p className="board-outcome" aria-live="polite">

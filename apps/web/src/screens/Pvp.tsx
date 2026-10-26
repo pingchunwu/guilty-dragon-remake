@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { Selection, SideId } from "@gdr/engine";
+import { RULES_V0, RULES_V07, type Selection, type SideId } from "@gdr/engine";
 import type { PvpBattle, PvpHistoryEntry, PvpLobby, PvpPlayer, PvpService } from "../game/pvp";
 import { errorText } from "../game/text";
 import { GameError, type PlayerState } from "../game/types";
@@ -292,6 +292,7 @@ type Hp = Record<SideId, number>;
 function BattleView({ battle, player, busy, error, onPlay, onSurrender, onTimeout, onClose }: BattleViewProps) {
   const cards = useMemo(() => new Map(Object.entries(battle.cards)), [battle.cards]);
   const labels: SideLabels = { challenger: "你", defender: battle.opponent.name };
+  const rules = battle.ruleVersion === RULES_V07.ruleVersion ? RULES_V07 : RULES_V0;
   const over = battle.status !== "active";
   const remaining = useCountdown(battle, over ? undefined : onTimeout);
 
@@ -323,16 +324,18 @@ function BattleView({ battle, player, busy, error, onPlay, onSurrender, onTimeou
           </span>
         )}
       </div>
-      <HpBar label={labels.defender} hp={hpOf("defender")} equipment={battle.equipment.defender} />
+      <HpBar label={labels.defender} hp={hpOf("defender")} equipment={battle.equipment.defender} rules={rules} />
       <PhaseBoard
         key={phase}
         result={battle.last}
         cards={cards}
         labels={labels}
+        rules={rules}
+        equipment={battle.equipment}
         animate={replaying}
         onDone={onReplayDone}
       />
-      <HpBar label={labels.challenger} hp={hpOf("challenger")} equipment={battle.equipment.challenger} />
+      <HpBar label={labels.challenger} hp={hpOf("challenger")} equipment={battle.equipment.challenger} rules={rules} />
       {error && <p className="error">{error}</p>}
 
       {over && !replaying ? (
@@ -354,6 +357,7 @@ function BattleView({ battle, player, busy, error, onPlay, onSurrender, onTimeou
           cards={cards}
           owned={player.cards}
           ranOut={battle.ranOut}
+          rules={rules}
           busy={busy || replaying}
           onResolve={() => onPlay(null)}
         />
@@ -364,6 +368,8 @@ function BattleView({ battle, player, busy, error, onPlay, onSurrender, onTimeou
           cards={cards}
           owned={player.cards}
           drawPile={battle.drawPile.challenger}
+          rules={rules}
+          equipment={battle.equipment.challenger}
           busy={busy || replaying || over}
           onPlay={onPlay}
         />
