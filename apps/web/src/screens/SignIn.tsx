@@ -26,7 +26,7 @@ export function SignIn({ client, onGuest }: Props) {
     setMessage(null);
     const { error } = await client.auth.signInWithOtp({
       email,
-      options: { shouldCreateUser: true, emailRedirectTo: window.location.origin },
+      options: { shouldCreateUser: true, emailRedirectTo: new URL(import.meta.env.BASE_URL, window.location.origin).href },
     });
     setBusy(false);
     if (error) setMessage(`寄送失敗：${error.message}`);

@@ -39,3 +39,12 @@ With no Supabase settings the app runs in guest mode only: everything works in m
 2. Apply the migrations in `supabase/migrations/` in order (Supabase CLI `supabase db push`, or paste them into the SQL editor), then deploy the PvP function with `npx supabase functions deploy pvp --use-api`. Run `npm run gen:engine` and redeploy it whenever the engine changes.
 3. In Authentication → Emails: set up a custom SMTP provider (the built-in sender is heavily rate-limited and locks the templates), then add the sign-in code `{{ .Token }}` to both the **Magic Link** and **Confirm signup** templates. The code length is a Supabase setting (this project uses 8 digits). With Resend's `onboarding@resend.dev` sender, mail only reaches your own Resend account address; verify a domain before inviting friends.
 4. Copy `.env.example` to `apps/web/.env.local` and fill in the project URL and anon/publishable key. Never commit real values.
+
+## CI/CD
+
+`.github/workflows/ci.yml` runs typecheck, tests and build on every pull request and push to `main`. After the checks pass on `main`, it pushes the migrations, deploys the `pvp` function and publishes the web app to GitHub Pages. To set it up:
+
+- Repo secrets: `SUPABASE_ACCESS_TOKEN` (a personal access token), `SUPABASE_PROJECT_REF` and `SUPABASE_DB_PASSWORD`.
+- Repo variables (these are public by design): `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
+- Settings → Pages → Source: **GitHub Actions**.
+- Supabase Authentication → URL Configuration: add `https://<owner>.github.io/<repo>/` as the Site URL or a Redirect URL.
