@@ -418,3 +418,116 @@ p.error {
 .chain-purged {
   border-style: dashed;
 }
+
+.skill-bursts {
+  display: grid;
+  gap: 8px;
+}
+
+.skill-burst {
+  --burst: var(--accent);
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 8px 10px;
+  border: 1px solid var(--burst);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--burst) 14%, var(--panel));
+  animation: burst-in 0.45s ease-out both;
+}
+
+.burst-defender {
+  animation-delay: 0.15s;
+}
+
+.burst-attack { --burst: var(--weapon); }
+.burst-debuff { --burst: #b07ce0; }
+.burst-guard { --burst: var(--armor); }
+.burst-heal { --burst: #4fb878; }
+.burst-damage { --burst: #e2574c; }
+.burst-cards { --burst: #3fb8b0; }
+.burst-element { --burst: #d8c25a; }
+.burst-off {
+  --burst: var(--muted);
+  opacity: 0.7;
+}
+
+.burst-icon {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--burst);
+  color: var(--bg);
+  font-size: 1.1rem;
+  font-weight: 700;
+  animation: burst-glow 1.2s ease-out 0.3s both;
+}
+
+.burst-title {
+  font-weight: 700;
+  color: var(--burst);
+}
+
+.burst-text {
+  color: var(--muted);
+}
+
+.burst-lines {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+}
+
+.burst-line {
+  font-weight: 600;
+  animation: burst-float 0.4s ease-out both;
+}
+
+@keyframes burst-in {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(6px);
+  }
+  60% {
+    transform: scale(1.03);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes burst-glow {
+  from {
+    box-shadow: 0 0 0 0 var(--burst);
+  }
+  to {
+    box-shadow: 0 0 0 12px transparent;
+  }
+}
+
+@keyframes burst-float {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hp-fill {
+    transition: none;
+  }
+
+  .skill-burst,
+  .burst-icon,
+  .burst-line {
+    animation: none;
+  }
+}

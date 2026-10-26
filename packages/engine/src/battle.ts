@@ -89,6 +89,8 @@ export interface SideResult {
   weaponAttack: number;
   /** Net attack change from both leaders' skills; already included in `attack`. */
   skillAttack: number;
+  /** The part of skillAttack caused by the enemy leader's skill. */
+  enemySkillAttack: number;
   attack: number;
   /** Armor defense after skills. */
   defense: number;
@@ -96,8 +98,23 @@ export interface SideResult {
   healed: number;
   hpCost: number;
   hpDamageTaken: number;
+  /** What skills did to this side's hand before the chain (counts only: PvP shows them to both players). */
+  handChange: HandChange;
+  /** Chain-drawn cards that could count this phase, after draw skills. */
+  drawLimit: number;
   ranOut: boolean;
 }
+
+export interface HandChange {
+  discarded: number;
+  /** Returned to the deck (選民主義, shuffles). */
+  returned: number;
+  drawn: number;
+  /** The draw pile was shuffled. */
+  shuffled: boolean;
+}
+
+const noChange = (): HandChange => ({ discarded: 0, returned: 0, drawn: 0, shuffled: false });
 
 export interface PhaseResult {
   phase: number;
@@ -424,6 +441,12 @@ export function resolvePhase(
     const active = settleSkills(leaders, sides);
 
     // 1. Leader-time hand and deck effects, challenger first.
+    const changes = { challenger: noChange(), defender: noChange() };
+    const recordRedraw = (t: SideId, returned: number) => {
+      changes[t].returned += returned;
+      changes[t].drawn += returned;
+      changes[t].shuffled = true;
+    };
     for (const id of SIDES) {
       const effect = effectOf(active[id]);
       if (!effect) continue;
@@ -439,17 +462,24 @@ export function resolvePhase(
           drawPile: s.drawPile.slice(drawn.length),
           discard: [...s.discard, ...out],
         };
+        changes[id].discarded += out.length;
+        changes[id].drawn += drawn.length;
       } else if (effect.kind === "elitism") {
         const back = sides[id].hand.filter((c) => cardOf(cards, c).type !== leaderType).slice(0, value);
         sides[id] = returnAndRedraw(sides[id], back, rng);
+        if (back.length > 0) recordRedraw(id, back.length);
       } else if (effect.kind === "shuffle") {
         const targets = effect.target === "both" ? SIDES : [effect.target === "self" ? id : other(id)];
-        for (const t of targets) sides[t] = returnAndRedraw(sides[t], sides[t].hand, rng, effect.scope === "all");
+        for (const t of targets) {
+          recordRedraw(t, sides[t].hand.length);
+          sides[t] = returnAndRedraw(sides[t], sides[t].hand, rng, effect.scope === "all");
+        }
       }
     }
 
     // 2. Chains.
     const chains = {} as Record<SideId, ReturnType<typeof runChain>>;
+    const drawLimits = {} as Record<SideId, number>;
     for (const id of SIDES) {
       const drawLimit = Math.max(
         0,
@@ -460,6 +490,7 @@ export function resolvePhase(
       const counts = new Set<CardType>([leaders[id].type]);
       const charge = effectOf(active[id]);
       if (charge?.kind === "charge") for (const t of charge.types) counts.add(t);
+      drawLimits[id] = drawLimit;
       chains[id] = runChain(sides[id], picks[id], cards, rules, {
         counts,
         drawLimit,
@@ -508,16 +539,21 @@ export function resolvePhase(
       const hpCostEffect = effectOf(mine);
       const hpCost = hpCostEffect?.kind === "hpCost" ? skillValue(mine!.skill, mine!.level) : 0;
       const ratio = hpCostEffect?.kind === "hpCost" ? hpCostEffect.ratio : 0;
-      const percent =
-        total(mine, (e) => (e.kind === "power" && e.target === "self" && e.unit === "pct") || e.kind === "reckless") -
-        total(theirs, (e) => e.kind === "power" && e.target === "enemy" && e.unit === "pct");
-      const flat =
-        total(mine, (e) => e.kind === "power" && e.target === "self" && e.unit === "flat") -
-        total(theirs, (e) => e.kind === "power" && e.target === "enemy" && e.unit === "flat") +
+      const ownPercent = total(
+        mine,
+        (e) => (e.kind === "power" && e.target === "self" && e.unit === "pct") || e.kind === "reckless",
+      );
+      const ownFlat =
+        total(mine, (e) => e.kind === "power" && e.target === "self" && e.unit === "flat") +
         total(mine, (e) => e.kind === "board" && e.colour === "same") * (played.length - 1) +
         total(mine, (e) => e.kind === "board" && e.colour === "other") * blocks +
         Math.floor(hpCost * ratio);
-      const attack = Math.max(0, Math.floor((chainAttack * (100 + percent)) / 100) + flat);
+      const enemyPercent = total(theirs, (e) => e.kind === "power" && e.target === "enemy" && e.unit === "pct");
+      const enemyFlat = total(theirs, (e) => e.kind === "power" && e.target === "enemy" && e.unit === "flat");
+      const withPercent = (pct: number, add: number) => Math.max(0, Math.floor((chainAttack * (100 + pct)) / 100) + add);
+      const attack = withPercent(ownPercent - enemyPercent, ownFlat - enemyFlat);
+      // Own skill alone, so the UI can credit each leader with its own effect.
+      const ownAttack = withPercent(ownPercent, ownFlat);
 
       const defensePercent =
         total(mine, (e) => e.kind === "defense" && e.target === "self") -
@@ -555,11 +591,14 @@ export function resolvePhase(
         advantage: advantage[id] > 1,
         weaponAttack,
         skillAttack: attack - chainAttack,
+        enemySkillAttack: attack - ownAttack,
         attack,
         defense,
         healed,
         hpCost: paid,
         hpDamageTaken: 0,
+        handChange: changes[id],
+        drawLimit: drawLimits[id],
         ranOut: false,
       };
     }
@@ -600,11 +639,14 @@ export function resolvePhase(
         advantage: false,
         weaponAttack,
         skillAttack: 0,
+        enemySkillAttack: 0,
         attack: sum + weaponAttack,
         defense: defenseOf(sides[id].equipment),
         healed: 0,
         hpCost: 0,
         hpDamageTaken: 0,
+        handChange: noChange(),
+        drawLimit: 0,
         ranOut: sides[id].ranOut,
       };
     };

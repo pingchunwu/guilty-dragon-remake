@@ -150,6 +150,8 @@ describe("attack and defense skills", () => {
     const run = (skill: string) =>
       phase(defender(skill).extra, { hand: ["h1", ...ids("m", 4)] }, { hand: ["k"] }).result.sides.challenger.attack;
     expect(run("disarm")).toBe(42);
+    const hit = phase(defender("disarm").extra, { hand: ["h1", ...ids("m", 4)] }, { hand: ["k"] }).result.sides.challenger;
+    expect(hit).toMatchObject({ skillAttack: -8, enemySkillAttack: -8 });
     expect(run("arms-curse")).toBe(0);
     expect(run("belly-laugh")).toBe(20);
   });
@@ -271,6 +273,16 @@ describe("chain and hand skills", () => {
     const c = run.state.sides.challenger;
     expect(c.discard).toEqual(expect.arrayContaining(["m5", "m6"]));
     expect(c.hand).toContain("h2");
+    expect(run.result.sides.challenger.handChange).toEqual({ discarded: 2, returned: 0, drawn: 0, shuffled: false });
+  });
+
+  it("reports shuffles on the side they hit, and draw limits", () => {
+    const run = phase([["L", "heavy", 50, "disrupt"]], { hand: ["L", ...ids("m", 4)] }, { hand: ["d", ...ids("m", 7)], pile: ids("p", 10) });
+    // The defender plays 5 of its 8 cards; the other 3 are shuffled back and redrawn.
+    expect(run.result.sides.defender.handChange).toEqual({ discarded: 0, returned: 3, drawn: 3, shuffled: true });
+    expect(run.result.sides.challenger.handChange.shuffled).toBe(false);
+    const pinced = phase([["k", "magic", 1, "pincer"]], { hand: ids("h", 5), pile: ids("p", 10) }, { hand: ["k"], levels: { k: 3 } });
+    expect(pinced.result.sides.challenger.drawLimit).toBe(2);
   });
 });
 

@@ -397,6 +397,7 @@ var weaponAttackOf = (e) => e.weapon?.attack ?? 0;
 
 var SIDES = ["challenger", "defender"];
 var other = (side) => side === "challenger" ? "defender" : "challenger";
+var noChange = () => ({ discarded: 0, returned: 0, drawn: 0, shuffled: false });
 function startBattle(seed, challenger, defender, rules) {
   const rng = createRng(seed);
   const side = (setup) => ({
@@ -597,6 +598,12 @@ function resolvePhase(state, selection, cards, rules) {
     };
     for (const id of SIDES) sides[id] = { ...sides[id], hand: sides[id].hand.filter((c2) => !picks[id].includes(c2)) };
     const active = settleSkills(leaders, sides);
+    const changes = { challenger: noChange(), defender: noChange() };
+    const recordRedraw = (t, returned) => {
+      changes[t].returned += returned;
+      changes[t].drawn += returned;
+      changes[t].shuffled = true;
+    };
     for (const id of SIDES) {
       const effect = effectOf(active[id]);
       if (!effect) continue;
@@ -612,15 +619,22 @@ function resolvePhase(state, selection, cards, rules) {
           drawPile: s2.drawPile.slice(drawn.length),
           discard: [...s2.discard, ...out]
         };
+        changes[id].discarded += out.length;
+        changes[id].drawn += drawn.length;
       } else if (effect.kind === "elitism") {
         const back = sides[id].hand.filter((c2) => cardOf(cards, c2).type !== leaderType).slice(0, value);
         sides[id] = returnAndRedraw(sides[id], back, rng);
+        if (back.length > 0) recordRedraw(id, back.length);
       } else if (effect.kind === "shuffle") {
         const targets = effect.target === "both" ? SIDES : [effect.target === "self" ? id : other(id)];
-        for (const t of targets) sides[t] = returnAndRedraw(sides[t], sides[t].hand, rng, effect.scope === "all");
+        for (const t of targets) {
+          recordRedraw(t, sides[t].hand.length);
+          sides[t] = returnAndRedraw(sides[t], sides[t].hand, rng, effect.scope === "all");
+        }
       }
     }
     const chains = {};
+    const drawLimits = {};
     for (const id of SIDES) {
       const drawLimit = Math.max(
         0,
@@ -629,6 +643,7 @@ function resolvePhase(state, selection, cards, rules) {
       const counts = /* @__PURE__ */ new Set([leaders[id].type]);
       const charge = effectOf(active[id]);
       if (charge?.kind === "charge") for (const t of charge.types) counts.add(t);
+      drawLimits[id] = drawLimit;
       chains[id] = runChain(sides[id], picks[id], cards, rules, {
         counts,
         drawLimit,
@@ -669,9 +684,16 @@ function resolvePhase(state, selection, cards, rules) {
       const hpCostEffect = effectOf(mine);
       const hpCost = hpCostEffect?.kind === "hpCost" ? skillValue(mine.skill, mine.level) : 0;
       const ratio = hpCostEffect?.kind === "hpCost" ? hpCostEffect.ratio : 0;
-      const percent = total(mine, (e) => e.kind === "power" && e.target === "self" && e.unit === "pct" || e.kind === "reckless") - total(theirs, (e) => e.kind === "power" && e.target === "enemy" && e.unit === "pct");
-      const flat = total(mine, (e) => e.kind === "power" && e.target === "self" && e.unit === "flat") - total(theirs, (e) => e.kind === "power" && e.target === "enemy" && e.unit === "flat") + total(mine, (e) => e.kind === "board" && e.colour === "same") * (played.length - 1) + total(mine, (e) => e.kind === "board" && e.colour === "other") * blocks + Math.floor(hpCost * ratio);
-      const attack = Math.max(0, Math.floor(chainAttack * (100 + percent) / 100) + flat);
+      const ownPercent = total(
+        mine,
+        (e) => e.kind === "power" && e.target === "self" && e.unit === "pct" || e.kind === "reckless"
+      );
+      const ownFlat = total(mine, (e) => e.kind === "power" && e.target === "self" && e.unit === "flat") + total(mine, (e) => e.kind === "board" && e.colour === "same") * (played.length - 1) + total(mine, (e) => e.kind === "board" && e.colour === "other") * blocks + Math.floor(hpCost * ratio);
+      const enemyPercent = total(theirs, (e) => e.kind === "power" && e.target === "enemy" && e.unit === "pct");
+      const enemyFlat = total(theirs, (e) => e.kind === "power" && e.target === "enemy" && e.unit === "flat");
+      const withPercent = (pct, add) => Math.max(0, Math.floor(chainAttack * (100 + pct) / 100) + add);
+      const attack = withPercent(ownPercent - enemyPercent, ownFlat - enemyFlat);
+      const ownAttack = withPercent(ownPercent, ownFlat);
       const defensePercent = total(mine, (e) => e.kind === "defense" && e.target === "self") - Math.floor(total(mine, (e) => e.kind === "reckless") / 4) - total(theirs, (e) => e.kind === "defense" && e.target === "enemy");
       const defense = Math.max(0, Math.floor(defenseOf(sides[id].equipment) * (100 + defensePercent) / 100));
       const heal = total(mine, (e) => e.kind === "heal" && e.unit === "flat") + Math.floor(rules.startingHp * total(mine, (e) => e.kind === "heal" && e.unit === "pct") / 100);
@@ -698,11 +720,14 @@ function resolvePhase(state, selection, cards, rules) {
         advantage: advantage[id] > 1,
         weaponAttack,
         skillAttack: attack - chainAttack,
+        enemySkillAttack: attack - ownAttack,
         attack,
         defense,
         healed,
         hpCost: paid,
         hpDamageTaken: 0,
+        handChange: changes[id],
+        drawLimit: drawLimits[id],
         ranOut: false
       };
     }
@@ -738,11 +763,14 @@ function resolvePhase(state, selection, cards, rules) {
         advantage: false,
         weaponAttack,
         skillAttack: 0,
+        enemySkillAttack: 0,
         attack: sum + weaponAttack,
         defense: defenseOf(sides[id].equipment),
         healed: 0,
         hpCost: 0,
         hpDamageTaken: 0,
+        handChange: noChange(),
+        drawLimit: 0,
         ranOut: sides[id].ranOut
       };
     };
