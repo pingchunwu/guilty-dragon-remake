@@ -28,7 +28,7 @@ const subscribe = (l: () => void) => {
 };
 
 /** Long-press (touch), hold or right-click (mouse) opens the info toast; the click that ends a hold is swallowed. */
-function useCardInfoPress(card: CardDefinition, owned: OwnedCard | undefined) {
+export function useCardInfoPress(card: CardDefinition, owned: OwnedCard | undefined) {
   const timer = useRef<number | undefined>(undefined);
   const opened = useRef(false);
   const cancel = () => window.clearTimeout(timer.current);

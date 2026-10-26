@@ -57,6 +57,9 @@ export function App() {
   useEffect(() => {
     if (!pvp) setPvpBattle({ shown: false, locked: false });
   }, [pvp]);
+  // Any battle on screen takes the whole screen: no header, no tabs (§6c).
+  const [practice, setPractice] = useState(false);
+  const inBattle = practice || pvpBattle.shown;
 
   useEffect(() => {
     if (!supabase) return;
@@ -96,8 +99,8 @@ export function App() {
   }
 
   return (
-    <div className="shell">
-      <header>
+    <div className={inBattle ? "shell in-battle" : "shell"}>
+      <header hidden={inBattle}>
         <h1>Guilty Dragon Remake</h1>
         {!service && <p className="muted small">開發版 · 規則 {RULES_V0.ruleVersion} · 卡片為佔位內容</p>}
       </header>
@@ -137,9 +140,9 @@ export function App() {
               )}
               {/* Kept mounted so switching tabs doesn't lose a battle in progress. */}
               <div hidden={tab !== "battle"}>
-                {pvp && <Pvp pvp={pvp} state={state} onBattle={onPvpBattle} />}
+                <div hidden={practice}>{pvp && <Pvp pvp={pvp} state={state} onBattle={onPvpBattle} />}</div>
                 <div hidden={pvpBattle.shown}>
-                  <Battle content={content} state={state} />
+                  <Battle content={content} state={state} onActive={setPractice} />
                 </div>
               </div>
               {tab === "gacha" && <Gacha content={content} service={service} state={state} onState={setState} />}
@@ -148,7 +151,7 @@ export function App() {
               )}
             </main>
           )}
-          {!pvpBattle.locked && (
+          {!inBattle && (
             <nav className="tabs">
               {TABS.map((t) => (
                 <button key={t.id} type="button" className={tab === t.id ? "active" : ""} onClick={() => setTab(t.id)}>

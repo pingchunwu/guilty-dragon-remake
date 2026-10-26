@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   RULES_V0,
   deckCardIds,
@@ -9,10 +9,12 @@ import {
   type BattleState,
   type PhaseResult,
   type Selection,
+  type SideId,
 } from "@gdr/engine";
 import type { Content } from "../game/content";
 import type { PlayerState } from "../game/types";
-import { DeckOutPanel, HandPicker, HpBar, PhaseSummary, type SideLabels } from "./BattleParts";
+import { DeckOutPanel, HandPicker, HpBar, type SideLabels } from "./BattleParts";
+import { PhaseBoard } from "./Playback";
 
 const SIDE_LABEL: SideLabels = { challenger: "你", defender: "對手" };
 
@@ -27,10 +29,24 @@ function randomSeed(): [number, number, number, number] {
  * the defender AI. Runs in the browser; nothing is saved and there are no
  * rewards. Friend PvP (Pvp.tsx) resolves the same engine on the server.
  */
-export function Battle({ content, state: player }: { content: Content; state: PlayerState }) {
+interface Props {
+  content: Content;
+  state: PlayerState;
+  /** A battle is on screen, so the app hides its header and tabs. */
+  onActive: (active: boolean) => void;
+}
+
+export function Battle({ content, state: player, onActive }: Props) {
   const { cards, items } = content;
   const [battle, setBattle] = useState<BattleState | null>(null);
   const [last, setLast] = useState<PhaseResult | null>(null);
+  // HP before the phase now replaying; the bars move when the playback ends.
+  const [hpBefore, setHpBefore] = useState<Record<SideId, number> | null>(null);
+  const onReplayDone = useCallback(() => setHpBefore(null), []);
+  useEffect(() => {
+    onActive(battle !== null);
+    return () => onActive(false);
+  }, [battle, onActive]);
 
   function start() {
     // One loadout for attack and defense, so both sides wear the same here.
@@ -45,6 +61,7 @@ export function Battle({ content, state: player }: { content: Content; state: Pl
       ),
     );
     setLast(null);
+    setHpBefore(null);
   }
 
   if (!battle) {
@@ -81,46 +98,59 @@ export function Battle({ content, state: player }: { content: Content; state: Pl
   function play(selection: Selection | null) {
     if (!battle) return;
     const step = resolvePhase(battle, selection, cards, RULES_V0);
+    setHpBefore({ challenger: me.hp, defender: battle.sides.defender.hp });
     setBattle(step.state);
     setLast(step.result);
   }
 
+  function leave() {
+    if (battle?.status !== "active" || window.confirm("離開練習對戰？這場不會保存。")) setBattle(null);
+  }
+
   const over = battle.status !== "active";
+  const replaying = hpBefore !== null;
+  const hpOf = (id: SideId) => hpBefore?.[id] ?? battle.sides[id].hp;
 
   return (
-    <section className="stack">
-      <div className="row between">
-        <h2>練習對戰</h2>
-        <span className="muted">{over ? "結束" : `第 ${battle.phase} 階段`}</span>
+    <section className="battle-screen">
+      <div className="row between small">
+        <strong>練習對戰 · {over && !replaying ? "結束" : `第 ${last && replaying ? last.phase : battle.phase} 階段`}</strong>
+        <button type="button" className="link" onClick={leave}>
+          離開
+        </button>
       </div>
-
-      <div className="panel stack">
-        {(["challenger", "defender"] as const).map((id) => (
-          <HpBar key={id} label={SIDE_LABEL[id]} hp={battle.sides[id].hp} equipment={battle.sides[id].equipment} />
-        ))}
-      </div>
-
-      {last && <PhaseSummary result={last} cards={cards} labels={SIDE_LABEL} />}
-
-      {over ? (
+      <HpBar label={SIDE_LABEL.defender} hp={hpOf("defender")} equipment={battle.sides.defender.equipment} />
+      <PhaseBoard
+        key={last?.phase ?? 0}
+        result={last}
+        cards={cards}
+        labels={SIDE_LABEL}
+        animate={replaying}
+        onDone={onReplayDone}
+      />
+      <HpBar label={SIDE_LABEL.challenger} hp={hpOf("challenger")} equipment={me.equipment} />
+      {over && !replaying ? (
         <div className="panel stack">
           <strong className="big">{battle.status === "challenger_won" ? "勝利！" : "落敗"}</strong>
           <p className="small">
             共 {battle.phase} 階段 · 你剩 {me.hp} HP · 對手剩 {battle.sides.defender.hp} HP
           </p>
-          <button type="button" className="primary" onClick={start}>
-            再戰一次
-          </button>
-          <button type="button" onClick={() => setBattle(null)}>
-            返回
-          </button>
+          <div className="row">
+            <button type="button" className="primary grow" onClick={start}>
+              再戰一次
+            </button>
+            <button type="button" className="grow" onClick={() => setBattle(null)}>
+              返回
+            </button>
+          </div>
         </div>
-      ) : battle.kind === "deck_out" ? (
+      ) : battle.kind === "deck_out" && !over ? (
         <DeckOutPanel
           hand={me.hand}
           cards={cards}
           owned={player.cards}
           ranOut={{ challenger: me.ranOut, defender: battle.sides.defender.ranOut }}
+          busy={replaying}
           onResolve={() => play(null)}
         />
       ) : (
@@ -130,6 +160,7 @@ export function Battle({ content, state: player }: { content: Content; state: Pl
           cards={cards}
           owned={player.cards}
           drawPile={me.drawPile.length}
+          busy={replaying || over}
           onPlay={play}
         />
       )}
