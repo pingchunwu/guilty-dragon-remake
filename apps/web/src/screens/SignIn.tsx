@@ -1,6 +1,9 @@
 import { useState, type FormEvent } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+// Build-time flag: only a dedicated test user (password set in the Supabase dashboard) can use this; real users have no password.
+const TEST_LOGIN = import.meta.env.VITE_TEST_LOGIN === "1";
+
 interface Props {
   client: SupabaseClient | null;
   onGuest: () => void;
@@ -80,6 +83,25 @@ export function SignIn({ client, onGuest }: Props) {
         </form>
       )}
       {message && <p className="error">{message}</p>}
+      {client && TEST_LOGIN && (
+        <form
+          className="stack"
+          onSubmit={async (e) => {
+            e.preventDefault();
+            const f = new FormData(e.currentTarget);
+            const { error } = await client.auth.signInWithPassword({
+              email: String(f.get("email")),
+              password: String(f.get("password")),
+            });
+            if (error) setMessage(`測試登入失敗：${error.message}`);
+          }}
+        >
+          <p className="muted small">測試登入（不需驗證碼）</p>
+          <input name="email" type="email" required placeholder="test email" />
+          <input name="password" type="password" required placeholder="password" />
+          <button>測試登入</button>
+        </form>
+      )}
       <hr />
       <button type="button" onClick={onGuest}>
         以訪客身分試玩

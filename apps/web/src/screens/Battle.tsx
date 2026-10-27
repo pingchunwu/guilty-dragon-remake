@@ -121,7 +121,7 @@ export function Battle({ content, state: player, onActive }: Props) {
       </div>
       <HpBar label={SIDE_LABEL.defender} hp={hpOf("defender")} equipment={battle.sides.defender.equipment} rules={RULES} />
       <PhaseBoard
-        key={last?.phase ?? 0}
+        key={`board-${last?.phase ?? 0}`}
         result={last}
         cards={cards}
         labels={SIDE_LABEL}
@@ -158,7 +158,7 @@ export function Battle({ content, state: player, onActive }: Props) {
         />
       ) : (
         <HandPicker
-          key={battle.phase}
+          key={`hand-${battle.phase}`}
           hand={me.hand}
           cards={cards}
           owned={player.cards}
