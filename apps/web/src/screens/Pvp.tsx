@@ -326,7 +326,7 @@ function BattleView({ battle, player, busy, error, onPlay, onSurrender, onTimeou
       </div>
       <HpBar label={labels.defender} hp={hpOf("defender")} equipment={battle.equipment.defender} rules={rules} />
       <PhaseBoard
-        key={phase}
+        key={`board-${phase}`}
         result={battle.last}
         cards={cards}
         labels={labels}
@@ -363,7 +363,7 @@ function BattleView({ battle, player, busy, error, onPlay, onSurrender, onTimeou
         />
       ) : (
         <HandPicker
-          key={battle.phase}
+          key={`hand-${battle.phase}`}
           hand={battle.hand}
           cards={cards}
           owned={player.cards}
