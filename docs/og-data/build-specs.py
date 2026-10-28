@@ -16,6 +16,11 @@ OG_CARDS_TS = DOCS.parent / "packages" / "engine" / "src" / "og-cards.ts"
 DROP = {"ファントムイベント限定スキル", "GvGイベント限定スキル", "合成・売却専用スキル"}
 COLOURS = ["重装", "軽装", "魔装"]
 RARITIES = ["N", "N+", "R", "R+", "SR", "SR+"]
+
+
+def fold(r):
+    """N+ and R+ merge into N and R; SR+ is its own SSR tier."""
+    return "SSR" if r == "SR+" else r.rstrip("+")
 # Card-list spellings that differ from the skill table (word order, typo, 打/討).
 ALIAS = {
     "カード3": "ガード3",
@@ -190,7 +195,7 @@ lines = [
     "",
     "- **POW** is the OG max POW. The OG initial POW is dropped (card level only changes the skill level).",
     "- **Skill max Lv** comes from [skill-spec.md](skill-spec.md), not the card list.",
-    "- + rarities are merged into their base rarity (N+→N, R+→R, SR+→SR).",
+    "- + rarities are merged into their base rarity (N+→N, R+→R); SR+ becomes SSR.",
     "",
 ]
 body = []
@@ -213,18 +218,18 @@ for colour in COLOURS:
         if not engine_id:
             raise SystemExit(f"no engine skill for card {c['name']}: {c['skill']}")
         og_cards.append({"id": f"og-{TYPE[colour]}-{n:03d}", "name": c["name"], "type": TYPE[colour],
-                         "attack": int(c["pow_max"]), "draw": int(c["draw"]), "rarity": c["rarity"].rstrip("+"),
+                         "attack": int(c["pow_max"]), "draw": int(c["draw"]), "rarity": fold(c["rarity"]),
                          "skill": engine_id})
         skill = name if name == c["skill"] else f"{name} (list: {c['skill']})"
-        body.append(row([c["rarity"].rstrip("+"), c["name"], c["pow_max"], c["draw"], skill, max_lv or "?"]))
-        stats[(colour, c["rarity"].rstrip("+"))].append(c)
+        body.append(row([fold(c["rarity"]), c["name"], c["pow_max"], c["draw"], skill, max_lv or "?"]))
+        stats[(colour, fold(c["rarity"]))].append(c)
     body.append("")
 
 lines += ["## Summary by colour and rarity", "",
           row(["Colour", "Rarity", "Cards", "POW min", "POW avg", "POW max", "DRAW avg"]),
           "|---|---|---|---|---|---|---|"]
 for colour in COLOURS:
-    for r in ("N", "R", "SR"):
+    for r in ("N", "R", "SR", "SSR"):
         g = stats.get((colour, r))
         if not g:
             continue
