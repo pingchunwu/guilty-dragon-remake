@@ -15,6 +15,7 @@ import type { Content } from "../game/content";
 import type { PlayerState } from "../game/types";
 import type { SideLabels } from "./BattleParts";
 import { Duel } from "./Duel";
+import { hpAfterSkills } from "./Playback";
 
 const SIDE_LABEL: SideLabels = { challenger: "你", defender: "對手" };
 /** Practice runs rule 0.7.0-draft locally; nothing is stored, so old battles don't matter here. */
@@ -45,6 +46,7 @@ export function Battle({ content, state: player, onActive }: Props) {
   // HP before the phase now replaying; the bars move when the playback ends.
   const [hpBefore, setHpBefore] = useState<Record<SideId, number> | null>(null);
   const onReplayDone = useCallback(() => setHpBefore(null), []);
+  const onSkills = () => setHpBefore((h) => (h && last ? hpAfterSkills(h, last) : h));
   useEffect(() => {
     onActive(battle !== null);
     return () => onActive(false);
@@ -133,6 +135,7 @@ export function Battle({ content, state: player, onActive }: Props) {
         last={last}
         animate={replaying}
         onDone={onReplayDone}
+        onSkills={onSkills}
         busy={replaying || over}
         onPlay={play}
       >

@@ -356,6 +356,7 @@ function BattleView({ battle, player, busy, error, onPlay, onSurrender, onTimeou
           last={battle.last}
           animate={replaying}
           onDone={onReplayDone}
+          onSkills={onSkills}
           busy={busy || replaying || over || remaining <= 0}
           onPlay={onPlay}
           notice={error}
