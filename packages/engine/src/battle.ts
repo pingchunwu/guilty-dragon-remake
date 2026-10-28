@@ -91,6 +91,8 @@ export interface SideResult {
    * inside the multiplied total; on deck-out all three.
    */
   weaponAttack: number;
+  /** 0.7.0: the weapon's power after both leaders' power skills (results stored before 2026-10-28 lack it). */
+  skillWeapon?: number;
   /** Net attack change from both leaders' skills; already included in `attack`. */
   skillAttack: number;
   /** The part of skillAttack caused by the enemy leader's skill. */
@@ -619,8 +621,10 @@ export function resolvePhase(
       const enemyFlat = total(theirs, (e) => e.kind === "power" && e.target === "enemy" && e.unit === "flat");
       // Power skills change only the weapon's power, as in the original (武器パワー), and it can't go below 0.
       // Provisional (0.7.0): board and HP-for-attack bonuses stay outside the multipliers, as in 0.6.0.
-      const withSkills = (pct: number, weaponFlat: number) =>
-        attackWith(Math.max(0, Math.floor((weaponAttack * (100 + pct)) / 100) + weaponFlat)) + ownFlat;
+      const weaponWith = (pct: number, weaponFlat: number) =>
+        Math.max(0, Math.floor((weaponAttack * (100 + pct)) / 100) + weaponFlat);
+      const withSkills = (pct: number, weaponFlat: number) => attackWith(weaponWith(pct, weaponFlat)) + ownFlat;
+      const skillWeapon = weaponWith(ownPercent - enemyPercent, ownWeaponFlat - enemyFlat);
       const attack = withSkills(ownPercent - enemyPercent, ownWeaponFlat - enemyFlat);
       // Own skill alone, so the UI can credit each leader with its own effect.
       const ownAttack = withSkills(ownPercent, ownWeaponFlat);
@@ -663,6 +667,7 @@ export function resolvePhase(
         advantageMultiplier: advantage[id],
         advantage: advantage[id] > 1,
         weaponAttack,
+        skillWeapon,
         skillAttack: attack - chainAttack,
         enemySkillAttack: attack - ownAttack,
         attack,

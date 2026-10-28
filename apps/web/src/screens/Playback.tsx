@@ -131,7 +131,7 @@ function framesV07(result: PhaseResult, attackOf: (id: string) => number): Frame
   const draws = (s: SideResult) => s.chain.filter((c) => c.from === "draw").length;
   const most = (count: (s: SideResult) => number) => Math.max(0, ...SIDES.map((id) => count(result.sides[id])));
 
-  const at = (s: SideResult, charged: number, drawn: number, leaderIn: boolean): SideFrame => {
+  const at = (s: SideResult, charged: number, drawn: number, leaderIn: boolean, skillsIn: boolean): SideFrame => {
     const shown = 1 + charges(s) + Math.min(drawn, draws(s));
     const resolved = 1 + Math.min(charged, charges(s)) + Math.min(drawn, draws(s));
     const behind = s.chain.slice(1, resolved);
@@ -147,17 +147,21 @@ function framesV07(result: PhaseResult, attackOf: (id: string) => number): Frame
     const counted = behind.filter((c) => c.counted);
     return {
       row,
-      sum: s.weaponAttack + counted.reduce((n, c) => n + attackOf(c.card), 0) + (leaderIn ? attackOf(s.chain[0]!.card) : 0),
+      sum: (skillsIn ? (s.skillWeapon ?? s.weaponAttack) : s.weaponAttack) + counted.reduce((n, c) => n + attackOf(c.card), 0) + (leaderIn ? attackOf(s.chain[0]!.card) : 0),
       counted: counted.length + (leaderIn ? 1 : 0),
     };
   };
-  const frame = (charged: number, drawn: number, leaderIn = false, skills = false): Frame => ({
+  // The first frame is the leader reveal; the weapon shows its skill-boosted power from the skill beat on.
+  const frame = (charged: number, drawn: number, leaderIn = false, skills = false, skillsIn = true): Frame => ({
     stage: "chain",
-    sides: { challenger: at(result.sides.challenger, charged, drawn, leaderIn), defender: at(result.sides.defender, charged, drawn, leaderIn) },
+    sides: {
+      challenger: at(result.sides.challenger, charged, drawn, leaderIn, skillsIn),
+      defender: at(result.sides.defender, charged, drawn, leaderIn, skillsIn),
+    },
     skills,
   });
 
-  const frames: Frame[] = [frame(0, 0)];
+  const frames: Frame[] = [frame(0, 0, false, false, false)];
   if (SIDES.some((id) => result.sides[id].skill)) frames.push(frame(0, 0, false, true));
   for (let c = 1; c <= most(charges); c++) frames.push(frame(c, 0));
   for (let d = 1; d <= most(draws); d++) frames.push(frame(Infinity, d));
@@ -302,6 +306,8 @@ interface BoardProps {
   /** Play from the first beat; otherwise show the end state (e.g. after a reload). */
   animate: boolean;
   onDone: () => void;
+  /** Called once when the playback reaches the skill beat (not when jumping to the end). */
+  onSkills?: () => void;
 }
 
 /** Shared with Duel.tsx (rule 0.7.0). */
@@ -376,8 +382,18 @@ export function AttackScene({ result, cards, labels, onComplete }: SceneProps) {
 
 const reducedMotion = () => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
 
+/** HP once the skill beat has played: heals, HP paid and direct damage apply at phase start. */
+export function hpAfterSkills(before: Record<SideId, number>, result: PhaseResult): Record<SideId, number> {
+  const after = { ...before };
+  for (const id of SIDES) {
+    const s = result.sides[id];
+    after[id] += (s.healed ?? 0) - (s.hpCost ?? 0) - (s.hpDamageTaken ?? 0);
+  }
+  return after;
+}
+
 /** The last phase, replayed beat by beat with a skip button. Remount (key) per phase. */
-export function PhaseBoard({ result, cards, labels, rules, equipment, animate, onDone }: BoardProps) {
+export function PhaseBoard({ result, cards, labels, rules, equipment, animate, onDone, onSkills }: BoardProps) {
   const v07 = rules.ruleVersion === RULES_V07.ruleVersion;
   const frames = result ? playbackFrames(result, cards, rules) : [];
   const end = Math.max(0, frames.length - 1);
@@ -390,6 +406,11 @@ export function PhaseBoard({ result, cards, labels, rules, equipment, animate, o
     const timer = window.setTimeout(() => setBeat((b) => b + 1), BEAT_MS);
     return () => window.clearTimeout(timer);
   }, [beat, done, onDone]);
+
+  const skillBeat = animate && !done && !!result && frames[beat]?.skills;
+  useEffect(() => {
+    if (skillBeat) onSkills?.();
+  }, [skillBeat]); // eslint-disable-line react-hooks/exhaustive-deps -- once per beat
 
   if (!result) {
     return (
