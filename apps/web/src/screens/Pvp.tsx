@@ -343,6 +343,7 @@ function BattleView({ battle, player, busy, error, onPlay, onSurrender, onTimeou
       </div>
       {isV07(rules) ? (
         <Duel
+          key={battle.id}
           labels={labels}
           cards={cards}
           owned={player.cards}

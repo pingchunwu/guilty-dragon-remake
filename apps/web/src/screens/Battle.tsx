@@ -42,6 +42,8 @@ interface Props {
 export function Battle({ content, state: player, onActive }: Props) {
   const { cards, items } = content;
   const [battle, setBattle] = useState<BattleState | null>(null);
+  // Each new battle starts at phase 1 again, so Duel is keyed by battle to clear its picks.
+  const [round, setRound] = useState(0);
   const [last, setLast] = useState<PhaseResult | null>(null);
   // HP before the phase now replaying; the bars move when the playback ends.
   const [hpBefore, setHpBefore] = useState<Record<SideId, number> | null>(null);
@@ -65,6 +67,7 @@ export function Battle({ content, state: player, onActive }: Props) {
       ),
     );
     setLast(null);
+    setRound((r) => r + 1);
     setHpBefore(null);
   }
 
@@ -122,6 +125,7 @@ export function Battle({ content, state: player, onActive }: Props) {
         </button>
       </div>
       <Duel
+        key={round}
         labels={SIDE_LABEL}
         cards={cards}
         owned={player.cards}
