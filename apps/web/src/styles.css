@@ -869,23 +869,19 @@ p.error {
   font-size: 0;
 }
 
-.bcard-mini .bcard-frame {
-  border-width: 2px;
-}
-
 .bcard-mini .bcard-skill,
 .bcard-mini .bcard-stars,
-.bcard-mini .bcard-num small {
+.bcard-mini .bcard-pow,
+.bcard-mini .bcard-label {
   display: none;
 }
 
+/* Too small for the label: the number grows to stay readable. */
 .bcard-mini .bcard-num {
   right: 6%;
   bottom: 6%;
-}
-
-.bcard-mini .bcard-num b {
-  font-size: 0.62rem;
+  width: 55%;
+  height: 55%;
 }
 
 .opp-total {
@@ -1003,31 +999,35 @@ p.error {
 }
 
 /*
- * The OG square battle card (BattleCard.tsx). Layers mirror docs/art-samples/og-sample.html,
- * so the art and frame images can replace .bcard-art and .bcard-frame later.
+ * The OG square battle card (BattleCard.tsx), laid out like docs/art-samples/og-sample.html:
+ * art, frame image (carries the gem), skill badge, number + label, stars.
  */
 .bcard {
   position: relative;
   display: block;
   width: 100%;
   aspect-ratio: 1;
+  container-type: inline-size;
   padding: 0;
   border: 0;
   border-radius: 6px;
-  background: var(--panel-2);
+  background: transparent;
   color: var(--text);
   font: inherit;
+  filter: drop-shadow(0 2px 4px rgb(0 0 0 / 60%));
   -webkit-touch-callout: none;
   user-select: none;
   will-change: transform;
 }
 
-.bcard > span {
+.bcard > span,
+.bcard > img,
+.bcard > small {
   position: absolute;
 }
 
 .bcard-art {
-  inset: 3%;
+  inset: 2.6%;
   display: grid;
   place-items: start center;
   padding: 22% 6% 0;
@@ -1040,9 +1040,25 @@ p.error {
   color: var(--muted);
 }
 
-.bcard-frame {
+.bcard-art img {
+  position: absolute;
   inset: 0;
-  border: 3px solid var(--line);
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 18%;
+}
+
+.bcard-frame,
+.bcard-frame-img {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.bcard-frame {
+  border: 3px solid var(--type);
   border-radius: 6px;
 }
 
@@ -1058,10 +1074,6 @@ p.error {
   --type: var(--magic);
 }
 
-.bcard .bcard-frame {
-  border-color: var(--type);
-}
-
 .bcard-gem {
   left: 4%;
   top: 4%;
@@ -1075,45 +1087,31 @@ p.error {
 .bcard-skill {
   right: -2%;
   top: -2%;
-  width: 26%;
-  height: 26%;
-  display: grid;
-  place-items: center;
-  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
-  background: #e6c200;
-  color: #111;
-  font-size: 0.6rem;
-  font-weight: 700;
+  width: 23%;
+  height: 23%;
 }
 
 .bcard-num {
-  right: 6%;
-  bottom: 10%;
-  display: grid;
-  justify-items: end;
-  line-height: 0.9;
-  font-style: italic;
-  text-shadow: 0 1px 0 #000, 0 0 4px #000;
-}
-
-.bcard-num b {
-  font-size: 1.25rem;
-  font-weight: 900;
-}
-
-.bcard-num small {
-  font-size: 0.5rem;
-  font-weight: 700;
+  right: 11%;
+  bottom: 11%;
+  width: 26%;
+  height: 26%;
 }
 
 .bcard-stars {
-  left: 0;
-  right: 0;
-  bottom: 1%;
-  text-align: center;
-  font-size: 0.5rem;
-  letter-spacing: -0.05em;
-  color: #ffd23a;
+  left: 30%;
+  bottom: 1.2%;
+  width: 40%;
+  height: 9%;
+}
+
+.bcard-skill svg,
+.bcard-num svg,
+.bcard-stars svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
 }
 
 /* Same-colour cards glow once the leader is chosen (they will charge). */
@@ -1143,9 +1141,13 @@ p.error {
 }
 
 /* POW above the big DRAW while choosing the leader. */
-.bcard-num .bcard-pow {
-  font-size: 0.55rem;
-  font-style: normal;
+.bcard .bcard-pow {
+  right: 11%;
+  bottom: 36%;
+  font-size: 8cqw;
+  font-weight: 700;
+  line-height: 1;
+  text-shadow: 0 1px 0 #000, 0 0 4px #000;
 }
 
 .bcard-gone,

@@ -1,0 +1,62 @@
+{
+ "1": {
+  "seed": 101,
+  "denoise": 0.6,
+  "seconds": 91.5
+ },
+ "72": {
+  "seed": 104,
+  "denoise": 0.6,
+  "seconds": 85.063
+ },
+ "158": {
+  "seed": 107,
+  "denoise": 0.6,
+  "seconds": 86.03
+ },
+ "235": {
+  "seed": 110,
+  "denoise": 0.6,
+  "seconds": 84.971
+ },
+ "247": {
+  "seed": 102,
+  "denoise": 0.6,
+  "seconds": 84.923
+ },
+ "319": {
+  "seed": 105,
+  "denoise": 0.6,
+  "seconds": 84.969
+ },
+ "410": {
+  "seed": 108,
+  "denoise": 0.6,
+  "seconds": 85.226
+ },
+ "480": {
+  "seed": 111,
+  "denoise": 0.6,
+  "seconds": 83.026
+ },
+ "490": {
+  "seed": 103,
+  "denoise": 0.6,
+  "seconds": 83.909
+ },
+ "560": {
+  "seed": 106,
+  "denoise": 0.6,
+  "seconds": 83.153
+ },
+ "655": {
+  "seed": 109,
+  "denoise": 0.6,
+  "seconds": 81.899
+ },
+ "719": {
+  "seed": 112,
+  "denoise": 0.6,
+  "seconds": 81.923
+ }
+}

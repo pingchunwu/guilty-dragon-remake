@@ -1,0 +1,1 @@
+whenever doing changes, use Sonnet; doing tests, use Haiku.
