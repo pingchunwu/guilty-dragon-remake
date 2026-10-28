@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
 import {
@@ -35,6 +35,39 @@ export type CardMap = ReadonlyMap<string, CardDefinition>;
 export type SideLabels = Record<SideId, string>;
 
 export const isV07 = (rules: RuleConfig) => rules.ruleVersion === RULES_V07.ruleVersion;
+
+/** Small modal for destructive choices (the native confirm() is blocked in some webviews and PWAs). Focus starts on cancel; Esc cancels. */
+export function ConfirmDialog({ message, confirmLabel, onConfirm, onCancel }: {
+  message: string;
+  confirmLabel: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  const cancel = useRef<HTMLButtonElement>(null);
+  const onCancelRef = useRef(onCancel);
+  onCancelRef.current = onCancel; // PvP re-renders every tick; keep the listener and focus stable.
+  useEffect(() => {
+    cancel.current?.focus();
+    const esc = (e: KeyboardEvent) => e.key === "Escape" && onCancelRef.current();
+    window.addEventListener("keydown", esc);
+    return () => window.removeEventListener("keydown", esc);
+  }, []);
+  return (
+    <div className="dialog-backdrop" role="presentation" onClick={onCancel}>
+      <div className="dialog panel stack" role="dialog" aria-modal="true" aria-label={message} onClick={(e) => e.stopPropagation()}>
+        <strong>{message}</strong>
+        <div className="row">
+          <button type="button" className="primary grow" onClick={onConfirm}>
+            {confirmLabel}
+          </button>
+          <button type="button" className="grow" ref={cancel} onClick={onCancel}>
+            取消
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export const reducedMotion = () => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
 

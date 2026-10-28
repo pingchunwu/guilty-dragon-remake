@@ -1195,6 +1195,22 @@ p.error {
   }
 }
 
+/* Above the reveal (25) and the attack cut-in (20). */
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgb(0 0 0 / 60%);
+}
+
+.dialog {
+  width: 100%;
+  max-width: 320px;
+}
+
 /* 0.7.0: the OG attack cut-in, animated by GSAP in Playback.tsx (AttackScene). */
 .attack-scene {
   position: fixed;
@@ -1278,12 +1294,21 @@ p.error {
   border-color: var(--accent);
 }
 
-.scene-stat {
-  font-size: 1.1rem;
+/* The two total attacks that crash together mid-stage (positioned by GSAP in AttackScene). */
+.scene-atk {
+  position: absolute;
+  inset: 50% 0 auto;
+  margin-top: -0.55em;
+  text-align: center;
+  font-size: 3.4rem;
+  line-height: 1.1;
+  font-weight: 900;
   font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 16px rgb(255 120 60 / 60%), 0 3px 0 #000;
+  pointer-events: none;
 }
 
-.scene-bar-won .scene-stat {
+.scene-atk-bottom {
   color: var(--accent);
 }
 

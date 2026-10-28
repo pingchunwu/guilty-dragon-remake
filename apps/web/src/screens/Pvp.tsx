@@ -3,7 +3,7 @@ import { RULES_V0, RULES_V07, type Selection, type SideId } from "@gdr/engine";
 import type { PvpBattle, PvpHistoryEntry, PvpLobby, PvpPlayer, PvpService } from "../game/pvp";
 import { errorText } from "../game/text";
 import { GameError, type PlayerState } from "../game/types";
-import { DeckOutPanel, HandPicker, HpBar, isV07, type SideLabels } from "./BattleParts";
+import { ConfirmDialog, DeckOutPanel, HandPicker, HpBar, isV07, type SideLabels } from "./BattleParts";
 import { PhaseBoard, hpAfterSkills } from "./Playback";
 import { Duel } from "./Duel";
 
@@ -102,7 +102,6 @@ export function Pvp({ pvp, state: player, onBattle }: Props) {
   }
 
   async function surrender() {
-    if (!window.confirm("確定要投降嗎？會記錄為落敗。")) return;
     const next = await run(() => pvp.surrender());
     if (!next) return void refresh();
     setLobby(next);
@@ -295,6 +294,7 @@ function BattleView({ battle, player, busy, error, onPlay, onSurrender, onTimeou
   const labels: SideLabels = { challenger: "你", defender: battle.opponent.name };
   const rules = battle.ruleVersion === RULES_V07.ruleVersion ? RULES_V07 : RULES_V0;
   const over = battle.status !== "active";
+  const [asking, setAsking] = useState(false);
   const remaining = useCountdown(battle, over ? undefined : onTimeout);
 
   // A phase played while this view is open replays from the HP it started with; after a reload it shows the end state.
@@ -335,12 +335,23 @@ function BattleView({ battle, player, busy, error, onPlay, onSurrender, onTimeou
         ) : (
           <span className="row nowrap">
             <strong className={remaining <= 10 ? "error" : ""}>剩 {Math.max(0, remaining)} 秒</strong>
-            <button type="button" className="link" disabled={busy} onClick={onSurrender}>
+            <button type="button" className="link" disabled={busy} onClick={() => setAsking(true)}>
               投降
             </button>
           </span>
         )}
       </div>
+      {asking && !over && (
+        <ConfirmDialog
+          message="確定要投降嗎？"
+          confirmLabel="投降"
+          onConfirm={() => {
+            setAsking(false);
+            onSurrender();
+          }}
+          onCancel={() => setAsking(false)}
+        />
+      )}
       {isV07(rules) ? (
         <Duel
           key={battle.id}
