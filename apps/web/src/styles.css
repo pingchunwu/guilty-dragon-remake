@@ -742,17 +742,13 @@ p.error {
 }
 
 .weapon {
-    transition: none;
-  }
-
-  .skill-burst,
-  .burst-icon,
-  .burst-line,
-  .card-toast,
-  .chip-fresh,
-  .chip-counted {
-    animation: none;
-  }
+  padding: 0 5px;
+  border: 1px solid;
+  border-radius: 4px;
+  opacity: 0.35;
+  filter: grayscale(1);
+  font-variant-numeric: tabular-nums;
+  transition: opacity 0.3s ease, filter 0.3s ease;
 }
 
 .weapon-lit {

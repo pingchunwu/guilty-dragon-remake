@@ -48,6 +48,8 @@ interface Props {
   last: PhaseResult | null;
   animate: boolean;
   onDone: () => void;
+  /** Called once when the playback reaches the skill beat (not when skipping past it). */
+  onSkills?: () => void;
   busy: boolean;
   onPlay: (selection: Selection | null) => void;
   /** An error line (PvP); also releases locked picks so they can be sent again. */
@@ -142,6 +144,11 @@ export function Duel(props: Props) {
     }
     if (!play.scene) onDone();
   }, [replaying, play, end, onDone]);
+  // Heals, HP paid and direct damage land on the skill beat.
+  const skillBeat = replaying && !play.reveal && !!frames[play.beat]?.skills;
+  useEffect(() => {
+    if (skillBeat) props.onSkills?.();
+  }, [skillBeat]);
   const skip = () => setPlay((p) => ({ ...p, reveal: false, beat: end, scene: false }));
 
   const leader = picked[0] ? cards.get(picked[0])! : null;
