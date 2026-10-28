@@ -892,9 +892,26 @@ p.error {
 .duel-stage {
   position: relative;
   display: grid;
-  align-content: center;
+  /* Skill banners take the top, the weapon capsules and charge row sit low beside your HP. */
+  grid-template-rows: minmax(0, 1fr) auto auto;
   gap: 8px;
   min-height: 0;
+}
+
+.duel-stage > .board-overlay {
+  position: static;
+  grid-row: 1;
+  align-self: start;
+  max-height: 100%;
+  overflow-y: auto;
+}
+
+.duel-stage > .capsules {
+  grid-row: 2;
+}
+
+.duel-stage > .charge-line {
+  grid-row: 3;
 }
 
 .banner-slot .prompt-banner {
@@ -956,7 +973,8 @@ p.error {
 .reveal {
   position: absolute;
   inset: 0;
-  z-index: 15;
+  /* Above the charge slots (z-index up to 20), or they paint over the leaders. */
+  z-index: 25;
   display: grid;
   align-content: center;
   justify-items: center;
@@ -1199,17 +1217,54 @@ p.error {
 
 .scene-bar {
   justify-self: stretch;
-  display: flex;
-  align-items: center;
-  gap: 12px;
+  display: grid;
+  gap: 6px;
   padding: max(12px, env(safe-area-inset-top)) 16px 12px;
   background: rgb(0 0 0 / 55%);
   border-bottom: 2px solid var(--line);
   font-size: 0.85rem;
 }
 
-.scene-bar > :first-child {
-  flex: 1;
+.scene-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* The slash cuts across this block (number and bar); AttackScene rotates and sweeps it. */
+.scene-hp {
+  position: relative;
+  display: grid;
+  gap: 4px;
+}
+
+.scene-hp-text {
+  font-size: 1.4rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.scene-bar .hp-track {
+  height: 14px;
+}
+
+.scene-fill {
+  transition: none;
+}
+
+.scene-cut {
+  position: absolute;
+  left: -4%;
+  top: 78%;
+  width: 108%;
+  height: 4px;
+  margin-top: -2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, transparent, #fff 12%, #fff 88%, transparent);
+  box-shadow: 0 0 10px 2px #ff8a6a, 0 0 22px 6px rgb(224 48 58 / 70%);
+  pointer-events: none;
+  visibility: hidden;
 }
 
 .scene-bar-bottom {
@@ -1242,19 +1297,10 @@ p.error {
   letter-spacing: 0.08em;
 }
 
-.scene-attacker {
-  grid-row: 4;
-  margin-top: 12px;
-  padding: 6px 14px;
-  border: 2px solid;
-  border-radius: 8px;
-  background: var(--panel);
-  font-weight: 700;
-}
-
 .scene-damage {
-  grid-row: 5;
+  grid-row: 4;
   align-self: center;
+  margin-top: 12px;
   display: grid;
   justify-items: center;
   font-size: 3.2rem;

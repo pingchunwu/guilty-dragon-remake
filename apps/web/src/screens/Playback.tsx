@@ -313,19 +313,24 @@ interface BoardProps {
 /** Shared with Duel.tsx (rule 0.7.0). */
 interface SceneProps {
   result: PhaseResult;
-  cards: CardMap;
   labels: SideLabels;
+  /** HP going into the damage (after skills) and the full bar. */
+  hp: Record<SideId, number>;
+  maxHp: number;
   onComplete: () => void;
 }
 
 /**
  * 0.7.0: the OG's attack cut-in after the judgment. A red slash wipes in, both
- * sides' attack and defense % slide in (opponent top, you bottom), the winner's
- * banner and leader strike, then the damage number with a screen shake. Tap to skip.
+ * sides' life bar and total attack slide in (opponent top, you bottom), the winner's
+ * banner and the damage number land, then a blade streak cuts the loser's HP and the
+ * bar drops by the damage. Tap to skip.
  */
-export function AttackScene({ result, cards, labels, onComplete }: SceneProps) {
+export function AttackScene({ result, labels, hp, maxHp, onComplete }: SceneProps) {
   const root = useRef<HTMLDivElement>(null);
   const tl = useRef<gsap.core.Timeline | null>(null);
+  const { winner } = result;
+  const loser = winner && (winner === "challenger" ? "defender" : "challenger");
   useGSAP(
     (_, contextSafe) => {
       const q = gsap.utils.selector(root);
@@ -337,27 +342,44 @@ export function AttackScene({ result, cards, labels, onComplete }: SceneProps) {
         .from(q(".scene-bar-bottom"), { yPercent: 110, duration: 0.3 }, "<")
         .addLabel("banner", 0.55)
         .from(q(".scene-banner"), { xPercent: -110, duration: 0.3 }, "banner")
-        .from(q(".scene-attacker"), { scale: 2.4, autoAlpha: 0, duration: 0.35, ease: "power4.in" }, "banner+=0.2")
-        .addLabel("hit")
+        .addLabel("hit", "banner+=0.3")
         .fromTo(q(".scene-flash"), { autoAlpha: 0.85 }, { autoAlpha: 0, duration: 0.3 }, "hit")
-        .from(q(".scene-damage"), { scale: 2.6, autoAlpha: 0, duration: 0.3, ease: "back.out(2)" }, "hit")
-        .to(q(".scene-stage"), { keyframes: { x: [-12, 10, -7, 5, -2, 0] }, duration: 0.4, ease: "none" }, "hit")
-        .to(root.current, { autoAlpha: 0, duration: 0.25 }, "hit+=1.1");
+        .from(q(".scene-damage"), { scale: 2.6, autoAlpha: 0, duration: 0.3, ease: "back.out(2)" }, "hit");
+      if (loser) {
+        const left = Math.max(0, hp[loser] - result.damage);
+        const n = { v: hp[loser] };
+        const num = q(`.scene-side-${loser} .scene-hp-n`)[0];
+        const cut = q(`.scene-side-${loser} .scene-cut`);
+        gsap.set(cut, { rotation: -9, transformOrigin: "0 50%" });
+        tl.current
+          .fromTo(cut, { scaleX: 0, autoAlpha: 1 }, { scaleX: 1, duration: 0.15, ease: "power4.out" }, "hit+=0.45")
+          .to(q(".scene-stage"), { keyframes: { x: [-12, 10, -7, 5, -2, 0] }, duration: 0.4, ease: "none" }, "<")
+          .fromTo(q(`.scene-side-${loser} .scene-fill`), { scaleX: hp[loser] / maxHp }, { scaleX: left / maxHp, duration: 0.5, ease: "power2.out" }, ">0.05")
+          .to(n, { v: left, duration: 0.5, ease: "power2.out", onUpdate: () => void (num!.textContent = String(Math.round(n.v))) }, "<")
+          .to(cut, { autoAlpha: 0, duration: 0.2 }, "<0.1");
+      }
+      tl.current.to(root.current, { autoAlpha: 0, duration: 0.25 }, ">0.7");
     },
     { scope: root },
   );
 
-  const { winner } = result;
-  const leader = winner && result.sides[winner].chain[0] ? cards.get(result.sides[winner].chain[0].card) : undefined;
   const bar = (id: SideId, pos: "top" | "bottom") => (
-    <div className={`scene-bar scene-bar-${pos}${winner === id ? " scene-bar-won" : ""}`}>
-      <strong className="one-line">{labels[id]}</strong>
-      <span className="nowrap">
-        攻擊 <strong className="scene-stat">{result.sides[id].attack}</strong>
-      </span>
-      <span className="nowrap">
-        防禦 <strong className="scene-stat">{result.sides[id].defense}%</strong>
-      </span>
+    <div className={`scene-bar scene-bar-${pos} scene-side-${id}${winner === id ? " scene-bar-won" : ""}`}>
+      <div className="scene-head">
+        <strong className="one-line">{labels[id]}</strong>
+        <span className="nowrap">
+          攻擊 <strong className="scene-stat">{result.sides[id].attack}</strong>
+        </span>
+      </div>
+      <div className="scene-hp">
+        <span className="scene-hp-text">
+          <span className="scene-hp-n">{hp[id]}</span> / {maxHp}
+        </span>
+        <div className="hp-track">
+          <div className="hp-fill scene-fill" style={{ transform: `scaleX(${hp[id] / maxHp})` }} />
+        </div>
+        {loser === id && <div className="scene-cut" />}
+      </div>
     </div>
   );
   return (
@@ -367,7 +389,6 @@ export function AttackScene({ result, cards, labels, onComplete }: SceneProps) {
         <div className="scene-banner">
           {!winner ? "勢均力敵" : result.kind === "deck_out" ? "最終一擊！" : `${labels[winner]}的攻擊！`}
         </div>
-        {leader && <div className={`scene-attacker card-${leader.type}`}>{leader.name}</div>}
         <div className="scene-damage">
           {winner ? `−${result.damage}` : "沒有傷害"}
           {result.ignoredArmor && <small>無視防禦</small>}

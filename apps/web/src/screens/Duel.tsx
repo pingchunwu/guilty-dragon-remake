@@ -28,6 +28,10 @@ gsap.registerPlugin(Flip);
 const REVEAL_MS = 3000;
 /** Pause before a deck-out final blow resolves on its own, so its banner can be read. */
 const FINAL_BLOW_MS = 1200;
+/** The leader preview flies into your leader slot in this long. */
+const REVEAL_EXIT_S = 0.4;
+/** How long the skill banners stay after the HP bars start moving (CountUp's 0.4 s + settle). */
+const HP_SETTLE_MS = 800;
 
 interface Props {
   labels: SideLabels;
@@ -136,7 +140,7 @@ export function Duel(props: Props) {
   useEffect(() => {
     if (!replaying) return;
     if (play.reveal) {
-      const timer = window.setTimeout(() => setPlay((p) => ({ ...p, reveal: false })), REVEAL_MS);
+      const timer = window.setTimeout(endReveal, REVEAL_MS);
       return () => window.clearTimeout(timer);
     }
     if (play.beat < end) {
@@ -154,7 +158,51 @@ export function Duel(props: Props) {
   useEffect(() => {
     if (skillBeat) props.onSkills?.();
   }, [skillBeat]);
-  const skip = () => setPlay((p) => ({ ...p, reveal: false, beat: end, scene: false }));
+  const skip = () => {
+    leaving.current?.kill();
+    leaving.current = null;
+    setPlay((p) => ({ ...p, reveal: false, beat: end, scene: false }));
+  };
+
+  // The leader preview ends by flying into your leader slot (a fade when there is none to land on).
+  const leaving = useRef<gsap.core.Timeline | null>(null);
+  function endReveal() {
+    if (leaving.current) return;
+    const done = () => {
+      leaving.current = null;
+      setPlay((p) => ({ ...p, reveal: false }));
+    };
+    const q = gsap.utils.selector(root);
+    const card = q(".reveal-side-challenger .reveal-card")[0];
+    const slot = q(".charge-row .charge-slot .bcard")[0];
+    if (!card || reducedMotion()) return done();
+    const a = card.getBoundingClientRect();
+    const b = slot?.getBoundingClientRect();
+    leaving.current = gsap
+      .timeline({ defaults: { duration: REVEAL_EXIT_S, ease: "power2.inOut" }, onComplete: done })
+      .to(q(".reveal"), { backgroundColor: "rgb(13 11 18 / 0%)" }, 0)
+      .to(q(".reveal-side-defender, .reveal-side-challenger .stack, .reveal > span"), { autoAlpha: 0, duration: 0.2 }, 0);
+    if (b) leaving.current.to(card, { x: b.left + b.width / 2 - (a.left + a.width / 2), y: b.top + b.height / 2 - (a.top + a.height / 2), scale: b.width / a.width }, 0);
+    else leaving.current.to(card, { scale: 0.6, autoAlpha: 0 }, 0);
+  }
+
+  // Skill banners stay until the phase's HP has been paid (the attack scene ends, then the bars count).
+  const [settling, setSettling] = useState(false);
+  const wasReplaying = useRef(false);
+  useEffect(() => {
+    if (replaying) {
+      wasReplaying.current = true;
+      setSettling(false);
+      return;
+    }
+    if (!wasReplaying.current) return;
+    wasReplaying.current = false;
+    setSettling(true);
+    const timer = window.setTimeout(() => setSettling(false), HP_SETTLE_MS);
+    return () => window.clearTimeout(timer);
+  }, [replaying]);
+  const firstSkill = frames.findIndex((f) => f.skills);
+  const showBursts = last && ((replaying && !play.reveal && firstSkill >= 0 && play.beat >= firstSkill) || settling);
 
   const leader = picked[0] && !props.children ? cards.get(picked[0])! : null;
   const counts = leader ? chargeTypes(leader, levels) : new Set<CardType>();
@@ -446,7 +494,7 @@ export function Duel(props: Props) {
             {drawPile.challenger}
           </span>
         </div>
-        {frame?.skills && (
+        {showBursts && (
           <div className="board-overlay">
             <SkillBursts result={last!} labels={labels} v07 />
           </div>
@@ -482,7 +530,7 @@ export function Duel(props: Props) {
       )}
 
       {replaying && play.reveal && (
-        <div className="reveal" role="presentation" onClick={() => setPlay((p) => ({ ...p, reveal: false }))}>
+        <div className="reveal" role="presentation" onClick={endReveal}>
           {(["defender", "challenger"] as const).map((id) => {
             const s = sideOf(id);
             const card = s.chain[0] ? cards.get(s.chain[0].card) : undefined;
@@ -514,7 +562,7 @@ export function Duel(props: Props) {
       )}
 
       {replaying && !play.reveal && play.beat >= end && play.scene && (
-        <AttackScene result={last!} cards={cards} labels={labels} onComplete={() => setPlay((p) => ({ ...p, scene: false }))} />
+        <AttackScene result={last!} labels={labels} hp={hp} maxHp={rules.startingHp} onComplete={() => setPlay((p) => ({ ...p, scene: false }))} />
       )}
     </div>
   );
