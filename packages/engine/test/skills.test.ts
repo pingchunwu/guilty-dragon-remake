@@ -79,9 +79,9 @@ const lone = (skill: string, level = 1, more: Partial<SideOptions> = {}) =>
   phase([["L", "heavy", 50, skill]], { hand: ["L", ...ids("m", 4)], levels: { L: level }, ...more });
 
 describe("skill catalog", () => {
-  it("gives every skill exactly one placeholder card and a sane level cap", () => {
-    const used = PLACEHOLDER_CARDS.map((c) => c.skill);
-    expect(new Set(used).size).toBe(SKILLS.length);
+  it("puts only known skills on cards (reckless has none in the original card list) and keeps a sane level cap", () => {
+    const used = new Set(PLACEHOLDER_CARDS.map((c) => c.skill));
+    expect([...SKILLS.map((s) => s.id)].filter((id) => !used.has(id))).toEqual(["reckless"]);
     expect(new Set(SKILLS.map((s) => s.id)).size).toBe(SKILLS.length);
     for (const s of SKILLS) expect([1, 3, 5, 10]).toContain(s.maxLevel);
   });

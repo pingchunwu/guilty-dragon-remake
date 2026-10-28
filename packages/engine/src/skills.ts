@@ -150,6 +150,8 @@ export const SKILLS: readonly SkillDefinition[] = [
   s("last-stand", "背水之陣", "背水の陣", 5, "battle", { kind: "hpCost", ratio: 1 }, 800),
   // Final damage up
   ...tiers("plus-damage", "追加傷害", "プラスダメージ", [50, 100, 150], "battle", { kind: "finalDamage", unit: "flat" }),
+  // Not in the wiki table (cards use it): value and max level inferred from tiers 2 and 3.
+  s("raise-damage-1", "增幅傷害Ⅰ", "レイズダメージ1", 10, "battle", { kind: "finalDamage", unit: "pct" }, 1),
   s("raise-damage-2", "增幅傷害Ⅱ", "レイズダメージ2", 10, "battle", { kind: "finalDamage", unit: "pct" }, 2),
   s("raise-damage-3", "增幅傷害Ⅲ", "レイズダメージ3", 10, "battle", { kind: "finalDamage", unit: "pct" }, 3),
   s("war-hammer", "戰神之鎚", "戦神の鉄槌", 5, "battle", { kind: "finalDamage", unit: "pct" }, 10),
