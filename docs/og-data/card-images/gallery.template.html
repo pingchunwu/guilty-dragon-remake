@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>OG Card Gallery</title>
+<style>
+:root{--bg:#f4f3f0;--fg:#1d1d1f;--muted:#6b6b70;--card:#fff;--line:#ddd}
+@media (prefers-color-scheme:dark){:root{--bg:#141416;--fg:#ececef;--muted:#9a9aa2;--card:#1f1f23;--line:#333}}
+body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.4 system-ui,sans-serif}
+header{position:sticky;top:0;background:var(--bg);padding:12px 16px;border-bottom:1px solid var(--line);display:flex;gap:8px;flex-wrap:wrap;align-items:center;z-index:1}
+select,input{font:inherit;padding:4px 6px}
+#n{color:var(--muted)}
+main{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;padding:16px}
+.c{background:var(--card);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.c img{display:block;width:100%;aspect-ratio:1;object-fit:cover;background:#888}
+.c .miss{aspect-ratio:1;display:grid;place-items:center;color:var(--muted)}
+.c p{margin:6px 8px;font-size:12px}
+.c small{color:var(--muted)}
+.t-重装{border-top:4px solid #c33}.t-軽装{border-top:4px solid #3a3}.t-魔装{border-top:4px solid #36c}
+.x{display:flex;gap:4px;padding:0 8px 8px}.x img{width:40px;height:40px}
+</style></head><body>
+<header>
+<select id="col"><option value="">all types</option><option>重装</option><option>軽装</option><option>魔装</option></select>
+<select id="rar"><option value="">all rarities</option><option>N</option><option>N+</option><option>R</option><option>R+</option><option>SR</option><option>SR+</option></select>
+<label><input type="checkbox" id="miss"> missing only</label>
+<input id="q" placeholder="name / skill">
+<span id="n"></span>
+</header>
+<main id="g"></main>
+<script>
+const D=/*DATA*/[];
+const $=id=>document.getElementById(id), esc=s=>String(s).replace(/[&<>"]/g,c=>`&#${c.charCodeAt(0)};`);
+function draw(){
+  const col=$("col").value,rar=$("rar").value,miss=$("miss").checked,q=$("q").value.trim();
+  const rows=D.filter(d=>(!col||d.colour==col)&&(!rar||d.rarity==rar)&&(!miss||d.status!="ok")&&(!q||d.name.includes(q)||d.skill.includes(q)));
+  $("n").textContent=`${rows.length} / ${D.length}`;
+  $("g").innerHTML=rows.map(d=>`<div class="c t-${d.colour}">
+    ${d.image_url?`<a href="${esc(d.page_url)}" target="_blank" rel="noopener"><img loading="lazy" src="${esc(d.image_url)}" alt="${esc(d.name)}"></a>`:`<div class="miss">no image</div>`}
+    <p>#${d.id} ${esc(d.name)}<br><small>${d.colour} ${d.rarity} · ${d.pow_initial}→${d.pow_max} · DRAW ${d.draw} · ${esc(d.skill)}</small></p>
+    ${d.extras.length?`<div class="x">${d.extras.map(([u,n])=>`<img loading="lazy" src="${esc(u)}" title="${esc(n)}">`).join("")}</div>`:""}
+  </div>`).join("");
+}
+["col","rar","miss","q"].forEach(id=>$(id).addEventListener("input",draw));draw();
+</script></body></html>

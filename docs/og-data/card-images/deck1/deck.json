@@ -1,0 +1,290 @@
+[
+ {
+  "id": "og-heavy-001",
+  "name": "吠え猛るバルザック",
+  "type": "heavy",
+  "rarity": "N",
+  "wiki_id": 18,
+  "image_url": "https://cdn.wikiwiki.jp/to/w/guildra/%E5%90%A0%E3%81%88%E7%8C%9B%E3%82%8B%E3%83%90%E3%83%AB%E3%82%B6%E3%83%83%E3%82%AF/::ref/%E5%90%A0%E3%81%88%E7%8C%9B%E3%82%8B%E3%83%90%E3%83%AB%E3%82%B6%E3%83%83%E3%82%AF.png.webp?rev=ab1b14d7c63ba1262d29a5e1e7b01b86&t=20130219181837",
+  "og": "N"
+ },
+ {
+  "id": "og-heavy-002",
+  "name": "お昼寝の寅",
+  "type": "heavy",
+  "rarity": "N",
+  "wiki_id": 17,
+  "image_url": "https://cdn.wikiwiki.jp/to/w/guildra/%E3%81%8A%E6%98%BC%E5%AF%9D%E3%81%AE%E5%AF%85/::ref/%E3%81%8A%E6%98%BC%E5%AF%9D%E3%81%AE%E5%AF%85.png.webp?rev=c42e3c76fa28ef56ec522f41b2d88a54&t=20130219181817",
+  "og": "N"
+ },
+ {
+  "id": "og-heavy-003",
+  "name": "残心の神威",
+  "type": "heavy",
+  "rarity": "N",
+  "wiki_id": 16,
+  "image_url": "https://cdn.wikiwiki.jp/to/w/guildra/%E6%AE%8B%E5%BF%83%E3%81%AE%E7%A5%9E%E5%A8%81/::ref/%E6%AE%8B%E5%BF%83%E3%81%AE%E7%A5%9E%E5%A8%81.png.webp?rev=96b2d586c4eecef0d8c4f1fbc6df926a&t=20130219181758",
+  "og": "N"
+ },
+ {
+  "id": "og-heavy-004",
+  "name": "単位ハンターリリカ",
+  "type": "heavy",
+  "rarity": "N",
+  "wiki_id": 19,
+  "image_url": "https://cdn.wikiwiki.jp/to/w/guildra/%E5%8D%98%E4%BD%8D%E3%83%8F%E3%83%B3%E3%82%BF%E3%83%BC%E3%83%AA%E3%83%AA%E3%82%AB/::ref/%E5%8D%98%E4%BD%8D%E3%83%8F%E3%83%B3%E3%82%BF%E3%83%BC%E3%83%AA%E3%83%AA%E3%82%AB.png.webp?rev=4498593edadf2e0ac540179fec1c7737&t=20130310030544",
+  "og": "N"
+ },
+ {
+  "id": "og-heavy-005",
+  "name": "野営の匂坂",
+  "type": "heavy",
+  "rarity": "N",
+  "wiki_id": 24,
+  "image_url": "https://cdn.wikiwiki.jp/to/w/guildra/%E9%87%8E%E5%96%B6%E3%81%AE%E5%8C%82%E5%9D%82/::ref/%E9%87%8E%E5%96%B6%E3%81%AE%E5%8C%82%E5%9D%82.png.webp?rev=129fece0f8b44f78cd26fbb4ba7ea6c6&t=20130420230302",
+  "og": "N"
+ },
+ {
+  "id": "og-heavy-006",
+  "name": "冷やしエリンギうまい",
+  "type": "heavy",
+  "rarity": "N",
+  "wiki_id": 32,
+  "image_url": "https://cdn.wikiwiki.jp/to/w/guildra/%E5%86%B7%E3%82%84%E3%81%97%E3%82%A8%E3%83%AA%E3%83%B3%E3%82%AE%E3%81%86%E3%81%BE%E3%81%84/::ref/%E5%86%B7%E3%82%84%E3%81%97%E3%82%A8%E3%83%AA%E3%83%B3%E3%82%AE%E3%81%86%E3%81%BE%E3%81%84.png.webp?rev=6375c5476cf59ab3a369da83493565ac&t=20130731205556",
+  "og": "N"
+ },
+ {
+  "id": "og-heavy-007",
+  "name": "オルカ",
+  "type": "heavy",
+  "rarity": "N",
+  "wiki_id": 12,
+  "image_url": "https://cdn.wikiwiki.jp/to/w/guildra/%E3%82%AA%E3%83%AB%E3%82%AB/::ref/%E3%82%AA%E3%83%AB%E3%82%AB.png.webp?rev=8d06f480257918187d824370964d44aa&t=20130124213521",
+  "og": "N"
+ },
+ {
+  "id": "og-heavy-008",
+  "name": "高原の令嬢",
+  "type": "heavy",
+  "rarity": "N",
+  "wiki_id": 25,
+  "image_url": "https://cdn.wikiwiki.jp/to/w/guildra/%E9%AB%98%E5%8E%9F%E3%81%AE%E4%BB%A4%E5%AC%A2/::ref/%E9%AB%98%E5%8E%9F%E3%81%AE%E4%BB%A4%E5%AC%A2.png.webp?rev=4c28434d8102920c6173a6aa02634ea4&t=20130508184055",
+  "og": "N"
+ },
+ {
+  "id": "og-light-001",
+  "name": "誇り高き天狼",
+  "type": "light",
+  "rarity": "N",
+  "wiki_id": 264,
+  "image_url": "https://cdn.wikiwiki.jp/to/w/guildra/%E8%AA%87%E3%82%8A%E9%AB%98%E3%81%8D%E5%A4%A9%E7%8B%BC/::ref/%E8%AA%87%E3%82%8A%E9%AB%98%E3%81%8D%E5%A4%A9%E7%8B%BC.png.webp?rev=05deeecede8f256b6add7f9d507d41fc&t=20130219182027",
+  "og": "N"
+ },
+ {
+  "id": "og-light-002",
+  "name": "ジアハート",
+  "type": "light",
+  "rarity": "N",
+  "wiki_id": 256,
+  "image_url": "https://cdn.wikiwiki.jp/to/w/guildra/%E3%82%B8%E3%82%A2%E3%83%8F%E3%83%BC%E3%83%88/::ref/%E3%82%B8%E3%82%A2%E3%83%8F%E3%83%BC%E3%83%88.png.webp?rev=1c4cbf7f631ba95983986008c617cce5&t=20130125213010",
+  "og": "N"
+ },
+ {
+  "id": "og-light-003",
+  "name": "鳳花",
+  "type": "light",
+  "rarity": "N",
+  "wiki_id": 257,
+  "image_url": "https://cdn.wikiwiki.jp/to/w/guildra/%E9%B3%B3%E8%8A%B1/::ref/%E9%B3%B3%E8%8A%B1.png.webp?rev=b8ea98c6bf7e7b51e6f2859173f249aa&t=20130125212923",
+  "og": "N"
+ },
+ {
+  "id": "og-light-004",
+  "name": "ひざ枕のかりん",
+  "type": "light",
+  "rarity": "N",
+  "wiki_id": 268,
+  "image_url": "https://cdn.wikiwiki.jp/to/w/guildra/%E3%81%B2%E3%81%96%E6%9E%95%E3%81%AE%E3%81%8B%E3%82%8A%E3%82%93/::ref/%E3%81%B2%E3%81%96%E6%9E%95%E3%81%AE%E3%81%8B%E3%82%8A%E3%82%93.png.webp?rev=dc43a98d5dc76877912b8047c11b9f47&t=20130420230741",
+  "og": "N"
+ },
+ {
+  "id": "og-light-005",
+  "name": "姉思いのすぅれん",
+  "type": "light",
+  "rarity": "N",
+  "wiki_id": 269,
+  "image_url": "https://cdn.wikiwiki.jp/to/w/guildra/%E5%A7%89%E6%80%9D%E3%81%84%E3%81%AE%E3%81%99%E3%81%85%E3%82%8C%E3%82%93/::ref/%E5%A7%89%E6%80%9D%E3%81%84%E3%81%AE%E3%81%99%E3%81%85%E3%82%8C%E3%82%93.png.webp?rev=2a40f06716c8cee75ea941e9560b3404&t=20130420230853",
+  "og": "N"
+ },
+ {
+  "id": "og-light-006",
+  "name": "閃光手かりん",
+  "type": "light",
+  "rarity": "N",
+  "wiki_id": 274,
+  "image_url": "https://cdn.wikiwiki.jp/to/w/guildra/%E9%96%83%E5%85%89%E6%89%8B%E3%81%8B%E3%82%8A%E3%82%93/::ref/%E9%96%83%E5%85%89%E6%89%8B%E3%81%8B%E3%82%8A%E3%82%93.png.webp?rev=f2fd144d9b6c677b589d0681522b4367&t=20130622191128",
+  "og": "N"
+ },
+ {
+  "id": "og-light-007",
+  "name": "悪童Iyoten",
+  "type": "light",
+  "rarity": "N",
+  "wiki_id": 279,
+  "image_url": "https://cdn.wikiwiki.jp/to/w/guildra/%E6%82%AA%E7%AB%A5Iyoten/::ref/%E6%82%AA%E7%AB%A5Iyoten.png.webp?rev=2d8e56301ad4679ac997d33e71feaa33&t=20130819204256",
+  "og": "N"
+ },
+ {
+  "id": "og-light-008",
+  "name": "ジュウゾウ",
+  "type": "light",
+  "rarity": "N",
+  "wiki_id": 261,
+  "image_url": "https://cdn.wikiwiki.jp/to/w/guildra/%E3%82%B8%E3%83%A5%E3%82%A6%E3%82%BE%E3%82%A6/::ref/%E3%82%B8%E3%83%A5%E3%82%A6%E3%82%BE%E3%82%A6.png.webp?rev=ceac21f51a64f65ece9d50aeab8df651&t=20130125212845",
+  "og": "N"
+ },
+ {
+  "id": "og-magic-001",
+  "name": "世渡りうさぎのバニラ",
+  "type": "magic",
+  "rarity": "N",
+  "wiki_id": 509,
+  "image_url": "https://cdn.wikiwiki.jp/to/w/guildra/%E4%B8%96%E6%B8%A1%E3%82%8A%E3%81%86%E3%81%95%E3%81%8E%E3%81%AE%E3%83%90%E3%83%8B%E3%83%A9/::ref/%E4%B8%96%E6%B8%A1%E3%82%8A%E3%81%86%E3%81%95%E3%81%8E%E3%81%AE%E3%83%90%E3%83%8B%E3%83%A9.png.webp?rev=5f80cd56d6c701a0428c689ee1b25410&t=20130219181734",
+  "og": "N"
+ },
+ {
+  "id": "og-magic-002",
+  "name": "ヘルフレア",
+  "type": "magic",
+  "rarity": "N",
+  "wiki_id": 505,
+  "image_url": "https://cdn.wikiwiki.jp/to/w/guildra/%E3%83%98%E3%83%AB%E3%83%95%E3%83%AC%E3%82%A2/::ref/%E3%83%98%E3%83%AB%E3%83%95%E3%83%AC%E3%82%A2.png.webp?rev=377a2532bd82035e9cfd4e956f7c6aff&t=20130123112357",
+  "og": "N"
+ },
+ {
+  "id": "og-magic-003",
+  "name": "アンニュイ女教師BT",
+  "type": "magic",
+  "rarity": "N",
+  "wiki_id": 510,
+  "image_url": "https://cdn.wikiwiki.jp/to/w/guildra/%E3%82%A2%E3%83%B3%E3%83%8B%E3%83%A5%E3%82%A4%E5%A5%B3%E6%95%99%E5%B8%ABBT/::ref/%E3%82%A2%E3%83%B3%E3%83%8B%E3%83%A5%E3%82%A4%E5%A5%B3%E6%95%99%E5%B8%ABBT.png.webp?rev=5da19ac8fb5a40730ae2963779717cbc&t=20130310033310",
+  "og": "N"
+ },
+ {
+  "id": "og-magic-004",
+  "name": "愛読のバランシア",
+  "type": "magic",
+  "rarity": "N",
+  "wiki_id": 515,
+  "image_url": "https://cdn.wikiwiki.jp/to/w/guildra/%E6%84%9B%E8%AA%AD%E3%81%AE%E3%83%90%E3%83%A9%E3%83%B3%E3%82%B7%E3%82%A2/::ref/%E6%84%9B%E8%AA%AD%E3%81%AE%E3%83%90%E3%83%A9%E3%83%B3%E3%82%B7%E3%82%A2.png.webp?rev=84f7895c1db7f1c7c31adb66dc1ca1d3&t=20130508184828",
+  "og": "N"
+ },
+ {
+  "id": "og-magic-005",
+  "name": "探求海賊オーヴァン",
+  "type": "magic",
+  "rarity": "N",
+  "wiki_id": 517,
+  "image_url": "https://cdn.wikiwiki.jp/to/w/guildra/%E6%8E%A2%E6%B1%82%E6%B5%B7%E8%B3%8A%E3%82%AA%E3%83%BC%E3%83%B4%E3%82%A1%E3%83%B3/::ref/%E6%8E%A2%E6%B1%82%E6%B5%B7%E8%B3%8A%E3%82%AA%E3%83%BC%E3%83%B4%E3%82%A1%E3%83%B3.png.webp?rev=1b90b9edf72b19eb3681c9e1136c8656&t=20130607151156",
+  "og": "N"
+ },
+ {
+  "id": "og-magic-006",
+  "name": "鬼火舞ジニーファイブ",
+  "type": "magic",
+  "rarity": "N",
+  "wiki_id": 521,
+  "image_url": "https://cdn.wikiwiki.jp/to/w/guildra/%E9%AC%BC%E7%81%AB%E8%88%9E%E3%82%B8%E3%83%8B%E3%83%BC%E3%83%95%E3%82%A1%E3%82%A4%E3%83%96/::ref/%E9%AC%BC%E7%81%AB%E8%88%9E%E3%82%B8%E3%83%8B%E3%83%BC%E3%83%95%E3%82%A1%E3%82%A4%E3%83%96.png.webp?rev=ee1125d39301c363a539916f41fbf049&t=20130731204514",
+  "og": "N"
+ },
+ {
+  "id": "og-magic-007",
+  "name": "司",
+  "type": "magic",
+  "rarity": "N",
+  "wiki_id": 500,
+  "image_url": "https://cdn.wikiwiki.jp/to/w/guildra/%E5%8F%B8/::ref/%E5%8F%B8.png.webp?rev=a9b64c2b34dfc5a42c767f54c6bcc989&t=20130123111736",
+  "og": "N"
+ },
+ {
+  "id": "og-magic-008",
+  "name": "導きの志乃",
+  "type": "magic",
+  "rarity": "N",
+  "wiki_id": 501,
+  "image_url": "https://cdn.wikiwiki.jp/to/w/guildra/%E5%B0%8E%E3%81%8D%E3%81%AE%E5%BF%97%E4%B9%83/::ref/%E5%B0%8E%E3%81%8D%E3%81%AE%E5%BF%97%E4%B9%83.png.webp?rev=3e7833b5dc3350ee3126438478245c6f&t=20130123111854",
+  "og": "N"
+ },
+ {
+  "id": "og-heavy-009",
+  "name": "七つの海を行く鈴木",
+  "type": "heavy",
+  "rarity": "N",
+  "wiki_id": 28,
+  "image_url": "https://cdn.wikiwiki.jp/to/w/guildra/%E4%B8%83%E3%81%A4%E3%81%AE%E6%B5%B7%E3%82%92%E8%A1%8C%E3%81%8F%E9%88%B4%E6%9C%A8/::ref/%E4%B8%83%E3%81%A4%E3%81%AE%E6%B5%B7%E3%82%92%E8%A1%8C%E3%81%8F%E9%88%B4%E6%9C%A8.png.webp?rev=ac3e578acb5cb48f19fde099446d169a&t=20130607144431",
+  "og": "N"
+ },
+ {
+  "id": "og-heavy-010",
+  "name": "堅き軟弱のぴろし３",
+  "type": "heavy",
+  "rarity": "N",
+  "wiki_id": 29,
+  "image_url": "https://cdn.wikiwiki.jp/to/w/guildra/%E5%A0%85%E3%81%8D%E8%BB%9F%E5%BC%B1%E3%81%AE%E3%81%B4%E3%82%8D%E3%81%97%EF%BC%93/::ref/%E5%A0%85%E3%81%8D%E8%BB%9F%E5%BC%B1%E3%81%AE%E3%81%B4%E3%82%8D%E3%81%97%EF%BC%93.png.webp?rev=11cbddc5d8cce80ab4d271a8816c0a0f&t=20130622190221",
+  "og": "N"
+ },
+ {
+  "id": "og-heavy-011",
+  "name": "カール",
+  "type": "heavy",
+  "rarity": "N",
+  "wiki_id": 5,
+  "image_url": "https://cdn.wikiwiki.jp/to/w/guildra/%E3%82%AB%E3%83%BC%E3%83%AB/::ref/%E3%82%AB%E3%83%BC%E3%83%AB.png.webp?rev=c004dd6627f6ecc3c583a46f56d814d8&t=20130124213332",
+  "og": "N"
+ },
+ {
+  "id": "og-light-009",
+  "name": "縁の下のグランディたち",
+  "type": "light",
+  "rarity": "N",
+  "wiki_id": 275,
+  "image_url": "https://cdn.wikiwiki.jp/to/w/guildra/%E7%B8%81%E3%81%AE%E4%B8%8B%E3%81%AE%E3%82%B0%E3%83%A9%E3%83%B3%E3%83%87%E3%82%A3%E3%81%9F%E3%81%A1/::ref/%E7%B8%81%E3%81%AE%E4%B8%8B%E3%81%AE%E3%82%B0%E3%83%A9%E3%83%B3%E3%83%87%E3%82%A3%E3%81%9F%E3%81%A1.png.webp?rev=0963276a1f9b535077aef35abea0e66f&t=20130701231425",
+  "og": "N"
+ },
+ {
+  "id": "og-light-010",
+  "name": "管理外領域のアロン",
+  "type": "light",
+  "rarity": "N",
+  "wiki_id": 281,
+  "image_url": "https://cdn.wikiwiki.jp/to/w/guildra/%E7%AE%A1%E7%90%86%E5%A4%96%E9%A0%98%E5%9F%9F%E3%81%AE%E3%82%A2%E3%83%AD%E3%83%B3/::ref/%E7%AE%A1%E7%90%86%E5%A4%96%E9%A0%98%E5%9F%9F%E3%81%AE%E3%82%A2%E3%83%AD%E3%83%B3.png.webp?rev=7220878001673c26374e442a235812a8&t=20130919221130",
+  "og": "N"
+ },
+ {
+  "id": "og-light-011",
+  "name": "遠乗りのオーヴァン",
+  "type": "light",
+  "rarity": "N",
+  "wiki_id": 270,
+  "image_url": "https://cdn.wikiwiki.jp/to/w/guildra/%E9%81%A0%E4%B9%97%E3%82%8A%E3%81%AE%E3%82%AA%E3%83%BC%E3%83%B4%E3%82%A1%E3%83%B3/::ref/%E9%81%A0%E4%B9%97%E3%82%8A%E3%81%AE%E3%82%AA%E3%83%BC%E3%83%B4%E3%82%A1%E3%83%B3.png.webp?rev=b10f5e3df58b534c8ce3450f1e74d33a&t=20130508184539",
+  "og": "N"
+ },
+ {
+  "id": "og-magic-009",
+  "name": "はいね",
+  "type": "magic",
+  "rarity": "N",
+  "wiki_id": 506,
+  "image_url": "https://cdn.wikiwiki.jp/to/w/guildra/%E3%81%AF%E3%81%84%E3%81%AD/::ref/%E3%81%AF%E3%81%84%E3%81%AD.png.webp?rev=17b868c73590adf38c9e4950c63a2a95&t=20130123112535",
+  "og": "N"
+ },
+ {
+  "id": "og-magic-010",
+  "name": "ラビオリ",
+  "type": "magic",
+  "rarity": "N",
+  "wiki_id": 507,
+  "image_url": "https://cdn.wikiwiki.jp/to/w/guildra/%E3%83%A9%E3%83%93%E3%82%AA%E3%83%AA/::ref/%E3%83%A9%E3%83%93%E3%82%AA%E3%83%AA.png.webp?rev=3ace67ebbbf118d7499aeed11308c460&t=20130123112654",
+  "og": "N"
+ }
+]

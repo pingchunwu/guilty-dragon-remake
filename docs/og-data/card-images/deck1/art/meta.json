@@ -1,0 +1,162 @@
+{
+ "og-heavy-001": {
+  "seed": 1000,
+  "denoise": 0.6,
+  "seconds": 116.117
+ },
+ "og-heavy-002": {
+  "seed": 1001,
+  "denoise": 0.6,
+  "seconds": 85.029
+ },
+ "og-heavy-003": {
+  "seed": 1002,
+  "denoise": 0.6,
+  "seconds": 81.839
+ },
+ "og-heavy-004": {
+  "seed": 1003,
+  "denoise": 0.6,
+  "seconds": 82.043
+ },
+ "og-heavy-005": {
+  "seed": 1004,
+  "denoise": 0.6,
+  "seconds": 82.017
+ },
+ "og-heavy-006": {
+  "seed": 1005,
+  "denoise": 0.6,
+  "seconds": 80.75
+ },
+ "og-heavy-007": {
+  "seed": 1006,
+  "denoise": 0.6,
+  "seconds": 80.678
+ },
+ "og-heavy-008": {
+  "seed": 1007,
+  "denoise": 0.6,
+  "seconds": 80.758
+ },
+ "og-light-001": {
+  "seed": 1008,
+  "denoise": 0.6,
+  "seconds": 83.85
+ },
+ "og-light-002": {
+  "seed": 1009,
+  "denoise": 0.6,
+  "seconds": 91.841
+ },
+ "og-light-003": {
+  "seed": 1010,
+  "denoise": 0.6,
+  "seconds": 80.723
+ },
+ "og-light-004": {
+  "seed": 1011,
+  "denoise": 0.6,
+  "seconds": 80.054
+ },
+ "og-light-005": {
+  "seed": 1012,
+  "denoise": 0.6,
+  "seconds": 80.657
+ },
+ "og-light-006": {
+  "seed": 1013,
+  "denoise": 0.6,
+  "seconds": 79.958
+ },
+ "og-light-007": {
+  "seed": 1014,
+  "denoise": 0.6,
+  "seconds": 77.614
+ },
+ "og-light-008": {
+  "seed": 1015,
+  "denoise": 0.6,
+  "seconds": 76.872
+ },
+ "og-magic-001": {
+  "seed": 1016,
+  "denoise": 0.6,
+  "seconds": 76.975
+ },
+ "og-magic-002": {
+  "seed": 1017,
+  "denoise": 0.6,
+  "seconds": 77.598
+ },
+ "og-magic-003": {
+  "seed": 1018,
+  "denoise": 0.6,
+  "seconds": 76.629
+ },
+ "og-magic-004": {
+  "seed": 1019,
+  "denoise": 0.6,
+  "seconds": 76.909
+ },
+ "og-magic-005": {
+  "seed": 1020,
+  "denoise": 0.6,
+  "seconds": 76.031
+ },
+ "og-magic-006": {
+  "seed": 1021,
+  "denoise": 0.6,
+  "seconds": 75.793
+ },
+ "og-magic-007": {
+  "seed": 1022,
+  "denoise": 0.6,
+  "seconds": 76.624
+ },
+ "og-magic-008": {
+  "seed": 1023,
+  "denoise": 0.6,
+  "seconds": 76.693
+ },
+ "og-heavy-009": {
+  "seed": 1024,
+  "denoise": 0.6,
+  "seconds": 76.679
+ },
+ "og-heavy-010": {
+  "seed": 1025,
+  "denoise": 0.6,
+  "seconds": 76.569
+ },
+ "og-heavy-011": {
+  "seed": 1026,
+  "denoise": 0.6,
+  "seconds": 76.618
+ },
+ "og-light-009": {
+  "seed": 1027,
+  "denoise": 0.6,
+  "seconds": 76.689
+ },
+ "og-light-010": {
+  "seed": 1028,
+  "denoise": 0.6,
+  "seconds": 79.972
+ },
+ "og-light-011": {
+  "seed": 1029,
+  "denoise": 0.6,
+  "seconds": 96.26
+ },
+ "og-magic-009": {
+  "seed": 1030,
+  "denoise": 0.6,
+  "seconds": 94.495
+ },
+ "og-magic-010": {
+  "seed": 1031,
+  "denoise": 0.6,
+  "seconds": 96.464
+ }
+}

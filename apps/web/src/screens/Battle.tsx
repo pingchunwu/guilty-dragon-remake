@@ -14,6 +14,7 @@ import {
 import type { Content } from "../game/content";
 import type { PlayerState } from "../game/types";
 import type { SideLabels } from "./BattleParts";
+import { ConfirmDialog } from "./BattleParts";
 import { Duel } from "./Duel";
 import { hpAfterSkills } from "./Playback";
 
@@ -48,6 +49,7 @@ export function Battle({ content, state: player, onActive }: Props) {
   // HP before the phase now replaying; the bars move when the playback ends.
   const [hpBefore, setHpBefore] = useState<Record<SideId, number> | null>(null);
   const onReplayDone = useCallback(() => setHpBefore(null), []);
+  const [asking, setAsking] = useState(false);
   const onSkills = () => setHpBefore((h) => (h && last ? hpAfterSkills(h, last) : h));
   useEffect(() => {
     onActive(battle !== null);
@@ -108,8 +110,11 @@ export function Battle({ content, state: player, onActive }: Props) {
     setLast(step.result);
   }
 
-  function leave() {
-    if (battle?.status !== "active" || window.confirm("離開練習對戰？這場不會保存。")) setBattle(null);
+  // The engine has no forfeit, so surrender ends the battle here: the defender wins and the replay stops.
+  function surrender() {
+    setAsking(false);
+    setHpBefore(null);
+    setBattle({ ...battle!, status: "defender_won" });
   }
 
   const over = battle.status !== "active";
@@ -120,10 +125,13 @@ export function Battle({ content, state: player, onActive }: Props) {
     <section className="battle-screen">
       <div className="row between small">
         <strong>練習對戰 · {over && !replaying ? "結束" : `第 ${last && replaying ? last.phase : battle.phase} 階段`}</strong>
-        <button type="button" className="link" onClick={leave}>
-          離開
-        </button>
+        {!over && (
+          <button type="button" className="link" onClick={() => setAsking(true)}>
+            投降
+          </button>
+        )}
       </div>
+      {asking && !over && <ConfirmDialog message="確定要投降嗎？" confirmLabel="投降" onConfirm={surrender} onCancel={() => setAsking(false)} />}
       <Duel
         key={round}
         labels={SIDE_LABEL}
