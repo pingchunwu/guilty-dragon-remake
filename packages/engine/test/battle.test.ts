@@ -486,6 +486,15 @@ describe("rule 0.7.0-draft", () => {
     expect(armored.damage).toBe(621); // 900 × 69%
   });
 
+  it("reports the weapon after power skills as skillWeapon without changing the attack", () => {
+    const c = fixture([["h", "heavy", 1000, 0, "power-up-1"], ["g", "heavy", 100, 0], ...many("x", "magic", 12)]);
+    const run = (leader: string) =>
+      resolvePhase(v07(stateWith({ ...side([leader], ids("x", 6)), equipment: armed }, side(["g"], ids("x", 12).slice(6)))), { leader, supports: [] }, c, RULES_V07).result.sides.challenger;
+    const boosted = run("h");
+    expect(boosted.skillWeapon).toBe(300 + 20);
+    expect(run("g").skillWeapon).toBe(300);
+  });
+
   const armed: Equipment = { ...equipment, heavy: weapon("heavy", 300), light: weapon("light", 200), magic: weapon("magic", 100) };
   const runOut = (s: SideState): SideState => ({ ...s, drawPile: [], discard: s.drawPile, ranOut: true });
   const handTotal = (s: SideState) => s.hand.reduce((sum, id) => sum + cards.get(id)!.attack, 0);

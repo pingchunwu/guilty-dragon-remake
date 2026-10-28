@@ -4,7 +4,7 @@ import type { PvpBattle, PvpHistoryEntry, PvpLobby, PvpPlayer, PvpService } from
 import { errorText } from "../game/text";
 import { GameError, type PlayerState } from "../game/types";
 import { DeckOutPanel, HandPicker, HpBar, isV07, type SideLabels } from "./BattleParts";
-import { PhaseBoard } from "./Playback";
+import { PhaseBoard, hpAfterSkills } from "./Playback";
 import { Duel } from "./Duel";
 
 /** Server grace after the deadline; matches game_config pvp_grace_seconds. */
@@ -305,6 +305,10 @@ function BattleView({ battle, player, busy, error, onPlay, onSurrender, onTimeou
   }
   const replaying = track.before !== null;
   const onReplayDone = useCallback(() => setTrack((t) => ({ ...t, before: null })), []);
+  const onSkills = () => {
+    const shown = battle.last;
+    if (shown) setTrack((t) => (t.before ? { ...t, before: hpAfterSkills(t.before, shown) } : t));
+  };
   const hpOf = (id: SideId) => track.before?.[id] ?? battle.hp[id];
   const endPanel = (
     <div className="panel stack">
@@ -370,6 +374,7 @@ function BattleView({ battle, player, busy, error, onPlay, onSurrender, onTimeou
             equipment={battle.equipment}
             animate={replaying}
             onDone={onReplayDone}
+            onSkills={onSkills}
           />
           <HpBar label={labels.challenger} hp={hpOf("challenger")} equipment={battle.equipment.challenger} rules={rules} />
           {error && <p className="error">{error}</p>}

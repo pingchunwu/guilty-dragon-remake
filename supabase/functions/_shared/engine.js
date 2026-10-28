@@ -1396,7 +1396,9 @@ function resolvePhase(state, selection, cards, rules) {
       const ownFlat = total(mine, (e) => e.kind === "board" && e.colour === "same") * (played.length - 1) + total(mine, (e) => e.kind === "board" && e.colour === "other") * blocks + Math.floor(hpCost * ratio);
       const enemyPercent = total(theirs, (e) => e.kind === "power" && e.target === "enemy" && e.unit === "pct");
       const enemyFlat = total(theirs, (e) => e.kind === "power" && e.target === "enemy" && e.unit === "flat");
-      const withSkills = (pct, weaponFlat) => attackWith(Math.max(0, Math.floor(weaponAttack * (100 + pct) / 100) + weaponFlat)) + ownFlat;
+      const weaponWith = (pct, weaponFlat) => Math.max(0, Math.floor(weaponAttack * (100 + pct) / 100) + weaponFlat);
+      const withSkills = (pct, weaponFlat) => attackWith(weaponWith(pct, weaponFlat)) + ownFlat;
+      const skillWeapon = weaponWith(ownPercent - enemyPercent, ownWeaponFlat - enemyFlat);
       const attack = withSkills(ownPercent - enemyPercent, ownWeaponFlat - enemyFlat);
       const ownAttack = withSkills(ownPercent, ownWeaponFlat);
       const defensePercent = total(mine, (e) => e.kind === "defense" && e.target === "self") - Math.floor(total(mine, (e) => e.kind === "reckless") / 4) - total(theirs, (e) => e.kind === "defense" && e.target === "enemy");
@@ -1424,6 +1426,7 @@ function resolvePhase(state, selection, cards, rules) {
         advantageMultiplier: advantage[id],
         advantage: advantage[id] > 1,
         weaponAttack,
+        skillWeapon,
         skillAttack: attack - chainAttack,
         enemySkillAttack: attack - ownAttack,
         attack,
