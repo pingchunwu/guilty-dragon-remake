@@ -533,10 +533,12 @@ p.error {
 
 @media (prefers-reduced-motion: reduce) {
   .hp-fill,
-  .weapon {
+  .weapon,
+  .capsule {
     transition: none;
   }
 
+  .prompt-banner,
   .skill-burst,
   .burst-icon,
   .burst-line,
@@ -740,19 +742,506 @@ p.error {
 }
 
 .weapon {
-  padding: 0 5px;
-  border: 1px solid;
-  border-radius: 4px;
-  opacity: 0.35;
-  filter: grayscale(1);
-  font-variant-numeric: tabular-nums;
-  transition: opacity 0.3s ease, filter 0.3s ease;
+    transition: none;
+  }
+
+  .skill-burst,
+  .burst-icon,
+  .burst-line,
+  .card-toast,
+  .chip-fresh,
+  .chip-counted {
+    animation: none;
+  }
 }
 
 .weapon-lit {
   opacity: 1;
   filter: none;
   font-weight: 700;
+}
+
+/* The OG's weapon capsules: the lit one carries the running total. */
+.capsules {
+  display: flex;
+  flex: 1;
+  gap: 4px;
+}
+
+.capsule {
+  flex: 1;
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  min-height: 28px;
+  padding: 2px 6px;
+  /* Longhands, so the card-<type> class sets the colour. */
+  border-width: 2px;
+  border-style: solid;
+  border-radius: 999px;
+  background: var(--panel-2);
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.35;
+  filter: grayscale(1);
+  transition: opacity 0.3s ease, filter 0.3s ease, flex-grow 0.3s ease;
+}
+
+.capsule-lit {
+  flex-grow: 2;
+  opacity: 1;
+  filter: none;
+  box-shadow: 0 0 10px rgb(217 180 90 / 35%);
+}
+
+/* inline-block so GSAP can scale the number. */
+.count-up {
+  display: inline-block;
+}
+
+/*
+ * 0.7.0 duel (Duel.tsx): one fixed grid, so nothing moves or changes height while a phase
+ * plays (opponent strip, opponent row, stage, your HP, banner slot, hand, info line).
+ */
+.duel {
+  grid-row: 2 / -1;
+  position: relative;
+  display: grid;
+  grid-template-rows: auto 40px minmax(0, 1fr) auto 30px auto 20px;
+  gap: 6px;
+  min-height: 0;
+}
+
+.duel > * {
+  min-width: 0;
+}
+
+.duel-opp,
+.duel-opp-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.duel-opp .hp {
+  flex: 1;
+}
+
+/* The opponent's deck left, as the OG's small pile by the enemy HP. */
+.mini-pile {
+  flex: none;
+  min-width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--line);
+  border-radius: 6px;
+  background: repeating-linear-gradient(45deg, var(--panel-2) 0 5px, var(--panel) 5px 10px);
+  box-shadow: 2px 2px 0 var(--panel-2);
+  font-size: 0.8rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.opp-chips {
+  flex: 1;
+  display: flex;
+  gap: 3px;
+  min-width: 0;
+}
+
+.opp-chips .chip-card {
+  height: 34px;
+}
+
+.opp-total {
+  flex: none;
+  min-width: 84px;
+}
+
+.duel-stage {
+  position: relative;
+  display: grid;
+  align-content: center;
+  gap: 8px;
+  min-height: 0;
+}
+
+.banner-slot .prompt-banner {
+  height: 30px;
+  display: flex;
+  align-items: center;
+}
+
+.banner-slot .prompt-final {
+  border-left-color: #e0303a;
+  background: linear-gradient(90deg, rgb(224 48 58 / 35%), transparent);
+}
+
+.info-line {
+  margin: 0;
+  line-height: 20px;
+}
+
+/*
+ * The charge row: picks stack overlapping (leader first), and in the playback the draws
+ * join the same row. Up to 10 cards fit by tightening the step; the deck pile sits beside it.
+ */
+.charge-line {
+  container-type: inline-size;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.charge-row {
+  flex: 1;
+  display: flex;
+  min-width: 0;
+  min-height: 18cqw;
+}
+
+.charge-slot {
+  position: relative;
+  flex: 0 0 min(18cqw, calc((82cqw - 8px - 18cqw) / max(1, var(--n) - 1)));
+}
+
+.charge-slot:last-child {
+  flex-basis: 18cqw;
+}
+
+.charge-slot .bcard {
+  width: 18cqw;
+}
+
+/* The phase opens on both leaders and their skills (Duel.tsx REVEAL_MS). */
+.reveal {
+  position: absolute;
+  inset: 0;
+  z-index: 15;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 18px;
+  padding: 16px;
+  border-radius: 12px;
+  background: rgb(13 11 18 / 90%);
+  cursor: pointer;
+}
+
+.reveal-side {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  max-width: 380px;
+}
+
+.reveal-side-defender {
+  flex-direction: row-reverse;
+  text-align: right;
+}
+
+.reveal-card {
+  flex: 0 0 40%;
+}
+
+.deck-pile {
+  flex: 0 0 18cqw;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: end;
+  padding: 4px 6px;
+  border: 2px solid var(--line);
+  border-radius: 8px;
+  background: repeating-linear-gradient(45deg, var(--panel-2) 0 6px, var(--panel) 6px 12px);
+  box-shadow: 3px 3px 0 var(--panel-2), 6px 6px 0 var(--bg);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+ * The OG square battle card (BattleCard.tsx). Layers mirror docs/art-samples/og-sample.html,
+ * so the art and frame images can replace .bcard-art and .bcard-frame later.
+ */
+.bcard {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: var(--panel-2);
+  color: var(--text);
+  font: inherit;
+  -webkit-touch-callout: none;
+  user-select: none;
+  will-change: transform;
+}
+
+.bcard > span {
+  position: absolute;
+}
+
+.bcard-art {
+  inset: 3%;
+  display: grid;
+  place-items: start center;
+  padding: 22% 6% 0;
+  border-radius: 4px;
+  background: linear-gradient(160deg, var(--panel), var(--panel-2));
+  font-size: 0.62rem;
+  line-height: 1.15;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  color: var(--muted);
+}
+
+.bcard-frame {
+  inset: 0;
+  border: 3px solid var(--line);
+  border-radius: 6px;
+}
+
+.bcard.card-heavy {
+  --type: var(--heavy);
+}
+
+.bcard.card-light {
+  --type: var(--light);
+}
+
+.bcard.card-magic {
+  --type: var(--magic);
+}
+
+.bcard .bcard-frame {
+  border-color: var(--type);
+}
+
+.bcard-gem {
+  left: 4%;
+  top: 4%;
+  width: 16%;
+  height: 16%;
+  border-radius: 50%;
+  background: var(--type);
+  box-shadow: inset 0 0 0 2px rgb(255 255 255 / 35%);
+}
+
+.bcard-skill {
+  right: -2%;
+  top: -2%;
+  width: 26%;
+  height: 26%;
+  display: grid;
+  place-items: center;
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+  background: #e6c200;
+  color: #111;
+  font-size: 0.6rem;
+  font-weight: 700;
+}
+
+.bcard-num {
+  right: 6%;
+  bottom: 10%;
+  display: grid;
+  justify-items: end;
+  line-height: 0.9;
+  font-style: italic;
+  text-shadow: 0 1px 0 #000, 0 0 4px #000;
+}
+
+.bcard-num b {
+  font-size: 1.25rem;
+  font-weight: 900;
+}
+
+.bcard-num small {
+  font-size: 0.5rem;
+  font-weight: 700;
+}
+
+.bcard-stars {
+  left: 0;
+  right: 0;
+  bottom: 1%;
+  text-align: center;
+  font-size: 0.5rem;
+  letter-spacing: -0.05em;
+  color: #ffd23a;
+}
+
+/* Same-colour cards glow once the leader is chosen (they will charge). */
+.bcard-charge {
+  box-shadow: 0 0 0 2px var(--accent), 0 0 10px rgb(217 180 90 / 45%);
+}
+
+.bcard-leader {
+  box-shadow: 0 0 0 2px var(--accent);
+}
+
+.bcard-blocked {
+  filter: grayscale(0.7) brightness(0.7);
+}
+
+.bcard-pending {
+  opacity: 0.55;
+}
+
+.bcard-counted {
+  box-shadow: 0 0 0 2px var(--accent), 0 0 10px rgb(217 180 90 / 45%);
+}
+
+.bcard-purged {
+  opacity: 0.3;
+  filter: grayscale(1);
+}
+
+/* POW above the big DRAW while choosing the leader. */
+.bcard-num .bcard-pow {
+  font-size: 0.55rem;
+  font-style: normal;
+}
+
+.bcard-gone,
+.hand-grid.undealt .bcard {
+  visibility: hidden;
+}
+
+.capsule-value {
+  display: inline-block;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.prompt-banner {
+  padding: 4px 10px;
+  border-left: 3px solid var(--accent);
+  background: linear-gradient(90deg, rgb(217 180 90 / 22%), transparent);
+  font-weight: 700;
+  animation: banner-in 0.3s ease-out both;
+}
+
+@keyframes banner-in {
+  from {
+    opacity: 0;
+    transform: translateX(-16px);
+  }
+}
+
+/* 0.7.0: the OG attack cut-in, animated by GSAP in Playback.tsx (AttackScene). */
+.attack-scene {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  overflow: hidden;
+  background: radial-gradient(circle at 50% 45%, #3a1f2e, #0d0b12 70%);
+  cursor: pointer;
+}
+
+.scene-stage {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-rows: auto 1fr auto auto 1fr auto;
+  justify-items: center;
+  max-width: 520px;
+  margin: 0 auto;
+}
+
+.scene-bar {
+  justify-self: stretch;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: max(12px, env(safe-area-inset-top)) 16px 12px;
+  background: rgb(0 0 0 / 55%);
+  border-bottom: 2px solid var(--line);
+  font-size: 0.85rem;
+}
+
+.scene-bar > :first-child {
+  flex: 1;
+}
+
+.scene-bar-bottom {
+  grid-row: 6;
+  padding: 12px 16px max(12px, env(safe-area-inset-bottom));
+  border-top: 2px solid var(--line);
+  border-bottom: 0;
+}
+
+.scene-bar-won {
+  border-color: var(--accent);
+}
+
+.scene-stat {
+  font-size: 1.1rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.scene-bar-won .scene-stat {
+  color: var(--accent);
+}
+
+.scene-banner {
+  grid-row: 3;
+  justify-self: stretch;
+  padding: 8px 20px;
+  background: linear-gradient(90deg, #b3202a, #b3202a 70%, transparent);
+  font-size: 1.3rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.scene-attacker {
+  grid-row: 4;
+  margin-top: 12px;
+  padding: 6px 14px;
+  border: 2px solid;
+  border-radius: 8px;
+  background: var(--panel);
+  font-weight: 700;
+}
+
+.scene-damage {
+  grid-row: 5;
+  align-self: center;
+  display: grid;
+  justify-items: center;
+  font-size: 3.2rem;
+  font-weight: 900;
+  color: #ffe08a;
+  text-shadow: 0 0 18px rgb(255 120 60 / 70%), 0 3px 0 #7a2410;
+  font-variant-numeric: tabular-nums;
+}
+
+.scene-damage small {
+  font-size: 0.9rem;
+  text-shadow: none;
+}
+
+/* The red diagonal slash that wipes the cut-in in. */
+.scene-slash {
+  position: absolute;
+  top: -20%;
+  bottom: -20%;
+  left: 0;
+  width: 100%;
+  background: linear-gradient(100deg, transparent 30%, #e0303a 45%, #ff8a6a 50%, #e0303a 55%, transparent 70%);
+  pointer-events: none;
+}
+
+.scene-flash {
+  position: absolute;
+  inset: 0;
+  background: #fff;
+  opacity: 0;
+  pointer-events: none;
 }
 
 .hand-grid {
