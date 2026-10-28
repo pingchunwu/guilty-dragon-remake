@@ -5,7 +5,7 @@ var WEAPON_KINDS = ["heavy", "light", "magic"];
 var ARMOR_KINDS = ["head", "body", "legs", "back"];
 var ITEM_KINDS = [...WEAPON_KINDS, ...ARMOR_KINDS];
 
-var RARITIES = ["N", "R", "SR"];
+var RARITIES = ["N", "R", "SR", "SSR"];
 var ALL_TYPES = ["heavy", "light", "magic"];
 var s = (id, name, original, maxLevel, timing, effect, value, perLevel = maxLevel > 1) => ({ id, name, original, maxLevel, timing, effect, value, perLevel });
 var tiers = (id, name, original, values, timing, effect, maxLevels = values.map(() => 10)) => values.map(
@@ -435,18 +435,18 @@ var OG_CARDS = [
   { "id": "og-heavy-232", "name": "\u5922\u60F3\u306E\u30D5\u30E9\u30C3\u30C8\u30EC\u30FC", "type": "heavy", "attack": 1075, "draw": 4, "rarity": "SR", "skill": "pincer" },
   { "id": "og-heavy-233", "name": "\u653E\u6D6A\u306E\u78A7", "type": "heavy", "attack": 1050, "draw": 5, "rarity": "SR", "skill": "mikiri" },
   { "id": "og-heavy-234", "name": "\u30D9\u30B9\u30C8\u30D1\u30FC\u30C8\u30CA\u30FC", "type": "heavy", "attack": 750, "draw": 3, "rarity": "SR", "skill": "pincer" },
-  { "id": "og-heavy-235", "name": "\u304A\u305F\u3059\u3051\u3075\u3089\u3063\u3068\u308C\u30FC", "type": "heavy", "attack": 2070, "draw": 1, "rarity": "SR", "skill": "regal" },
-  { "id": "og-heavy-236", "name": "\u7891\u6587\u4F7F\u3044\u305F\u3061", "type": "heavy", "attack": 2010, "draw": 5, "rarity": "SR", "skill": "soul-armor" },
-  { "id": "og-heavy-237", "name": "\u30B9\u30A4\u30FC\u30C8\u30FB\u30B9\u30A6\u30A7\u30C3\u30C8", "type": "heavy", "attack": 2010, "draw": 5, "rarity": "SR", "skill": "pursuit" },
-  { "id": "og-heavy-238", "name": "\u707C\u7D05\u899A\u9192\u306E\u30A8\u30EC\u30DF\u30A2", "type": "heavy", "attack": 1950, "draw": 5, "rarity": "SR", "skill": "soul-breath" },
-  { "id": "og-heavy-239", "name": "\u65E5\u713C\u3051\u8DE1\u306E\u30F4\u30A3\u30EB", "type": "heavy", "attack": 1950, "draw": 5, "rarity": "SR", "skill": "war-hammer" },
-  { "id": "og-heavy-240", "name": "\u590F\u796D\u308A\u306E\u304A\u5B9D", "type": "heavy", "attack": 1950, "draw": 5, "rarity": "SR", "skill": "healing-water-4" },
-  { "id": "og-heavy-241", "name": "\u6483\u7834\u305B\u3057\u30D5\u30E9\u30C3\u30C8\u30EC\u30FC", "type": "heavy", "attack": 1950, "draw": 5, "rarity": "SR", "skill": "elitism-3" },
-  { "id": "og-heavy-242", "name": "\u30AA\u30A2\u30B7\u30B9\u306E\u8987\u8005\u30CF\u30BB\u30F2", "type": "heavy", "attack": 1890, "draw": 5, "rarity": "SR", "skill": "last-stand" },
-  { "id": "og-heavy-243", "name": "\u7834\u90AA\u306E\u30D5\u30E9\u30C3\u30C8\u30EC\u30FC", "type": "heavy", "attack": 1830, "draw": 5, "rarity": "SR", "skill": "armor-pierce" },
-  { "id": "og-heavy-244", "name": "\u822A\u6D77\u9577\u30D5\u30E9\u30C3\u30C8\u30EC\u30FC", "type": "heavy", "attack": 1770, "draw": 4, "rarity": "SR", "skill": "strategy-crush" },
-  { "id": "og-heavy-245", "name": "\u52A0\u6E1B\u77E5\u3089\u305A\u306E\u30A4\u30EA\u30A2", "type": "heavy", "attack": 1530, "draw": 5, "rarity": "SR", "skill": "purge-3" },
-  { "id": "og-heavy-246", "name": "\u82F1\u5091\u59EB\u30D6\u30E9\u30C3\u30AF\u30ED\u30FC\u30BA", "type": "heavy", "attack": 1410, "draw": 5, "rarity": "SR", "skill": "mind-eye" },
+  { "id": "og-heavy-235", "name": "\u304A\u305F\u3059\u3051\u3075\u3089\u3063\u3068\u308C\u30FC", "type": "heavy", "attack": 2070, "draw": 1, "rarity": "SSR", "skill": "regal" },
+  { "id": "og-heavy-236", "name": "\u7891\u6587\u4F7F\u3044\u305F\u3061", "type": "heavy", "attack": 2010, "draw": 5, "rarity": "SSR", "skill": "soul-armor" },
+  { "id": "og-heavy-237", "name": "\u30B9\u30A4\u30FC\u30C8\u30FB\u30B9\u30A6\u30A7\u30C3\u30C8", "type": "heavy", "attack": 2010, "draw": 5, "rarity": "SSR", "skill": "pursuit" },
+  { "id": "og-heavy-238", "name": "\u707C\u7D05\u899A\u9192\u306E\u30A8\u30EC\u30DF\u30A2", "type": "heavy", "attack": 1950, "draw": 5, "rarity": "SSR", "skill": "soul-breath" },
+  { "id": "og-heavy-239", "name": "\u65E5\u713C\u3051\u8DE1\u306E\u30F4\u30A3\u30EB", "type": "heavy", "attack": 1950, "draw": 5, "rarity": "SSR", "skill": "war-hammer" },
+  { "id": "og-heavy-240", "name": "\u590F\u796D\u308A\u306E\u304A\u5B9D", "type": "heavy", "attack": 1950, "draw": 5, "rarity": "SSR", "skill": "healing-water-4" },
+  { "id": "og-heavy-241", "name": "\u6483\u7834\u305B\u3057\u30D5\u30E9\u30C3\u30C8\u30EC\u30FC", "type": "heavy", "attack": 1950, "draw": 5, "rarity": "SSR", "skill": "elitism-3" },
+  { "id": "og-heavy-242", "name": "\u30AA\u30A2\u30B7\u30B9\u306E\u8987\u8005\u30CF\u30BB\u30F2", "type": "heavy", "attack": 1890, "draw": 5, "rarity": "SSR", "skill": "last-stand" },
+  { "id": "og-heavy-243", "name": "\u7834\u90AA\u306E\u30D5\u30E9\u30C3\u30C8\u30EC\u30FC", "type": "heavy", "attack": 1830, "draw": 5, "rarity": "SSR", "skill": "armor-pierce" },
+  { "id": "og-heavy-244", "name": "\u822A\u6D77\u9577\u30D5\u30E9\u30C3\u30C8\u30EC\u30FC", "type": "heavy", "attack": 1770, "draw": 4, "rarity": "SSR", "skill": "strategy-crush" },
+  { "id": "og-heavy-245", "name": "\u52A0\u6E1B\u77E5\u3089\u305A\u306E\u30A4\u30EA\u30A2", "type": "heavy", "attack": 1530, "draw": 5, "rarity": "SSR", "skill": "purge-3" },
+  { "id": "og-heavy-246", "name": "\u82F1\u5091\u59EB\u30D6\u30E9\u30C3\u30AF\u30ED\u30FC\u30BA", "type": "heavy", "attack": 1410, "draw": 5, "rarity": "SSR", "skill": "mind-eye" },
   { "id": "og-light-001", "name": "\u8A87\u308A\u9AD8\u304D\u5929\u72FC", "type": "light", "attack": 800, "draw": 2, "rarity": "N", "skill": "friend-mail" },
   { "id": "og-light-002", "name": "\u30B8\u30A2\u30CF\u30FC\u30C8", "type": "light", "attack": 720, "draw": 1, "rarity": "N", "skill": "ambush-1" },
   { "id": "og-light-003", "name": "\u9CF3\u82B1", "type": "light", "attack": 720, "draw": 2, "rarity": "N", "skill": "power-up-1" },
@@ -679,17 +679,17 @@ var OG_CARDS = [
   { "id": "og-light-230", "name": "\u91D1\u9B5A\u72E9\u4EBA\u306E\u30AB\u30A4\u30C8", "type": "light", "attack": 1075, "draw": 4, "rarity": "SR", "skill": "pincer" },
   { "id": "og-light-231", "name": "\u72EC\u58C7\u5834\u306E\u30D9\u30EB", "type": "light", "attack": 1025, "draw": 4, "rarity": "SR", "skill": "pincer" },
   { "id": "og-light-232", "name": "\u9B54\u6027\u306E\u3054\u30FC\u3058\u3083\u3059\u72FC", "type": "light", "attack": 775, "draw": 4, "rarity": "SR", "skill": "pincer" },
-  { "id": "og-light-233", "name": "\u30C9\u30C3\u30C8\u30CF\u30C3\u30AB\u30FC\u30BA", "type": "light", "attack": 2010, "draw": 5, "rarity": "SR", "skill": "soul-armor" },
-  { "id": "og-light-234", "name": "\u964D\u9B54\u5343\u5203\u306E\u4E03\u6D77", "type": "light", "attack": 2010, "draw": 5, "rarity": "SR", "skill": "war-hammer" },
-  { "id": "og-light-235", "name": "\u9583\u7FE0\u899A\u9192\u306E\u72FC", "type": "light", "attack": 1950, "draw": 5, "rarity": "SR", "skill": "pursuit" },
-  { "id": "og-light-236", "name": "\u6708\u3092\u72E9\u308B\u30AB\u30A4\u30C8", "type": "light", "attack": 1950, "draw": 5, "rarity": "SR", "skill": "healing-water-4" },
-  { "id": "og-light-237", "name": "\u30DE\u30FC\u30E1\u30A4\u30C9\u30FB\u4E03\u6D77", "type": "light", "attack": 1890, "draw": 5, "rarity": "SR", "skill": "last-stand" },
-  { "id": "og-light-238", "name": "\u7D2B\u96FB\u5203\u306E\u306A\u3064\u3081", "type": "light", "attack": 1830, "draw": 5, "rarity": "SR", "skill": "armor-pierce" },
-  { "id": "og-light-239", "name": "\u30C1\u30E5\u30FC\u30D6\u30E9\u30A4\u30C9\u30FB\u30D9\u30EB", "type": "light", "attack": 1830, "draw": 5, "rarity": "SR", "skill": "pincer" },
-  { "id": "og-light-240", "name": "\u590F\u54B2\u304D\u83EF\u304B\u308A\u3093", "type": "light", "attack": 1830, "draw": 5, "rarity": "SR", "skill": "elitism-3" },
-  { "id": "og-light-241", "name": "\u7E2E\u5730\u306E\u9006\u5F71", "type": "light", "attack": 1830, "draw": 4, "rarity": "SR", "skill": "strategy-crush" },
-  { "id": "og-light-242", "name": "\u5A01\u5727\u306E\u5203", "type": "light", "attack": 1410, "draw": 5, "rarity": "SR", "skill": "mind-eye" },
-  { "id": "og-light-243", "name": "\u6D77\u306E\u62F3\u58EB\u51F0\u82B1", "type": "light", "attack": 1230, "draw": 3, "rarity": "SR", "skill": "encircle" },
+  { "id": "og-light-233", "name": "\u30C9\u30C3\u30C8\u30CF\u30C3\u30AB\u30FC\u30BA", "type": "light", "attack": 2010, "draw": 5, "rarity": "SSR", "skill": "soul-armor" },
+  { "id": "og-light-234", "name": "\u964D\u9B54\u5343\u5203\u306E\u4E03\u6D77", "type": "light", "attack": 2010, "draw": 5, "rarity": "SSR", "skill": "war-hammer" },
+  { "id": "og-light-235", "name": "\u9583\u7FE0\u899A\u9192\u306E\u72FC", "type": "light", "attack": 1950, "draw": 5, "rarity": "SSR", "skill": "pursuit" },
+  { "id": "og-light-236", "name": "\u6708\u3092\u72E9\u308B\u30AB\u30A4\u30C8", "type": "light", "attack": 1950, "draw": 5, "rarity": "SSR", "skill": "healing-water-4" },
+  { "id": "og-light-237", "name": "\u30DE\u30FC\u30E1\u30A4\u30C9\u30FB\u4E03\u6D77", "type": "light", "attack": 1890, "draw": 5, "rarity": "SSR", "skill": "last-stand" },
+  { "id": "og-light-238", "name": "\u7D2B\u96FB\u5203\u306E\u306A\u3064\u3081", "type": "light", "attack": 1830, "draw": 5, "rarity": "SSR", "skill": "armor-pierce" },
+  { "id": "og-light-239", "name": "\u30C1\u30E5\u30FC\u30D6\u30E9\u30A4\u30C9\u30FB\u30D9\u30EB", "type": "light", "attack": 1830, "draw": 5, "rarity": "SSR", "skill": "pincer" },
+  { "id": "og-light-240", "name": "\u590F\u54B2\u304D\u83EF\u304B\u308A\u3093", "type": "light", "attack": 1830, "draw": 5, "rarity": "SSR", "skill": "elitism-3" },
+  { "id": "og-light-241", "name": "\u7E2E\u5730\u306E\u9006\u5F71", "type": "light", "attack": 1830, "draw": 4, "rarity": "SSR", "skill": "strategy-crush" },
+  { "id": "og-light-242", "name": "\u5A01\u5727\u306E\u5203", "type": "light", "attack": 1410, "draw": 5, "rarity": "SSR", "skill": "mind-eye" },
+  { "id": "og-light-243", "name": "\u6D77\u306E\u62F3\u58EB\u51F0\u82B1", "type": "light", "attack": 1230, "draw": 3, "rarity": "SSR", "skill": "encircle" },
   { "id": "og-magic-001", "name": "\u4E16\u6E21\u308A\u3046\u3055\u304E\u306E\u30D0\u30CB\u30E9", "type": "magic", "attack": 800, "draw": 2, "rarity": "N", "skill": "friend-mail" },
   { "id": "og-magic-002", "name": "\u30D8\u30EB\u30D5\u30EC\u30A2", "type": "magic", "attack": 720, "draw": 2, "rarity": "N", "skill": "healing-water-2" },
   { "id": "og-magic-003", "name": "\u30A2\u30F3\u30CB\u30E5\u30A4\u5973\u6559\u5E2BBT", "type": "magic", "attack": 660, "draw": 3, "rarity": "N", "skill": "guard-1" },
@@ -919,21 +919,21 @@ var OG_CARDS = [
   { "id": "og-magic-227", "name": "\u6642\u64CD\u308A\u306E\u5239\u90A3", "type": "magic", "attack": 1075, "draw": 4, "rarity": "SR", "skill": "pincer" },
   { "id": "og-magic-228", "name": "\u798D\u7953\u3044\u306E\u30B3\u30B3\u30EC", "type": "magic", "attack": 1025, "draw": 5, "rarity": "SR", "skill": "mikiri" },
   { "id": "og-magic-229", "name": "\u6148\u611B\u306E\u5929\u4F7F\u30A2\u30C8\u30EA", "type": "magic", "attack": 825, "draw": 4, "rarity": "SR", "skill": "pincer" },
-  { "id": "og-magic-230", "name": "\u30A6\u30A9\u30FC\u30DF\u30F3\u30B0\u30A2\u30C3\u30D7\uFF01", "type": "magic", "attack": 2070, "draw": 1, "rarity": "SR", "skill": "regal" },
-  { "id": "og-magic-231", "name": "\u6D77\u8CCA\u697D\u58EB\u30D0\u30CB\u30E9", "type": "magic", "attack": 2010, "draw": 4, "rarity": "SR", "skill": "elitism-3" },
-  { "id": "og-magic-232", "name": "\u9EC4\u660F\u306E\u5146\u3057", "type": "magic", "attack": 2010, "draw": 5, "rarity": "SR", "skill": "soul-armor" },
-  { "id": "og-magic-233", "name": "\u9B54\u84BC\u899A\u9192\u306E\u30B3\u30B3\u30EC", "type": "magic", "attack": 1950, "draw": 5, "rarity": "SR", "skill": "healing-water-4" },
-  { "id": "og-magic-234", "name": "\u88F8\u8DB3\u306E\u5929\u4F7F\u30A2\u30C8\u30EA", "type": "magic", "attack": 1950, "draw": 5, "rarity": "SR", "skill": "pursuit" },
-  { "id": "og-magic-235", "name": "\u76F8\u514B\u306E\u5C11\u5E74\u30AF\u30D3\u30A2", "type": "magic", "attack": 1950, "draw": 5, "rarity": "SR", "skill": "soul-breath" },
-  { "id": "og-magic-236", "name": "\u546A\u970A\u9663\u306E\u30D0\u30E9\u30F3\u30B7\u30A2", "type": "magic", "attack": 1890, "draw": 5, "rarity": "SR", "skill": "compatriot" },
-  { "id": "og-magic-237", "name": "\u5E0C\u671B\u306E\u5FAE\u7B11\u307F", "type": "magic", "attack": 1890, "draw": 5, "rarity": "SR", "skill": "last-stand" },
-  { "id": "og-magic-238", "name": "\u7720\u308A\u59EB\u306E\u7948\u308A", "type": "magic", "attack": 1830, "draw": 5, "rarity": "SR", "skill": "mimic" },
-  { "id": "og-magic-239", "name": "\u7802\u57CE\u306E\u30D3\u30F3\u30C8", "type": "magic", "attack": 1830, "draw": 5, "rarity": "SR", "skill": "armor-pierce" },
-  { "id": "og-magic-240", "name": "\u7206\u846C\u30D0\u30CB\u30E9", "type": "magic", "attack": 1830, "draw": 4, "rarity": "SR", "skill": "strategy-crush" },
-  { "id": "og-magic-241", "name": "\u306F\u3063\u3061\u3083\u3051\u5927\u904B\u52D5\u4F1A", "type": "magic", "attack": 1830, "draw": 5, "rarity": "SR", "skill": "compatriot" },
-  { "id": "og-magic-242", "name": "\u7D2B\u82D1\u306E\u9280\u5F71", "type": "magic", "attack": 1590, "draw": 5, "rarity": "SR", "skill": "purge-3" },
-  { "id": "og-magic-243", "name": "\u6E05\u3089\u304B\u306A\u7948\u308A\u306E\u30D3\u30F3\u30C8", "type": "magic", "attack": 1410, "draw": 5, "rarity": "SR", "skill": "mind-eye" },
-  { "id": "og-magic-244", "name": "\u6708\u898B\u3067\u4E00\u676F\u306E\u5239\u90A3", "type": "magic", "attack": 1230, "draw": 4, "rarity": "SR", "skill": "encircle" }
+  { "id": "og-magic-230", "name": "\u30A6\u30A9\u30FC\u30DF\u30F3\u30B0\u30A2\u30C3\u30D7\uFF01", "type": "magic", "attack": 2070, "draw": 1, "rarity": "SSR", "skill": "regal" },
+  { "id": "og-magic-231", "name": "\u6D77\u8CCA\u697D\u58EB\u30D0\u30CB\u30E9", "type": "magic", "attack": 2010, "draw": 4, "rarity": "SSR", "skill": "elitism-3" },
+  { "id": "og-magic-232", "name": "\u9EC4\u660F\u306E\u5146\u3057", "type": "magic", "attack": 2010, "draw": 5, "rarity": "SSR", "skill": "soul-armor" },
+  { "id": "og-magic-233", "name": "\u9B54\u84BC\u899A\u9192\u306E\u30B3\u30B3\u30EC", "type": "magic", "attack": 1950, "draw": 5, "rarity": "SSR", "skill": "healing-water-4" },
+  { "id": "og-magic-234", "name": "\u88F8\u8DB3\u306E\u5929\u4F7F\u30A2\u30C8\u30EA", "type": "magic", "attack": 1950, "draw": 5, "rarity": "SSR", "skill": "pursuit" },
+  { "id": "og-magic-235", "name": "\u76F8\u514B\u306E\u5C11\u5E74\u30AF\u30D3\u30A2", "type": "magic", "attack": 1950, "draw": 5, "rarity": "SSR", "skill": "soul-breath" },
+  { "id": "og-magic-236", "name": "\u546A\u970A\u9663\u306E\u30D0\u30E9\u30F3\u30B7\u30A2", "type": "magic", "attack": 1890, "draw": 5, "rarity": "SSR", "skill": "compatriot" },
+  { "id": "og-magic-237", "name": "\u5E0C\u671B\u306E\u5FAE\u7B11\u307F", "type": "magic", "attack": 1890, "draw": 5, "rarity": "SSR", "skill": "last-stand" },
+  { "id": "og-magic-238", "name": "\u7720\u308A\u59EB\u306E\u7948\u308A", "type": "magic", "attack": 1830, "draw": 5, "rarity": "SSR", "skill": "mimic" },
+  { "id": "og-magic-239", "name": "\u7802\u57CE\u306E\u30D3\u30F3\u30C8", "type": "magic", "attack": 1830, "draw": 5, "rarity": "SSR", "skill": "armor-pierce" },
+  { "id": "og-magic-240", "name": "\u7206\u846C\u30D0\u30CB\u30E9", "type": "magic", "attack": 1830, "draw": 4, "rarity": "SSR", "skill": "strategy-crush" },
+  { "id": "og-magic-241", "name": "\u306F\u3063\u3061\u3083\u3051\u5927\u904B\u52D5\u4F1A", "type": "magic", "attack": 1830, "draw": 5, "rarity": "SSR", "skill": "compatriot" },
+  { "id": "og-magic-242", "name": "\u7D2B\u82D1\u306E\u9280\u5F71", "type": "magic", "attack": 1590, "draw": 5, "rarity": "SSR", "skill": "purge-3" },
+  { "id": "og-magic-243", "name": "\u6E05\u3089\u304B\u306A\u7948\u308A\u306E\u30D3\u30F3\u30C8", "type": "magic", "attack": 1410, "draw": 5, "rarity": "SSR", "skill": "mind-eye" },
+  { "id": "og-magic-244", "name": "\u6708\u898B\u3067\u4E00\u676F\u306E\u5239\u90A3", "type": "magic", "attack": 1230, "draw": 4, "rarity": "SSR", "skill": "encircle" }
 ];
 
 var PLACEHOLDER_CARDS = OG_CARDS;
@@ -944,7 +944,7 @@ var PLACEHOLDER_DEFAULT_DECK = {
   magic: ofType("magic").slice(0, 8),
   free: [...ofType("heavy").slice(8, 11), ...ofType("light").slice(8, 11), ...ofType("magic").slice(8, 10)]
 };
-var RARITY_WEIGHT = { N: 12, R: 5, SR: 2 };
+var RARITY_WEIGHT = { N: 12, R: 5, SR: 2, SSR: 1 };
 var PLACEHOLDER_POOL = {
   id: "pool-v2",
   entries: PLACEHOLDER_CARDS.map((c) => ({ id: c.id, weight: RARITY_WEIGHT[c.rarity] }))
