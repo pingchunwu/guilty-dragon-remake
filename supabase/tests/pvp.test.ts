@@ -200,7 +200,7 @@ describe("battles", () => {
   it("applies each phase once and validates the selection on the server", async () => {
     const view = await start(ALICE, BOB);
     const [leader, ...rest] = view.hand as string[];
-    await expect(call(ALICE, { action: "play", phase: 1, selection: { leader: "ph-magic-16", supports: rest.slice(0, 4) } }))
+    await expect(call(ALICE, { action: "play", phase: 1, selection: { leader: PLACEHOLDER_CARDS.at(-1)!.id, supports: rest.slice(0, 4) } }))
       .rejects.toThrow("INVALID_SELECTION");
     await expect(call(ALICE, { action: "play", phase: 1, selection: { leader: leader!, supports: rest.slice(0, 2) } }))
       .rejects.toThrow("INVALID_SELECTION");

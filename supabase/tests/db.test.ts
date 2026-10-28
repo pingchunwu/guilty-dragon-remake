@@ -3,6 +3,7 @@ import {
   PLACEHOLDER_CARDS,
   PLACEHOLDER_DEFAULT_DECK,
   PLACEHOLDER_ITEMS,
+  PLACEHOLDER_POOL,
   PLACEHOLDER_STARTER_LOADOUT,
   RULES_V0,
   SKILLS,
@@ -16,6 +17,9 @@ import {
 import { ALICE, BOB, as, createDb, db, migrate, rpc } from "./pglite";
 
 beforeEach(createDb);
+
+/** A magic card outside the default deck. */
+const UNOWNED_CARD = PLACEHOLDER_CARDS.filter((c) => c.type === "magic").at(-1)!.id;
 
 const sync = (uid: string) => rpc(uid, "public.sync_player()");
 const draw = (uid: string, key: string) => rpc(uid, "public.draw_ten($1)", [key]);
@@ -117,7 +121,7 @@ describe("content", () => {
       Object.fromEntries(SKILLS.map((k) => [k.id, [k.maxLevel, k.value]])),
     );
     const active = await db.query("select id from public.card_pools where active");
-    expect(active.rows).toEqual([{ id: "pool-v1" }]);
+    expect(active.rows).toEqual([{ id: PLACEHOLDER_POOL.id }]);
     const items = await db.query("select id, name, kind::text as kind, attack, defense from public.item_definitions order by id");
     expect(items.rows).toEqual(expect.arrayContaining([...PLACEHOLDER_ITEMS]));
     expect(items.rows).toHaveLength(PLACEHOLDER_ITEMS.length);
@@ -169,9 +173,9 @@ describe("save_deck", () => {
   it("reports the same errors as the engine validator", async () => {
     await sync(ALICE);
     const deck: Deck = {
-      heavy: [...PLACEHOLDER_DEFAULT_DECK.heavy.slice(0, 7), "ph-magic-01"],
+      heavy: [...PLACEHOLDER_DEFAULT_DECK.heavy.slice(0, 7), PLACEHOLDER_DEFAULT_DECK.magic[0]!],
       light: PLACEHOLDER_DEFAULT_DECK.light.slice(0, 7),
-      magic: [...PLACEHOLDER_DEFAULT_DECK.magic.slice(0, 7), "ph-magic-16"],
+      magic: [...PLACEHOLDER_DEFAULT_DECK.magic.slice(0, 7), UNOWNED_CARD],
       free: [...PLACEHOLDER_DEFAULT_DECK.free.slice(0, 7), "nope"],
     };
     const owned = new Set((Object.values(PLACEHOLDER_DEFAULT_DECK) as string[][]).flat());
@@ -197,7 +201,7 @@ describe("row-level security", () => {
       as(ALICE, (tx) => tx.query("update public.players set tickets = 999 where id = $1", [ALICE])),
     ).rejects.toThrow(/permission denied/);
     await expect(
-      as(ALICE, (tx) => tx.query("insert into public.player_cards (player_id, card_id) values ($1, 'ph-magic-16')", [ALICE])),
+      as(ALICE, (tx) => tx.query("insert into public.player_cards (player_id, card_id) values ($1, $2)", [ALICE, UNOWNED_CARD])),
     ).rejects.toThrow(/permission denied/);
     await expect(
       as(ALICE, (tx) => tx.query("update public.loadouts set heavy_id = 'ph-weapon-heavy-06' where player_id = $1", [ALICE])),

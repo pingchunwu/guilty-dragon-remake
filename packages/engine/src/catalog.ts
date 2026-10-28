@@ -8,88 +8,24 @@ import {
   type ItemKind,
   type Loadout,
 } from "./types";
-import { SKILLS, type Rarity } from "./skills";
+import { OG_CARDS } from "./og-cards";
+import type { Rarity } from "./skills";
 
 /**
- * PLACEHOLDER content for development: one card per skill (skills.ts), dealt
- * to the three types in turn, no art. Rarity follows the original game's
- * tiers (N … SR+) and sets the POW, DRAW and gacha weight ranges; the numbers are
- * not balanced. Replace once the card design (original vs. recreated) is
- * decided. supabase/seed is generated from this file; keep them in sync with
- * `npm run gen:seed`. IDs ph-<type>-01…16 existed before skills and are kept.
+ * Card library: the original game's cards (og-cards.ts, generated from
+ * docs/og-data), no art. supabase/seed is generated from this file; keep them
+ * in sync with `npm run gen:seed`.
  */
-const TYPE_LABEL: Record<CardType, string> = { heavy: "重裝", light: "輕裝", magic: "魔裝" };
-const TYPES: readonly CardType[] = ["heavy", "light", "magic"];
+export const PLACEHOLDER_CARDS: readonly CardDefinition[] = OG_CARDS;
 
-export const placeholderCardId = (type: CardType, n: number) => `ph-${type}-${String(n).padStart(2, "0")}`;
+const ofType = (type: CardType) => PLACEHOLDER_CARDS.filter((c) => c.type === type).map((c) => c.id);
 
-/** Rarity of a skill's card: numbered tiers by tier, the rest by strength. */
-const SKILL_RARITY: Record<string, Rarity> = {
-  ranbu: "SR+", swift: "R", rengeki: "R", assault: "SR", pursuit: "R+", "far-gaze": "N+", mikiri: "R",
-  "mind-eye": "SR", "iron-fist": "R", "gift-of-power": "R+", "soul-breath": "SR+", reckless: "SR",
-  "belly-laugh": "R", disarm: "R+", "arms-curse": "SR+", scout: "R", "silver-crown": "SR", watchful: "R",
-  "soul-armor": "SR", paw: "R", "high-heal": "SR", prank: "R", "jump-the-gun": "SR", "last-stand": "SR+",
-  "war-hammer": "SR+", "armor-pierce": "SR", "balance-art": "R+", "surpass-art": "SR", "slump-art": "R",
-  "distant-bond": "N", reinforcements: "R", decoy: "N+", snatch: "N+", pincer: "R+", encircle: "SR",
-  "friend-mail": "R", "friend-call": "SR", "joint-fight": "R+", alliance: "SR", hometown: "N+", compatriot: "R",
-  regroup: "N+", shuffle: "R", disrupt: "R+", "strategy-crush": "SR", havoc: "SR+", regal: "SR+",
-  "curse-support": "R", "steel-charge": "R", "twin-blade": "R", shield: "SR", mimic: "SR+",
-};
-const TIER_RARITY: readonly Rarity[] = ["N", "N+", "R+", "SR"];
-
-export function placeholderRarity(skillId: string): Rarity {
-  const tier = /-(\d)$/.exec(skillId);
-  return SKILL_RARITY[skillId] ?? TIER_RARITY[Number(tier?.[1] ?? 1) - 1]!;
-}
-
-/** Attack (max POW) range by rarity, from the original game's card library (spec §6a). */
-const ATTACK_RANGE: Record<Rarity, readonly [number, number]> = {
-  N: [320, 800],
-  "N+": [220, 924],
-  R: [644, 1150],
-  "R+": [864, 1272],
-  SR: [750, 1775],
-  "SR+": [1410, 2070],
-};
-
-/** DRAW range by rarity: mostly 1–3 low, 3–5 at SR/SR+; N+ spans 0–4 as in the original. */
-const DRAW_RANGE: Record<Rarity, readonly [number, number]> = {
-  N: [1, 3],
-  "N+": [0, 4],
-  R: [1, 3],
-  "R+": [1, 4],
-  SR: [3, 5],
-  "SR+": [3, 5],
-};
-
-const spread = ([low, high]: readonly [number, number], seed: number) => low + (seed % (high - low + 1));
-
-export const PLACEHOLDER_CARDS: readonly CardDefinition[] = SKILLS.map((skill, i) => {
-  const type = TYPES[i % TYPES.length]!;
-  const n = Math.floor(i / TYPES.length) + 1;
-  const rarity = placeholderRarity(skill.id);
-  return {
-    id: placeholderCardId(type, n),
-    name: `${TYPE_LABEL[type]}試作 ${String(n).padStart(2, "0")}`,
-    type,
-    // Spread across the rarity's ranges so hands differ; POW and DRAW use
-    // unrelated steps so a leader trades one for the other. Not balanced.
-    attack: spread(ATTACK_RANGE[rarity], i * 37),
-    draw: spread(DRAW_RANGE[rarity], i * 7 + 1),
-    rarity,
-    skill: skill.id,
-  };
-});
-
-const range = (type: CardType, from: number, to: number) =>
-  Array.from({ length: to - from + 1 }, (_, i) => placeholderCardId(type, from + i));
-
-/** PLACEHOLDER default deck granted once on first sign-in (and used by guests). */
+/** Default deck granted once on first sign-in (and used by guests): the first 11 cards of each type, i.e. the N cards. */
 export const PLACEHOLDER_DEFAULT_DECK: Deck = {
-  heavy: range("heavy", 1, 8),
-  light: range("light", 1, 8),
-  magic: range("magic", 1, 8),
-  free: [...range("heavy", 9, 11), ...range("light", 9, 11), ...range("magic", 9, 10)],
+  heavy: ofType("heavy").slice(0, 8),
+  light: ofType("light").slice(0, 8),
+  magic: ofType("magic").slice(0, 8),
+  free: [...ofType("heavy").slice(8, 11), ...ofType("light").slice(8, 11), ...ofType("magic").slice(8, 10)],
 };
 
 export interface PoolEntry {
@@ -108,7 +44,7 @@ export const RARITY_WEIGHT: Record<Rarity, number> = { N: 12, "N+": 8, R: 5, "R+
 
 /** PLACEHOLDER pool: every card, weighted by rarity. */
 export const PLACEHOLDER_POOL: Pool = {
-  id: "pool-v1",
+  id: "pool-v2",
   entries: PLACEHOLDER_CARDS.map((c) => ({ id: c.id, weight: RARITY_WEIGHT[c.rarity] })),
 };
 

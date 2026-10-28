@@ -27,6 +27,8 @@ import {
 } from "../src";
 
 const cards: Cards = new Map(PLACEHOLDER_CARDS.map((c) => [c.id, c]));
+/** The same cards without skills, so a final-blow guard in a hand can't change the deck-out totals checked below. */
+const plainCards: Cards = new Map(PLACEHOLDER_CARDS.map((c) => [c.id, { ...c, skill: null }]));
 const deck = deckCardIds(PLACEHOLDER_DEFAULT_DECK);
 /** Armor 30 and no weapon, so the hand-checked numbers below stay simple. */
 const armor = { id: "t-armor", name: "t", kind: "body" as const, attack: 0, defense: 30 };
@@ -315,7 +317,7 @@ describe("deck-out", () => {
     };
     const total = (s: SideState) => s.hand.reduce((sum, id) => sum + cards.get(id)!.attack, 0);
     const totals = { challenger: total(state.sides.challenger), defender: total(state.sides.defender) };
-    const { result, state: next } = resolvePhase(state, null, cards, LONG);
+    const { result, state: next } = resolvePhase(state, null, plainCards, LONG);
     if (totals.challenger === totals.defender) {
       expect(result.damage).toBe(0);
     } else {
@@ -340,7 +342,7 @@ describe("deck-out", () => {
     const defenderHand = start.sides.defender.hand;
     const state: BattleState = { ...start, kind: "deck_out", sides: { ...start.sides, challenger: runOut(start.sides.challenger) } };
     const total = state.sides.challenger.hand.reduce((s, id) => s + cards.get(id)!.attack, 0);
-    const { result, state: next } = resolvePhase(state, null, cards, LONG);
+    const { result, state: next } = resolvePhase(state, null, plainCards, LONG);
     expect(result.winner).toBe("challenger");
     expect(result.damage).toBe(total);
     expect(result.ignoredArmor).toBe(true);
@@ -502,7 +504,7 @@ describe("rule 0.7.0-draft", () => {
     const start = startBattle([9, 9, 9, 9], { deck, equipment: armed }, setup, LONG07);
     const sides = { challenger: runOut(start.sides.challenger), defender: runOut(start.sides.defender) };
     const totals = { challenger: handTotal(sides.challenger) + 600, defender: handTotal(sides.defender) };
-    const { result } = resolvePhase({ ...start, kind: "deck_out", sides }, null, cards, LONG07);
+    const { result } = resolvePhase({ ...start, kind: "deck_out", sides }, null, plainCards, LONG07);
     expect(result.damage).toBe(Math.max(totals.challenger, totals.defender));
     expect(result.ignoredArmor).toBe(true);
   });
