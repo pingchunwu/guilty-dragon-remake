@@ -40,7 +40,7 @@ export interface Pool {
 }
 
 /** PLACEHOLDER draw weight of one card by rarity; real odds are still TBD. */
-export const RARITY_WEIGHT: Record<Rarity, number> = { N: 12, "N+": 8, R: 5, "R+": 3, SR: 2, "SR+": 1 };
+export const RARITY_WEIGHT: Record<Rarity, number> = { N: 12, R: 5, SR: 2 };
 
 /** PLACEHOLDER pool: every card, weighted by rarity. */
 export const PLACEHOLDER_POOL: Pool = {

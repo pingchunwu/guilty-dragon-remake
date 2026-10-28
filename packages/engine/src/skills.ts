@@ -11,8 +11,8 @@ import type { CardType } from "./types";
  * those systems. See docs/development-spec.md §6a for the resolution order.
  */
 
-export type Rarity = "N" | "N+" | "R" | "R+" | "SR" | "SR+";
-export const RARITIES: readonly Rarity[] = ["N", "N+", "R", "R+", "SR", "SR+"];
+export type Rarity = "N" | "R" | "SR";
+export const RARITIES: readonly Rarity[] = ["N", "R", "SR"];
 
 /** When the original fires the skill. Informational: §6a fixes one order for all. */
 export type SkillTiming = "leader" | "afterCharge" | "endOfDraw" | "battle" | "finalBlow";
