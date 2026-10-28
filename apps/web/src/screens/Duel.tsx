@@ -20,7 +20,7 @@ import {
 import { TYPE_LABEL, skillEffectText } from "../game/text";
 import { BattleCard } from "./BattleCard";
 import { CountUp, HpBar, SkillBursts, SkillTag, reducedMotion, type CardMap, type SideLabels } from "./BattleParts";
-import { AttackScene, BEAT_MS, Pips, playbackFrames, type ChipState } from "./Playback";
+import { AttackScene, BEAT_MS, Pips, playbackFrames, type Chip } from "./Playback";
 
 gsap.registerPlugin(Flip);
 
@@ -214,18 +214,45 @@ export function Duel(props: Props) {
     { dependencies: [leader], scope: root },
   );
 
-  // Playback: a card drawn on this beat flies in from the deck pile; the leader pulses as it joins the total.
+  // Playback, after the OG: a draw flies in from its deck pile; a card that counts on this beat then
+  // slides into its leader and vanishes, and the leader pulses as it takes the card or joins the total.
   useGSAP(
     () => {
       if (!frame || reducedMotion()) return;
       const q = gsap.utils.selector(root);
-      const pile = q(".my-pile")[0]!.getBoundingClientRect();
-      q(".charge-row .bcard-fresh").forEach((el) => {
-        if (el.classList.contains("bcard-drawn")) {
+      for (const [rowSel, pileSel] of [
+        [".charge-row", ".my-pile"],
+        [".opp-chips", ".mini-pile"],
+      ] as const) {
+        const row = q(rowSel)[0];
+        const pileEl = q(pileSel)[0];
+        if (!row || !pileEl) continue;
+        const pile = pileEl.getBoundingClientRect();
+        const leaderEl = row.querySelector<HTMLElement>(".bcard-leader");
+        row.querySelectorAll<HTMLElement>(".bcard").forEach((el) => {
+          const merging = el.classList.contains("bcard-merging") && leaderEl;
+          const fresh = el.classList.contains("bcard-fresh");
+          if (!merging && !fresh) return;
           const r = el.getBoundingClientRect();
-          gsap.from(el, { x: pile.left - r.left, y: pile.top - r.top, autoAlpha: 0, duration: 0.35, ease: "power2.out", clearProps: "all" });
-        } else gsap.fromTo(el, { scale: 1.25 }, { scale: 1, duration: 0.35, ease: "back.out(3)", clearProps: "all" });
-      });
+          const tl = gsap.timeline();
+          if (fresh && el.classList.contains("bcard-drawn"))
+            tl.from(el, {
+              x: pile.left - r.left,
+              y: pile.top - r.top,
+              autoAlpha: 0,
+              duration: 0.3,
+              ease: "power2.out",
+              // A blocked draw stays; its inline visibility would override .bcard-merged later.
+              clearProps: merging ? "" : "all",
+            });
+          else if (fresh) tl.fromTo(el, { scale: 1.25 }, { scale: 1, duration: 0.35, ease: "back.out(3)" });
+          if (merging) {
+            const l = leaderEl.getBoundingClientRect();
+            tl.to(el, { x: l.left - r.left, y: l.top - r.top, scale: 0.6, autoAlpha: 0, duration: 0.25, ease: "power2.in" }, ">0.05")
+              .fromTo(leaderEl, { scale: 1.15 }, { scale: 1, duration: 0.2, ease: "back.out(3)" }, ">-0.05");
+          }
+        });
+      }
     },
     { dependencies: [play.beat, replaying], scope: root },
   );
@@ -290,7 +317,7 @@ export function Duel(props: Props) {
       ? "all"
       : sideOf("challenger").leaderType
     : (leader?.type ?? null);
-  const myRow: { card: string; state: ChipState; drawn: boolean; fresh: boolean }[] = frame
+  const myRow: Chip[] = frame
     ? frame.sides.challenger.row
     : picked.map((card, i) => ({
         card,
@@ -298,6 +325,20 @@ export function Duel(props: Props) {
         drawn: false,
         fresh: false,
       }));
+  // OG merge: a counted card slides into the leader on its beat and is gone after; once the judgment
+  // starts, the blocked cards clear away too. A deck-out shows every card it adds up.
+  const prev = replaying && play.beat > 0 ? frames[play.beat - 1] : undefined;
+  const chipClass = (id: SideId, chip: Chip) => {
+    const base = `bcard-${chip.state}${chip.drawn ? " bcard-drawn" : ""}${chip.fresh ? " bcard-fresh" : ""}`;
+    if (!frame || last!.kind === "deck_out" || chip.state === "leader") return base;
+    if (settled) return `${base} bcard-merged`;
+    if (chip.state !== "counted") return base;
+    return prev?.sides[id].row.find((c) => c.card === chip.card)?.state === "counted"
+      ? `${base} bcard-merged`
+      : `${base} bcard-merging`;
+  };
+  // Playback cards get their own keys, so the next phase's picks never reuse a merged (hidden) element.
+  const slotKey = (card: string) => (frame ? `${last!.phase}-${card}` : card);
   const outcome = last
     ? last.winner
       ? `${labels[last.winner]}${last.kind === "deck_out" ? "最終一擊" : "攻擊"}，造成 ${last.damage} 傷害`
@@ -350,14 +391,11 @@ export function Duel(props: Props) {
         {frame && (
           <>
             <span className="opp-chips">
-              {frame.sides.defender.row.map((chip) => {
+              {frame.sides.defender.row.map((chip, i) => {
                 const card = cards.get(chip.card);
                 return card ? (
-                  <span
-                    key={chip.card}
-                    className={`chip-card card-${card.type} chip-${chip.state}${chip.fresh ? " chip-fresh" : ""}`}
-                  >
-                    {card.attack}
+                  <span key={slotKey(chip.card)} className="opp-slot" style={{ zIndex: 20 - i }}>
+                    <BattleCard card={card} show="pow" className={`bcard-mini ${chipClass("defender", chip)}`} />
                   </span>
                 ) : null;
               })}
@@ -382,12 +420,12 @@ export function Duel(props: Props) {
           <div className="charge-row" style={{ ["--n" as string]: Math.max(2, myRow.length) }}>
             {myRow.map((chip, i) => (
               // Earlier cards sit on top, so every card's POW (bottom right) stays readable.
-              <span key={chip.card} className="charge-slot" data-flip-id={chip.card} style={{ zIndex: 20 - i }}>
+              <span key={slotKey(chip.card)} className="charge-slot" data-flip-id={chip.card} style={{ zIndex: 20 - i }}>
                 <BattleCard
                   card={cards.get(chip.card)!}
                   owned={owned[chip.card]}
                   show="pow"
-                  className={`bcard-${chip.state}${chip.drawn ? " bcard-drawn" : ""}${chip.fresh ? " bcard-fresh" : ""}`}
+                  className={chipClass("challenger", chip)}
                   onClick={frame ? undefined : () => toggle(chip.card)}
                 />
               </span>

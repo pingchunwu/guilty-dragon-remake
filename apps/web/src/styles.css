@@ -846,8 +846,46 @@ p.error {
   min-width: 0;
 }
 
-.opp-chips .chip-card {
-  height: 34px;
+.opp-chips {
+  overflow: hidden;
+}
+
+/* The opponent's picks as small cards (OG: small portraits by the enemy HP). */
+.opp-slot {
+  position: relative;
+  flex: none;
+}
+
+.opp-slot + .opp-slot {
+  margin-left: -8px;
+}
+
+/* Beats .bcard's width: 100%, which is defined later. */
+.opp-slot .bcard-mini {
+  width: 34px;
+}
+
+.bcard-mini .bcard-art {
+  font-size: 0;
+}
+
+.bcard-mini .bcard-frame {
+  border-width: 2px;
+}
+
+.bcard-mini .bcard-skill,
+.bcard-mini .bcard-stars,
+.bcard-mini .bcard-num small {
+  display: none;
+}
+
+.bcard-mini .bcard-num {
+  right: 6%;
+  bottom: 6%;
+}
+
+.bcard-mini .bcard-num b {
+  font-size: 0.62rem;
 }
 
 .opp-total {
@@ -1103,6 +1141,7 @@ p.error {
 }
 
 .bcard-gone,
+.bcard-merged,
 .hand-grid.undealt .bcard {
   visibility: hidden;
 }
