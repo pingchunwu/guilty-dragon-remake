@@ -13,8 +13,8 @@ import {
 } from "@gdr/engine";
 import type { Content } from "../game/content";
 import type { PlayerState } from "../game/types";
-import { DeckOutPanel, HandPicker, HpBar, type SideLabels } from "./BattleParts";
-import { PhaseBoard } from "./Playback";
+import type { SideLabels } from "./BattleParts";
+import { Duel } from "./Duel";
 
 const SIDE_LABEL: SideLabels = { challenger: "你", defender: "對手" };
 /** Practice runs rule 0.7.0-draft locally; nothing is stored, so old battles don't matter here. */
@@ -83,7 +83,7 @@ export function Battle({ content, state: player, onActive }: Props) {
             <li>重裝剋輕裝、輕裝剋魔裝、魔裝剋重裝（領導卡相剋 ×1.2）。</li>
             <li>只有領導卡的技能會發動，技能等級就是卡片等級（重複抽到升級，上限依技能）。</li>
             <li>攻擊較高的一方造成「（攻擊差）×（100%－對方防禦%）」傷害；相同則無傷害。</li>
-            <li>牌庫抽完後的下一階段：用手牌總和＋三把武器直接攻擊（無視防禦），之後洗牌重置。</li>
+            <li>牌庫抽完時自動發動最終一擊：用手牌總和＋三把武器直接攻擊（無視防禦），之後洗牌重置。</li>
           </ul>
           <button type="button" className="primary" onClick={start}>
             開始練習對戰
@@ -119,56 +119,40 @@ export function Battle({ content, state: player, onActive }: Props) {
           離開
         </button>
       </div>
-      <HpBar label={SIDE_LABEL.defender} hp={hpOf("defender")} equipment={battle.sides.defender.equipment} rules={RULES} />
-      <PhaseBoard
-        key={`board-${last?.phase ?? 0}`}
-        result={last}
-        cards={cards}
+      <Duel
         labels={SIDE_LABEL}
+        cards={cards}
+        owned={player.cards}
         rules={RULES}
         equipment={{ challenger: me.equipment, defender: battle.sides.defender.equipment }}
+        hp={{ challenger: hpOf("challenger"), defender: hpOf("defender") }}
+        drawPile={{ challenger: me.drawPile.length, defender: battle.sides.defender.drawPile.length }}
+        hand={me.hand}
+        phase={battle.phase}
+        kind={battle.kind}
+        last={last}
         animate={replaying}
         onDone={onReplayDone}
-      />
-      <HpBar label={SIDE_LABEL.challenger} hp={hpOf("challenger")} equipment={me.equipment} rules={RULES} />
-      {over && !replaying ? (
-        <div className="panel stack">
-          <strong className="big">{battle.status === "challenger_won" ? "勝利！" : "落敗"}</strong>
-          <p className="small">
-            共 {battle.phase} 階段 · 你剩 {me.hp} HP · 對手剩 {battle.sides.defender.hp} HP
-          </p>
-          <div className="row">
-            <button type="button" className="primary grow" onClick={start}>
-              再戰一次
-            </button>
-            <button type="button" className="grow" onClick={() => setBattle(null)}>
-              返回
-            </button>
+        busy={replaying || over}
+        onPlay={play}
+      >
+        {over && !replaying ? (
+          <div className="panel stack">
+            <strong className="big">{battle.status === "challenger_won" ? "勝利！" : "落敗"}</strong>
+            <p className="small">
+              共 {battle.phase} 階段 · 你剩 {me.hp} HP · 對手剩 {battle.sides.defender.hp} HP
+            </p>
+            <div className="row">
+              <button type="button" className="primary grow" onClick={start}>
+                再戰一次
+              </button>
+              <button type="button" className="grow" onClick={() => setBattle(null)}>
+                返回
+              </button>
+            </div>
           </div>
-        </div>
-      ) : battle.kind === "deck_out" && !over ? (
-        <DeckOutPanel
-          hand={me.hand}
-          cards={cards}
-          owned={player.cards}
-          ranOut={{ challenger: me.ranOut, defender: battle.sides.defender.ranOut }}
-          rules={RULES}
-          busy={replaying}
-          onResolve={() => play(null)}
-        />
-      ) : (
-        <HandPicker
-          key={`hand-${battle.phase}`}
-          hand={me.hand}
-          cards={cards}
-          owned={player.cards}
-          drawPile={me.drawPile.length}
-          rules={RULES}
-          equipment={me.equipment}
-          busy={replaying || over}
-          onPlay={play}
-        />
-      )}
+        ) : undefined}
+      </Duel>
     </section>
   );
 }

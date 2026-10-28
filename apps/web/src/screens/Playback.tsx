@@ -1,4 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { gsap } from "gsap";
+import { useGSAP } from "@gsap/react";
 import {
   RULES_V07,
   WEAPON_KINDS,
@@ -199,7 +201,7 @@ interface SideLineProps {
 }
 
 /** Combo count so far as 5 pips (the combo caps at 5). */
-function Pips({ count }: { count: number }) {
+export function Pips({ count }: { count: number }) {
   return (
     <span className="pips" aria-label={`連擊 ${count}`}>
       {[0, 1, 2, 3, 4].map((i) => (
@@ -300,6 +302,76 @@ interface BoardProps {
   /** Play from the first beat; otherwise show the end state (e.g. after a reload). */
   animate: boolean;
   onDone: () => void;
+}
+
+/** Shared with Duel.tsx (rule 0.7.0). */
+interface SceneProps {
+  result: PhaseResult;
+  cards: CardMap;
+  labels: SideLabels;
+  onComplete: () => void;
+}
+
+/**
+ * 0.7.0: the OG's attack cut-in after the judgment. A red slash wipes in, both
+ * sides' attack and defense % slide in (opponent top, you bottom), the winner's
+ * banner and leader strike, then the damage number with a screen shake. Tap to skip.
+ */
+export function AttackScene({ result, cards, labels, onComplete }: SceneProps) {
+  const root = useRef<HTMLDivElement>(null);
+  const tl = useRef<gsap.core.Timeline | null>(null);
+  useGSAP(
+    (_, contextSafe) => {
+      const q = gsap.utils.selector(root);
+      tl.current = gsap
+        .timeline({ defaults: { ease: "power3.out" }, onComplete: contextSafe!(onComplete) })
+        .from(root.current, { autoAlpha: 0, duration: 0.15 })
+        .fromTo(q(".scene-slash"), { xPercent: -130 }, { xPercent: 130, duration: 0.45, ease: "power2.in" }, 0)
+        .from(q(".scene-bar-top"), { yPercent: -110, duration: 0.3 }, 0.25)
+        .from(q(".scene-bar-bottom"), { yPercent: 110, duration: 0.3 }, "<")
+        .addLabel("banner", 0.55)
+        .from(q(".scene-banner"), { xPercent: -110, duration: 0.3 }, "banner")
+        .from(q(".scene-attacker"), { scale: 2.4, autoAlpha: 0, duration: 0.35, ease: "power4.in" }, "banner+=0.2")
+        .addLabel("hit")
+        .fromTo(q(".scene-flash"), { autoAlpha: 0.85 }, { autoAlpha: 0, duration: 0.3 }, "hit")
+        .from(q(".scene-damage"), { scale: 2.6, autoAlpha: 0, duration: 0.3, ease: "back.out(2)" }, "hit")
+        .to(q(".scene-stage"), { keyframes: { x: [-12, 10, -7, 5, -2, 0] }, duration: 0.4, ease: "none" }, "hit")
+        .to(root.current, { autoAlpha: 0, duration: 0.25 }, "hit+=1.1");
+    },
+    { scope: root },
+  );
+
+  const { winner } = result;
+  const leader = winner && result.sides[winner].chain[0] ? cards.get(result.sides[winner].chain[0].card) : undefined;
+  const bar = (id: SideId, pos: "top" | "bottom") => (
+    <div className={`scene-bar scene-bar-${pos}${winner === id ? " scene-bar-won" : ""}`}>
+      <strong className="one-line">{labels[id]}</strong>
+      <span className="nowrap">
+        攻擊 <strong className="scene-stat">{result.sides[id].attack}</strong>
+      </span>
+      <span className="nowrap">
+        防禦 <strong className="scene-stat">{result.sides[id].defense}%</strong>
+      </span>
+    </div>
+  );
+  return (
+    <div ref={root} className="attack-scene" role="presentation" onClick={() => tl.current?.progress(1)}>
+      <div className="scene-stage">
+        {bar("defender", "top")}
+        <div className="scene-banner">
+          {!winner ? "勢均力敵" : result.kind === "deck_out" ? "最終一擊！" : `${labels[winner]}的攻擊！`}
+        </div>
+        {leader && <div className={`scene-attacker card-${leader.type}`}>{leader.name}</div>}
+        <div className="scene-damage">
+          {winner ? `−${result.damage}` : "沒有傷害"}
+          {result.ignoredArmor && <small>無視防禦</small>}
+        </div>
+        {bar("challenger", "bottom")}
+      </div>
+      <div className="scene-slash" />
+      <div className="scene-flash" />
+    </div>
+  );
 }
 
 const reducedMotion = () => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;

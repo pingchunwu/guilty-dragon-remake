@@ -3,8 +3,9 @@ import { RULES_V0, RULES_V07, type Selection, type SideId } from "@gdr/engine";
 import type { PvpBattle, PvpHistoryEntry, PvpLobby, PvpPlayer, PvpService } from "../game/pvp";
 import { errorText } from "../game/text";
 import { GameError, type PlayerState } from "../game/types";
-import { DeckOutPanel, HandPicker, HpBar, type SideLabels } from "./BattleParts";
+import { DeckOutPanel, HandPicker, HpBar, isV07, type SideLabels } from "./BattleParts";
 import { PhaseBoard } from "./Playback";
+import { Duel } from "./Duel";
 
 /** Server grace after the deadline; matches game_config pvp_grace_seconds. */
 const GRACE_MS = 5000;
@@ -305,6 +306,18 @@ function BattleView({ battle, player, busy, error, onPlay, onSurrender, onTimeou
   const replaying = track.before !== null;
   const onReplayDone = useCallback(() => setTrack((t) => ({ ...t, before: null })), []);
   const hpOf = (id: SideId) => track.before?.[id] ?? battle.hp[id];
+  const endPanel = (
+    <div className="panel stack">
+      <strong className="big">{battle.status === "challenger_won" ? "勝利！" : "落敗"}</strong>
+      <p className="small">
+        {battle.endReason && `${END_REASON[battle.endReason]} · `}共 {battle.phase} 階段 · 你剩 {battle.hp.challenger} HP ·{" "}
+        {battle.opponent.name} 剩 {battle.hp.defender} HP
+      </p>
+      <button type="button" className="primary" onClick={onClose}>
+        返回
+      </button>
+    </div>
+  );
 
   return (
     <section className="battle-screen">
@@ -324,55 +337,71 @@ function BattleView({ battle, player, busy, error, onPlay, onSurrender, onTimeou
           </span>
         )}
       </div>
-      <HpBar label={labels.defender} hp={hpOf("defender")} equipment={battle.equipment.defender} rules={rules} />
-      <PhaseBoard
-        key={`board-${phase}`}
-        result={battle.last}
-        cards={cards}
-        labels={labels}
-        rules={rules}
-        equipment={battle.equipment}
-        animate={replaying}
-        onDone={onReplayDone}
-      />
-      <HpBar label={labels.challenger} hp={hpOf("challenger")} equipment={battle.equipment.challenger} rules={rules} />
-      {error && <p className="error">{error}</p>}
-
-      {over && !replaying ? (
-        <div className="panel stack">
-          <strong className="big">{battle.status === "challenger_won" ? "勝利！" : "落敗"}</strong>
-          <p className="small">
-            {battle.endReason && `${END_REASON[battle.endReason]} · `}共 {battle.phase} 階段 · 你剩 {battle.hp.challenger} HP ·{" "}
-            {battle.opponent.name} 剩 {battle.hp.defender} HP
-          </p>
-          <button type="button" className="primary" onClick={onClose}>
-            返回
-          </button>
-        </div>
-      ) : remaining <= 0 && !over ? (
-        <p className="panel">時間到，正在確認結果…</p>
-      ) : battle.kind === "deck_out" && !over ? (
-        <DeckOutPanel
-          hand={battle.hand}
+      {isV07(rules) ? (
+        <Duel
+          labels={labels}
           cards={cards}
           owned={player.cards}
-          ranOut={battle.ranOut}
           rules={rules}
-          busy={busy || replaying}
-          onResolve={() => onPlay(null)}
-        />
-      ) : (
-        <HandPicker
-          key={`hand-${battle.phase}`}
+          equipment={battle.equipment}
+          hp={{ challenger: hpOf("challenger"), defender: hpOf("defender") }}
+          drawPile={battle.drawPile}
           hand={battle.hand}
-          cards={cards}
-          owned={player.cards}
-          drawPile={battle.drawPile.challenger}
-          rules={rules}
-          equipment={battle.equipment.challenger}
-          busy={busy || replaying || over}
+          phase={battle.phase}
+          kind={battle.kind}
+          last={battle.last}
+          animate={replaying}
+          onDone={onReplayDone}
+          busy={busy || replaying || over || remaining <= 0}
           onPlay={onPlay}
-        />
+          notice={error}
+        >
+          {over && !replaying ? endPanel : remaining <= 0 && !over ? <p className="panel">時間到，正在確認結果…</p> : undefined}
+        </Duel>
+      ) : (
+        <>
+          <HpBar label={labels.defender} hp={hpOf("defender")} equipment={battle.equipment.defender} rules={rules} />
+          <PhaseBoard
+            key={`board-${phase}`}
+            result={battle.last}
+            cards={cards}
+            labels={labels}
+            rules={rules}
+            equipment={battle.equipment}
+            animate={replaying}
+            onDone={onReplayDone}
+          />
+          <HpBar label={labels.challenger} hp={hpOf("challenger")} equipment={battle.equipment.challenger} rules={rules} />
+          {error && <p className="error">{error}</p>}
+
+          {over && !replaying ? (
+            endPanel
+          ) : remaining <= 0 && !over ? (
+            <p className="panel">時間到，正在確認結果…</p>
+          ) : battle.kind === "deck_out" && !over ? (
+            <DeckOutPanel
+              hand={battle.hand}
+              cards={cards}
+              owned={player.cards}
+              ranOut={battle.ranOut}
+              rules={rules}
+              busy={busy || replaying}
+              onResolve={() => onPlay(null)}
+            />
+          ) : (
+            <HandPicker
+              key={`hand-${battle.phase}`}
+              hand={battle.hand}
+              cards={cards}
+              owned={player.cards}
+              drawPile={battle.drawPile.challenger}
+              rules={rules}
+              equipment={battle.equipment.challenger}
+              busy={busy || replaying || over}
+              onPlay={onPlay}
+            />
+          )}
+        </>
       )}
     </section>
   );

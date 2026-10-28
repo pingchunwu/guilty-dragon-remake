@@ -6,6 +6,13 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev", "-w", "@gdr/web", "--", "--port", "5173", "--strictPort"],
       "port": 5173
+    },
+    {
+      "name": "web-guest",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "-w", "@gdr/web", "--", "--port", "5174", "--strictPort"],
+      "env": { "VITE_SUPABASE_URL": "", "VITE_SUPABASE_ANON_KEY": "" },
+      "port": 5174
     }
   ]
 }

@@ -12,9 +12,11 @@
   },
   "dependencies": {
     "@gdr/engine": "0.0.0",
+    "@gsap/react": "2.1.2",
+    "@supabase/supabase-js": "2.118.0",
+    "gsap": "3.15.0",
     "react": "19.3.1",
-    "react-dom": "19.3.1",
-    "@supabase/supabase-js": "2.118.0"
+    "react-dom": "19.3.1"
   },
   "devDependencies": {
     "@types/react": "19.3.0",

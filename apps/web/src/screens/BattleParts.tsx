@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { gsap } from "gsap";
+import { useGSAP } from "@gsap/react";
 import {
   RULES_V0,
   RULES_V07,
@@ -27,10 +29,49 @@ import { CardTile } from "./CardTile";
 
 /** Battle UI shared by practice and friend PvP. */
 
+gsap.registerPlugin(useGSAP);
+
 export type CardMap = ReadonlyMap<string, CardDefinition>;
 export type SideLabels = Record<SideId, string>;
 
 export const isV07 = (rules: RuleConfig) => rules.ruleVersion === RULES_V07.ruleVersion;
+
+export const reducedMotion = () => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+
+/** Counts up (or down) to `value`; React renders only the first value, so the tween owns the text after that. */
+export function CountUp({ value, className }: { value: number; className?: string }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const [first] = useState(value);
+  const shown = useRef(value);
+  const count = useRef<gsap.core.Timeline | null>(null);
+  useGSAP(
+    () => {
+      if (shown.current === value) return;
+      // Kill, not revert: reverting rewinds the old count and writes its start value back for a frame.
+      count.current?.kill();
+      const n = { v: shown.current };
+      const motion = !reducedMotion();
+      count.current = gsap
+        .timeline()
+        .to(n, {
+          v: value,
+          duration: motion ? 0.4 : 0,
+          ease: "power2.out",
+          onUpdate: () => {
+            shown.current = Math.round(n.v);
+            if (ref.current) ref.current.textContent = String(shown.current);
+          },
+        })
+        .fromTo(ref.current, { scale: motion ? 1.25 : 1 }, { scale: 1, duration: motion ? 0.3 : 0, ease: "back.out(3)" }, 0);
+    },
+    { dependencies: [value], scope: ref },
+  );
+  return (
+    <span ref={ref} className={`count-up${className ? ` ${className}` : ""}`}>
+      {first}
+    </span>
+  );
+}
 
 interface HpBarProps {
   label: string;
@@ -53,7 +94,7 @@ export function HpBar({ label, hp, equipment, rules }: HpBarProps) {
           </span>
         </span>
         <span className="nowrap">
-          {hp} / {rules.startingHp}
+          <CountUp value={hp} /> / {rules.startingHp}
         </span>
       </div>
       <div className="hp-track">
