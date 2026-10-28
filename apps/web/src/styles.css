@@ -912,14 +912,21 @@ p.error {
   background: linear-gradient(90deg, rgb(224 48 58 / 35%), transparent);
 }
 
+/* Battle over or time up: the panel takes the banner, hand and info rows. */
+.duel-end {
+  grid-row: 5 / -1;
+  min-height: 0;
+}
+
 .info-line {
   margin: 0;
   line-height: 20px;
 }
 
 /*
- * The charge row: picks stack overlapping (leader first), and in the playback the draws
- * join the same row. Up to 10 cards fit by tightening the step; the deck pile sits beside it.
+ * The charge row: picks stack overlapping (leader first). In the playback it is a queue: counted
+ * cards merge into the weapon and leave, the rest slide left, draws join at the end. The deck pile
+ * sits beside it.
  */
 .charge-line {
   container-type: inline-size;
@@ -935,9 +942,10 @@ p.error {
   min-height: 18cqw;
 }
 
+/* Leader + 4 spaces: the queue never holds more, so five cards always fit beside the pile. */
 .charge-slot {
   position: relative;
-  flex: 0 0 min(18cqw, calc((82cqw - 8px - 18cqw) / max(1, var(--n) - 1)));
+  flex: 0 0 min(18cqw, calc((64cqw - 8px) / 4));
 }
 
 .charge-slot:last-child {
@@ -1141,7 +1149,6 @@ p.error {
 }
 
 .bcard-gone,
-.bcard-merged,
 .hand-grid.undealt .bcard {
   visibility: hidden;
 }

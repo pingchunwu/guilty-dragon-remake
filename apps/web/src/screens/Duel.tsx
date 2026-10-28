@@ -128,6 +128,7 @@ export function Duel(props: Props) {
       ? { phase: p, beat: 0, reveal: last?.kind === "normal", scene: true }
       : { phase: p, beat: end, reveal: false, scene: false };
   const [play, setPlay] = useState<Play>(() => fresh(last?.phase ?? 0));
+  const shiftFrom = useRef<Flip.FlipState | null>(null);
   if (play.phase !== (last?.phase ?? 0)) setPlay(fresh(last?.phase ?? 0));
   const replaying = animate && !!last;
   const frame = replaying ? frames[play.beat] : undefined;
@@ -139,7 +140,11 @@ export function Duel(props: Props) {
       return () => window.clearTimeout(timer);
     }
     if (play.beat < end) {
-      const timer = window.setTimeout(() => setPlay((p) => ({ ...p, beat: p.beat + 1 })), BEAT_MS);
+      const timer = window.setTimeout(() => {
+        // Where the row cards sit now, so the queue can slide left once a merged card leaves it.
+        if (root.current && !reducedMotion()) shiftFrom.current = Flip.getState(root.current.querySelectorAll(".charge-slot, .opp-slot"));
+        setPlay((p) => ({ ...p, beat: p.beat + 1 }));
+      }, BEAT_MS);
       return () => window.clearTimeout(timer);
     }
     if (!play.scene) onDone();
@@ -151,7 +156,7 @@ export function Duel(props: Props) {
   }, [skillBeat]);
   const skip = () => setPlay((p) => ({ ...p, reveal: false, beat: end, scene: false }));
 
-  const leader = picked[0] ? cards.get(picked[0])! : null;
+  const leader = picked[0] && !props.children ? cards.get(picked[0])! : null;
   const counts = leader ? chargeTypes(leader, levels) : new Set<CardType>();
   const required = requiredPicks(hand, rules);
   const full = picked.length === required;
@@ -214,42 +219,40 @@ export function Duel(props: Props) {
     { dependencies: [leader], scope: root },
   );
 
-  // Playback, after the OG: a draw flies in from its deck pile; a card that counts on this beat then
-  // slides into its leader and vanishes, and the leader pulses as it takes the card or joins the total.
+  // Playback, after the OG: the charge row is a queue behind the leader. A card that counts flies up
+  // into the weapon capsule (which adds its POW), leaves the row, and the queue slides left; a draw
+  // flies in from the deck pile at the end of the queue.
   useGSAP(
     () => {
+      const state = shiftFrom.current;
+      shiftFrom.current = null;
       if (!frame || reducedMotion()) return;
       const q = gsap.utils.selector(root);
-      for (const [rowSel, pileSel] of [
-        [".charge-row", ".my-pile"],
-        [".opp-chips", ".mini-pile"],
+      const shifted = state && Flip.from(state, { targets: q(".charge-slot, .opp-slot"), duration: 0.2, ease: "power2.out" });
+      for (const [rowSel, pileSel, weaponSel] of [
+        [".charge-row", ".my-pile", ".duel-stage .capsule-lit"],
+        [".opp-chips", ".mini-pile", ".opp-total"],
       ] as const) {
         const row = q(rowSel)[0];
         const pileEl = q(pileSel)[0];
+        const weapon = q(weaponSel)[0];
         if (!row || !pileEl) continue;
         const pile = pileEl.getBoundingClientRect();
-        const leaderEl = row.querySelector<HTMLElement>(".bcard-leader");
         row.querySelectorAll<HTMLElement>(".bcard").forEach((el) => {
-          const merging = el.classList.contains("bcard-merging") && leaderEl;
+          const merging = el.classList.contains("bcard-merging") && weapon;
           const fresh = el.classList.contains("bcard-fresh");
           if (!merging && !fresh) return;
-          const r = el.getBoundingClientRect();
-          const tl = gsap.timeline();
-          if (fresh && el.classList.contains("bcard-drawn"))
-            tl.from(el, {
-              x: pile.left - r.left,
-              y: pile.top - r.top,
-              autoAlpha: 0,
-              duration: 0.3,
-              ease: "power2.out",
-              // A blocked draw stays; its inline visibility would override .bcard-merged later.
-              clearProps: merging ? "" : "all",
-            });
-          else if (fresh) tl.fromTo(el, { scale: 1.25 }, { scale: 1, duration: 0.35, ease: "back.out(3)" });
+          const tl = gsap.timeline({ delay: shifted ? 0.2 : 0 });
+          if (fresh && el.classList.contains("bcard-drawn")) {
+            const r = el.getBoundingClientRect();
+            tl.from(el, { x: pile.left - r.left, y: pile.top - r.top, autoAlpha: 0, duration: 0.3, ease: "power2.out", clearProps: merging ? "" : "all" });
+          } else if (fresh) tl.fromTo(el, { scale: 1.25 }, { scale: 1, duration: 0.35, ease: "back.out(3)" });
           if (merging) {
-            const l = leaderEl.getBoundingClientRect();
-            tl.to(el, { x: l.left - r.left, y: l.top - r.top, scale: 0.6, autoAlpha: 0, duration: 0.25, ease: "power2.in" }, ">0.05")
-              .fromTo(leaderEl, { scale: 1.15 }, { scale: 1, duration: 0.2, ease: "back.out(3)" }, ">-0.05");
+            // Measured when the merge starts, after the queue has slid into place.
+            const centre = (r: DOMRect) => [r.left + r.width / 2, r.top + r.height / 2] as const;
+            const delta = (axis: 0 | 1) => () => centre(weapon.getBoundingClientRect())[axis] - centre(el.getBoundingClientRect())[axis];
+            tl.to(el, { x: delta(0), y: delta(1), scale: 0.4, autoAlpha: 0, duration: 0.25, ease: "power2.in" }, ">0.05")
+              .fromTo(weapon, { scale: 1.12 }, { scale: 1, duration: 0.2, ease: "back.out(3)" }, ">-0.05");
           }
         });
       }
@@ -319,25 +322,28 @@ export function Duel(props: Props) {
     : (leader?.type ?? null);
   const myRow: Chip[] = frame
     ? frame.sides.challenger.row
-    : picked.map((card, i) => ({
+    : // Once the battle is over (children shown), the last picks are history; the row clears.
+      (leader ? picked : []).map((card, i) => ({
         card,
         state: i === 0 ? "leader" : counts.has(cards.get(card)!.type) ? "counted" : "blocked",
         drawn: false,
         fresh: false,
       }));
-  // OG merge: a counted card slides into the leader on its beat and is gone after; once the judgment
-  // starts, the blocked cards clear away too. A deck-out shows every card it adds up.
+  // OG queue: a counted card merges into the weapon on its beat and leaves the row after, so the row
+  // never outgrows leader + spaces; once the judgment starts, the blocked cards clear away too.
+  // A deck-out shows every card it adds up.
   const prev = replaying && play.beat > 0 ? frames[play.beat - 1] : undefined;
-  const chipClass = (id: SideId, chip: Chip) => {
-    const base = `bcard-${chip.state}${chip.drawn ? " bcard-drawn" : ""}${chip.fresh ? " bcard-fresh" : ""}`;
-    if (!frame || last!.kind === "deck_out" || chip.state === "leader") return base;
-    if (settled) return `${base} bcard-merged`;
-    if (chip.state !== "counted") return base;
-    return prev?.sides[id].row.find((c) => c.card === chip.card)?.state === "counted"
-      ? `${base} bcard-merged`
-      : `${base} bcard-merging`;
-  };
-  // Playback cards get their own keys, so the next phase's picks never reuse a merged (hidden) element.
+  const gone = (id: SideId, chip: Chip) =>
+    !!frame &&
+    last!.kind !== "deck_out" &&
+    chip.state !== "leader" &&
+    (settled || (chip.state === "counted" && prev?.sides[id].row.find((c) => c.card === chip.card)?.state === "counted"));
+  const chipClass = (chip: Chip) =>
+    `bcard-${chip.state}${chip.drawn ? " bcard-drawn" : ""}${chip.fresh ? " bcard-fresh" : ""}${
+      frame && chip.state === "counted" && last!.kind !== "deck_out" ? " bcard-merging" : ""
+    }`;
+  // Playback cards get their own keys and flip ids, so the next phase's picks never reuse a merged
+  // element, and the same card on both sides (practice uses one collection) never shares an id.
   const slotKey = (card: string) => (frame ? `${last!.phase}-${card}` : card);
   const outcome = last
     ? last.winner
@@ -391,11 +397,11 @@ export function Duel(props: Props) {
         {frame && (
           <>
             <span className="opp-chips">
-              {frame.sides.defender.row.map((chip, i) => {
+              {frame.sides.defender.row.filter((chip) => !gone("defender", chip)).map((chip, i) => {
                 const card = cards.get(chip.card);
                 return card ? (
-                  <span key={slotKey(chip.card)} className="opp-slot" style={{ zIndex: 20 - i }}>
-                    <BattleCard card={card} show="pow" className={`bcard-mini ${chipClass("defender", chip)}`} />
+                  <span key={slotKey(chip.card)} className="opp-slot" data-flip-id={`opp-${chip.card}`} style={{ zIndex: 20 - i }}>
+                    <BattleCard card={card} show="pow" className={`bcard-mini ${chipClass(chip)}`} />
                   </span>
                 ) : null;
               })}
@@ -417,15 +423,20 @@ export function Duel(props: Props) {
           empty={!!leader || !!frame}
         />
         <div className="charge-line">
-          <div className="charge-row" style={{ ["--n" as string]: Math.max(2, myRow.length) }}>
-            {myRow.map((chip, i) => (
+          <div className="charge-row">
+            {myRow.filter((chip) => !gone("challenger", chip)).map((chip, i) => (
               // Earlier cards sit on top, so every card's POW (bottom right) stays readable.
-              <span key={slotKey(chip.card)} className="charge-slot" data-flip-id={chip.card} style={{ zIndex: 20 - i }}>
+              <span
+                key={slotKey(chip.card)}
+                className="charge-slot"
+                data-flip-id={frame ? `me-${chip.card}` : chip.card}
+                style={{ zIndex: 20 - i }}
+              >
                 <BattleCard
                   card={cards.get(chip.card)!}
                   owned={owned[chip.card]}
                   show="pow"
-                  className={chipClass("challenger", chip)}
+                  className={chipClass(chip)}
                   onClick={frame ? undefined : () => toggle(chip.card)}
                 />
               </span>
@@ -444,7 +455,9 @@ export function Duel(props: Props) {
 
       <HpBar label={labels.challenger} hp={hp.challenger} equipment={equipment.challenger} rules={rules} />
 
-      {props.children ?? (
+      {props.children ? (
+        <div className="duel-end">{props.children}</div>
+      ) : (
         <>
           <div className="banner-slot">{banner}</div>
           <div className={`hand-grid${dealt ? "" : " undealt"}`}>
