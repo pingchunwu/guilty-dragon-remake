@@ -1524,3 +1524,48 @@ p.error {
 .scene-atk {
   z-index: 3;
 }
+
+/* Full-screen win/lose result (ResultScreen in BattleParts.tsx). */
+.result-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 32px;
+  padding: 24px 16px;
+  overflow-y: auto;
+  text-align: center;
+}
+
+.result-win {
+  background: radial-gradient(circle at 50% 40%, #5a4510, #14101f 75%);
+}
+
+.result-lose {
+  background: radial-gradient(circle at 50% 40%, #3a1418, #0a0709 80%);
+  filter: saturate(0.6);
+}
+
+.result-title {
+  font-size: clamp(56px, 22vw, 120px);
+  line-height: 1.1;
+  letter-spacing: 0.08em;
+}
+
+.result-win .result-title {
+  color: var(--accent);
+  text-shadow: 0 0 24px rgb(217 180 90 / 80%), 0 0 64px rgb(217 180 90 / 50%);
+}
+
+.result-lose .result-title {
+  color: #9a4a4a;
+  text-shadow: 0 0 20px rgb(120 20 30 / 70%);
+}
+
+.result-body {
+  width: 100%;
+  max-width: 360px;
+}

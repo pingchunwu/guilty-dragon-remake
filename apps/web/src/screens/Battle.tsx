@@ -14,7 +14,7 @@ import {
 import type { Content } from "../game/content";
 import type { PlayerState } from "../game/types";
 import type { SideLabels } from "./BattleParts";
-import { ConfirmDialog } from "./BattleParts";
+import { ConfirmDialog, ResultScreen } from "./BattleParts";
 import { Duel } from "./Duel";
 import { hpAfterSkills } from "./Playback";
 
@@ -152,20 +152,14 @@ export function Battle({ content, state: player, onActive }: Props) {
         onPlay={play}
       >
         {over && !replaying ? (
-          <div className="panel stack">
-            <strong className="big">{battle.status === "challenger_won" ? "勝利！" : "落敗"}</strong>
-            <p className="small">
-              共 {battle.phase} 階段 · 你剩 {me.hp} HP · 對手剩 {battle.sides.defender.hp} HP
-            </p>
-            <div className="row">
-              <button type="button" className="primary grow" onClick={start}>
-                再戰一次
-              </button>
-              <button type="button" className="grow" onClick={() => setBattle(null)}>
-                返回
-              </button>
-            </div>
-          </div>
+          <ResultScreen won={battle.status === "challenger_won"} stats={`共 ${battle.phase} 階段 · 你剩 ${me.hp} HP · 對手剩 ${battle.sides.defender.hp} HP`}>
+            <button type="button" className="primary grow" onClick={start}>
+              再戰一次
+            </button>
+            <button type="button" className="grow" onClick={() => setBattle(null)}>
+              返回
+            </button>
+          </ResultScreen>
         ) : undefined}
       </Duel>
     </section>

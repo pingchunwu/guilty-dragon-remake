@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
 import {
@@ -70,6 +71,31 @@ export function ConfirmDialog({ message, confirmLabel, onConfirm, onCancel }: {
 }
 
 export const reducedMotion = () => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+
+/** Full-screen win/lose result over the whole viewport (portalled out of the board's transforms); `children` are the buttons. */
+export function ResultScreen({ won, stats, children }: { won: boolean; stats: string; children: ReactNode }) {
+  const root = useRef<HTMLDivElement>(null);
+  useGSAP(
+    () => {
+      if (reducedMotion()) return;
+      gsap.timeline()
+        .from(root.current, { opacity: 0, duration: 0.4 })
+        .from(".result-title", { scale: 0.4, opacity: 0, duration: 0.7, ease: "back.out(1.6)" }, 0.1)
+        .from(".result-body", { y: 16, opacity: 0, duration: 0.4 }, 0.6);
+    },
+    { scope: root },
+  );
+  return createPortal(
+    <div ref={root} className={`result-screen ${won ? "result-win" : "result-lose"}`} role="dialog" aria-modal="true" aria-label={won ? "勝利" : "落敗"}>
+      <strong className="result-title">{won ? "勝利！" : "落敗"}</strong>
+      <div className="result-body stack">
+        <p className="small">{stats}</p>
+        <div className="row">{children}</div>
+      </div>
+    </div>,
+    document.body,
+  );
+}
 
 /** Counts up (or down) to `value`; React renders only the first value, so the tween owns the text after that. */
 export function CountUp({ value, className }: { value: number; className?: string }) {

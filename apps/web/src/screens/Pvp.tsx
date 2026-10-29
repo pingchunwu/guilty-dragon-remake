@@ -3,7 +3,7 @@ import { RULES_V0, RULES_V07, type Selection, type SideId } from "@gdr/engine";
 import type { PvpBattle, PvpHistoryEntry, PvpLobby, PvpPlayer, PvpService } from "../game/pvp";
 import { errorText } from "../game/text";
 import { GameError, type PlayerState } from "../game/types";
-import { ConfirmDialog, DeckOutPanel, HandPicker, HpBar, isV07, type SideLabels } from "./BattleParts";
+import { ConfirmDialog, DeckOutPanel, HandPicker, HpBar, isV07, ResultScreen, type SideLabels } from "./BattleParts";
 import { PhaseBoard, hpAfterSkills } from "./Playback";
 import { Duel } from "./Duel";
 
@@ -311,16 +311,14 @@ function BattleView({ battle, player, busy, error, onPlay, onSurrender, onTimeou
   };
   const hpOf = (id: SideId) => track.before?.[id] ?? battle.hp[id];
   const endPanel = (
-    <div className="panel stack">
-      <strong className="big">{battle.status === "challenger_won" ? "勝利！" : "落敗"}</strong>
-      <p className="small">
-        {battle.endReason && `${END_REASON[battle.endReason]} · `}共 {battle.phase} 階段 · 你剩 {battle.hp.challenger} HP ·{" "}
-        {battle.opponent.name} 剩 {battle.hp.defender} HP
-      </p>
-      <button type="button" className="primary" onClick={onClose}>
+    <ResultScreen
+      won={battle.status === "challenger_won"}
+      stats={`${battle.endReason ? `${END_REASON[battle.endReason]} · ` : ""}共 ${battle.phase} 階段 · 你剩 ${battle.hp.challenger} HP · ${battle.opponent.name} 剩 ${battle.hp.defender} HP`}
+    >
+      <button type="button" className="primary grow" onClick={onClose}>
         返回
       </button>
-    </div>
+    </ResultScreen>
   );
 
   return (
