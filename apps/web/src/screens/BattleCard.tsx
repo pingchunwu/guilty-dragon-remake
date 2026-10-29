@@ -147,7 +147,9 @@ function ChromeText({ x, y, size, w, uid, children }: { x: number; y: number; si
 
 function CardNumber({ n, label, uid }: { n: number; label: string; uid: string }) {
   const text = String(n);
-  const size = text.length > 2 ? 160 / text.length : 80;
+  // Fixed glyph size for every value; right-aligned at x=94 (textAnchor end), long numbers grow
+  // leftwards through the svg's overflow:visible (4 digits ~ 132 units, still inside the card).
+  const size = 53;
   return (
     <svg
       viewBox="0 0 100 100"
