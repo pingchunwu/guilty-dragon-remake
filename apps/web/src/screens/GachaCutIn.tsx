@@ -70,7 +70,6 @@ export function GachaCutIn({
       const text = [q(".gcut-name"), q(".gcut-skill")];
       gsap.set(q(".gcut-star"), { opacity: 0, scale: 3 });
       gsap.set(text, { opacity: 0, y: 24 });
-      gsap.set(q(".gcut-new"), { opacity: 0, scale: 3, rotate: -25 });
       gsap.set(q(".gcut-sweep"), { xPercent: -160 });
       const tl = gsap.timeline({
         onComplete: () => {
@@ -85,7 +84,6 @@ export function GachaCutIn({
         tl
           .to(q(".gcut-name"), { opacity: 1, y: 0, duration: 0.35, ease: "back.out(2)" }, at)
           .to(q(".gcut-skill"), { opacity: 1, y: 0, duration: 0.35, ease: "power2.out" }, at + 0.2)
-          .to(q(".gcut-new"), { opacity: 1, scale: 1, rotate: -12, duration: 0.2, ease: "power4.in" }, at + 0.5)
           .to(q(".gcut-card"), { x: 3, y: -3, duration: 0.05, yoyo: true, repeat: 3 }, at + 0.7);
 
       if (!ssr) {
@@ -155,9 +153,9 @@ export function GachaCutIn({
             <BattleCard card={card} show="pow" />
           </div>
           <div className="gcut-sweep" />
+          {isNew && <span className="deck-card-badge deck-card-badge-new">NEW</span>}
         </div>
         {ssr && PARTICLES.map((i) => <i key={i} className="gcut-spark" />)}
-        {isNew && <div className="gcut-new">NEW</div>}
       </div>
       <div className="gcut-info">
         <div className="gcut-stars" aria-label={`${card.rarity} ${stars} stars`}>
