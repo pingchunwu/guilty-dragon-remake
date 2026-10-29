@@ -1,0 +1,1318 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head prefix="og: https://ogp.me/ns# fb: https://ogp.me/ns/fb# article: https://ogp.me/ns/article#">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,minimum-scale=1,initial-scale=1">
+    <script>
+    (function () {
+        var m = /(Android|iPhone|iPad)/.exec(navigator.userAgent)
+        if (m && m[1] !== 'iPhone') return
+        var meta = document.querySelector('meta[name="viewport"]')
+        if (!meta) return
+        meta.setAttribute('content', m
+            ? 'width=device-width,minimum-scale=1,initial-scale=1,user-scalable=no'
+            : 'width=980')
+    })()
+</script>
+
+    <meta name="description" content="ギルティドラゴン 罪竜と八つの呪い　攻略 Wiki*">
+        <meta property="og:url" content="https://wikiwiki.jp/guildra/%E9%87%8D%E8%A3%85NORMAL" />
+    <meta property="og:type" content="article" />
+    <meta property="og:title" content="重装NORMAL - ギルティドラゴン 罪竜と八つの呪い　攻略 Wiki*" />
+    <meta property="og:description" content="ギルティドラゴン 罪竜と八つの呪い　攻略 Wiki*" />
+    <meta property="og:site_name" content="ギルティドラゴン 罪竜と八つの呪い　攻略 Wiki*" />
+    <meta property="og:image" content="https://cdn.wikiwiki.jp/to/w/common/image/wikiwiki_ogp.png?v=4" />
+    <title>重装NORMAL - ギルティドラゴン 罪竜と八つの呪い　攻略 Wiki*</title>
+
+    <link rel="alternate" href="/guildra/::cmd/mixirss" type="application/rss+xml" title="RSS" />
+    <link rel="icon" href="https://cdn.wikiwiki.jp/to/w/common/user-favicon.ico?v=4"/>
+    <link rel="stylesheet" href="https://cdn.wikiwiki.jp/to/w/common/assets/dist/wikiwiki-6044fe03763c81a23933.min.css" type="text/css">
+<link rel="stylesheet" href="https://cdn.wikiwiki.jp/to/w/common/assets/dist/wikiwiki-ex1-ca7abd155d2d8393da00.min.css" type="text/css">
+<link rel="stylesheet" href="https://cdn.wikiwiki.jp/to/w/common/assets/dist/skin-default_deepgray-57d338299c6604a5d442.min.css" type="text/css">
+    
+    <script type="text/javascript" src="https://cdn.wikiwiki.jp/to/w/common/assets/dist/ad-1bf004520fc167abbea6.min.js"></script>
+    <script>
+    var wi_stay = (function () {
+        var wi_data_raw = localStorage.getItem('browsingStatistics');
+        var wi_data = wi_data_raw ? (JSON.parse(wi_data_raw) || {}) : {};
+        var stay = Number(wi_data.stay);
+        if (isNaN(stay)) {
+            stay = 0;
+        }
+        return stay;
+    })();
+    var wi_data_raw = localStorage.getItem('usageStatistics');
+    var wi_data =     wi_data_raw ? (JSON.parse(wi_data_raw) || {}) : {};
+    var wi_edit =     String(wi_data.edit || 0);
+    var wi_freeze =   String(wi_data.freeze || 0);
+    var wi_comment =  String(wi_data.comment || 0);
+    var wi_group = String(wi_data.group || "N");
+    var wi_smsAuth = wi_data.smsAuth || false;
+    var wi_hasPosted = wi_data.hasPosted || false;
+    var wi_agreement = String(wi_data.agreementStatus || "false");
+    if (document.referrer.length !== 0) {
+        var wi_uri = new URL(document.referrer);
+        var wi_referer = wi_uri.hostname;
+    } else {
+        var wi_referer = "unknown";
+    }
+
+    // Chromium系判定
+    function isChromium() {
+        var ua = navigator.userAgent;
+        // Edge, Opera, Chrome, Chromium, Brave など
+        return /\b(Chrome|Chromium|Edg|OPR|Brave)\b/.test(ua) && !/Silk|UCBrowser|SamsungBrowser|CriOS|FxiOS|OPiOS|EdgiOS/.test(ua);
+    }
+
+    var wi_ismobile;
+    var wi_device;
+    if (isChromium() && navigator.userAgentData) {
+        wi_ismobile = navigator.userAgentData.mobile;
+        if (wi_ismobile) {
+            if (navigator.userAgentData.platform === "Android") {
+                wi_device = "and";
+            } else {
+                wi_device = "ios";
+            }
+        } else {
+            wi_device = "pc";
+        }
+    } else {
+        wi_ismobile = !!navigator.userAgent.match(/iPhone|Android.+Mobile/);
+        if (navigator.userAgent.match(/Android.+Mobile/)) {
+            wi_device = "and";
+        } else if (navigator.userAgent.match(/iPhone/)) {
+            wi_device = "ios";
+        } else {
+            wi_device = "pc";
+        }
+    }
+
+    var wi_isportrait = window.matchMedia("(orientation: portrait)").matches;
+    var wi_isinbound = wi_referer.includes(window.location.hostname) ? false : true;
+    var wi_random100 = Math.floor(Math.random() * (100 - 1) + 1);
+    var wi_random110 = Math.floor(Math.random() * 10) + 1;
+    var wi_isread_yet = true;
+    var wi_location_hash = location.hash || false;
+</script>
+
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-3Y8FN9EFS7"></script>
+<script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-3Y8FN9EFS7', {
+        'content_group': 'guildra',
+        'user_properties': {
+            'user_group':     wi_group,
+            'user_agreement': wi_agreement,
+            'edit_count':     wi_edit,
+            'comment_count':  wi_comment,
+            'sms_auth':       String(wi_smsAuth)
+        }
+    });
+    
+</script>
+
+<script>
+    window.wikiFq = createWikiFq();
+</script>
+<script>
+    var wi_recref = recordReferrerDomain();
+</script>
+
+<script>
+const visitData_20241117 = (() => {
+const RESET_INTERVAL_MINUTES = 30;
+const now = Date.now();
+const resetIntervalMs = RESET_INTERVAL_MINUTES * 60 * 1000;
+const storageKey = "internalVisitData";
+let data = JSON.parse(localStorage.getItem(storageKey)) || { count: 0, lastVisit: now };
+if (now - data.lastVisit > resetIntervalMs) data = { count: 0, lastVisit: now };
+if (document.referrer && new URL(document.referrer).hostname === window.location.hostname) {
+data = { count: data.count + 1, lastVisit: now };
+localStorage.setItem(storageKey, JSON.stringify(data));
+}
+return data;
+})();
+
+const int_conditions = [
+wi_ismobile,
+wi_group === 'N',
+wi_agreement === 'false',
+!wi_isinbound,
+visitData_20241117.count === 1,
+];
+
+const int_conditions_pc = [
+    !wi_ismobile,
+    wi_group === 'N',
+    wi_agreement === 'false',
+    !wi_isinbound,
+    visitData_20241117.count === 1,
+];
+</script>
+<script>
+(function(){
+  const FLAG="fluxinst_pc";
+  const url=new URL(location.href);
+
+  if(url.searchParams.get(FLAG)==="1"){
+    url.searchParams.delete(FLAG);
+    history.replaceState(null,"",url.toString());
+    return;
+  }
+
+  if(
+    Array.isArray(int_conditions_pc) &&
+    int_conditions_pc.every(Boolean)
+  ){
+    url.searchParams.set(FLAG,"1");
+    location.href=url.toString();
+  }
+})();
+</script>
+
+
+<script>
+(function(){
+  const FLAG="fluxinst_sp";
+  const url=new URL(location.href);
+
+  if(url.searchParams.get(FLAG)==="1"){
+    url.searchParams.delete(FLAG);
+    history.replaceState(null,"",url.toString());
+    return;
+  }
+
+  if(
+    Array.isArray(int_conditions) &&
+    int_conditions.every(Boolean) &&
+    (wi_device==="ios" || wi_device==="and")
+  ){
+    url.searchParams.set(FLAG,"1");
+    location.href=url.toString();
+  }
+})();
+</script>
+
+<!-- Google Tag Manager -->
+<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+})(window,document,'script','dataLayer','GTM-KQ52VZ3');</script>
+<!-- End Google Tag Manager -->
+
+
+<script type="text/javascript">
+    window.pbjs = window.pbjs || {};
+    window.pbjs.que = window.pbjs.que || [];
+</script>
+<script async="async" src="https://flux-cdn.com/client/ukiuki/flux_wikiwiki_AS_TM_AT.min.js"></script>
+<script>
+window.googletag = window.googletag || {};
+window.googletag.cmd = window.googletag.cmd || [];
+</script>
+<script async src="https://securepubads.g.doubleclick.net/tag/js/gpt.js"></script>
+<script>
+
+var wi_adslot_rectangle = [[300,250],[1,1]];
+var wi_adslot = [[300,250],[1,1]];
+if (document.documentElement.clientWidth > 406) {
+  wi_adslot_rectangle = [[300,250],[336,280],[1,1]];
+  wi_adslot = [[468,60],[300,250],[1,1]];
+}
+
+window.defineSlotFlux = [];
+if (wi_ismobile && wi_isportrait) {
+  defineSlotFlux.push({"slotID": "div-gpt-ad-1563441919648-0", "sizes": [[320, 100], [320, 50]], "slotName":"WIKIWIKI_SP_OVERLAY"});
+}
+    if (wi_isinbound && wi_ismobile && wi_group == "N" && wi_agreement === "false") {
+      defineSlotFlux.push({"slotID": "div-gpt-ad-1563430750445-0", "sizes": [[300,250]], "slotName":"WIKIWIKI_SP_INBOUND"});
+    } else if (wi_isinbound && wi_group == "N" && wi_agreement === "false") {
+      defineSlotFlux.push({"slotID": "div-gpt-ad-1567409776345-0", "sizes": [[300,250]], "slotName":"WIKIWIKI_PC_INBOUND"});
+      defineSlotFlux.push({"slotID": "div-gpt-ad-1658802281376-0", "sizes": [[300,250]], "slotName":"WIKIWIKI_PC_INBOUND_RIGHT"});
+    }
+  if (wi_ismobile) {
+    defineSlotFlux.push({"slotID": "div-gpt-ad-1567408559923-0", "sizes": [[300,250]], "slotName":"WIKIWIKI_SP_SECOND"});
+  } else {
+    defineSlotFlux.push({"slotID": "div-gpt-ad-1567408559923-0", "sizes": [[300,250]], "slotName":"WIKIWIKI_PC_BOTTOM_LEFT"});
+    defineSlotFlux.push({"slotID": "div-gpt-ad-1658912377789-0", "sizes": [[300,250]], "slotName":"WIKIWIKI_PC_BOTTOM_RIGHT"});
+  }
+</script>
+<script type="text/javascript">
+if (defineSlotFlux.length) {
+    window.fluxtag = {
+        readyBids: { prebid: false, google: false },
+        failSafeTimeout: 3e3, // 3秒でフェイルセーフ発動
+        isFn: function isFn(object) {
+            var _t = 'Function';
+            var toString = Object.prototype.toString;
+            return toString.call(object) === '[object ' + _t + ']';
+        },
+        launchAdServer: function () {
+            if (!fluxtag.readyBids.prebid) {
+                return;
+            }
+            fluxtag.requestAdServer();
+        },
+        requestAdServer: function () {
+            if (!fluxtag.readyBids.google) {
+                fluxtag.readyBids.google = true;
+                googletag.cmd.push(function () {
+                    var pbjsLoaded = !!(window.pbjs && pbjs.que &&
+                        fluxtag.isFn(pbjs.que.push) &&
+                        (pbjs.libLoaded || (pbjs.setTargetingForGPTAsync &&
+                            fluxtag.isFn(pbjs.setTargetingForGPTAsync))));
+                    if (pbjsLoaded) {
+                        pbjs.que.push(function () {
+                            if (pbjs.setTargetingForGPTAsync && fluxtag.isFn(pbjs.setTargetingForGPTAsync)) {
+                                try {
+                                    Promise.resolve(pbjs.setTargetingForGPTAsync())
+                                        .catch(function () {})
+                                        .then(function () {
+                                            googletag.pubads().refresh();
+                                        });
+                                } catch (e) {
+                                    googletag.pubads().refresh();
+                                }
+                            } else {
+                                googletag.pubads().refresh();
+                            }
+                        });
+                    } else {
+                        googletag.pubads().refresh();
+                    }
+                });
+            }
+        }
+    };
+
+    setTimeout(function () {
+        fluxtag.requestAdServer();
+    }, fluxtag.failSafeTimeout);
+}
+</script>
+<script>
+googletag.cmd.push(function() {
+    if (wi_ismobile && wi_isportrait) {
+        var overlaySlot = googletag.defineSlot('/19033742/WIKIWIKI_SP_OVERLAY',[[320,100],[320,50],[1,1]],'div-gpt-ad-1563441919648-0');
+        if (overlaySlot) {
+            overlaySlot.addService(googletag.pubads());
+            // 分母はこの枠だけで数え、空の初回描画にも次回用の印を付ける。
+            var overlayRenderHandler = function(event) {
+                if (event.slot !== overlaySlot) return;
+                overlaySlot.setConfig({ targeting: { wi_refresh: '1' } });
+                googletag.pubads().removeEventListener('slotRenderEnded', overlayRenderHandler);
+            };
+            googletag.pubads().addEventListener('slotRenderEnded', overlayRenderHandler);
+        }
+    }
+    if (wi_isinbound && wi_ismobile && wi_group == "N" && wi_agreement === "false") {
+      googletag.defineSlot('/19033742/WIKIWIKI_SP_INBOUND',[[300,250]],
+        'div-gpt-ad-1563430750445-0').addService(googletag.pubads());
+    } else if (wi_isinbound && wi_group == "N" && wi_agreement === "false") {
+      googletag.defineSlot('/19033742/WIKIWIKI_PC_INBOUND',[[336,280],[300,250]],
+        'div-gpt-ad-1567409776345-0').addService(googletag.pubads());
+      googletag.defineSlot('/19033742/WIKIWIKI_PC_INBOUND_RIGHT',[[336,280],[300,250]],
+        'div-gpt-ad-1658802281376-0').addService(googletag.pubads());
+    }
+    if (wi_ismobile) {
+        googletag.defineSlot('/19033742/WIKIWIKI_SP_SECOND',[[300,250]],
+        'div-gpt-ad-1567408559923-0').addService(googletag.pubads());
+    } else {
+        googletag.defineSlot('/19033742/WIKIWIKI_PC_BOTTOM_LEFT',[[336,280],[300,250]],
+        'div-gpt-ad-1567408559923-0').addService(googletag.pubads());
+        googletag.defineSlot('/19033742/WIKIWIKI_PC_BOTTOM_RIGHT',[[336,280],[300,250]],
+        'div-gpt-ad-1658912377789-0').addService(googletag.pubads());
+    }
+    googletag.setConfig({ targeting: {
+        "gpolicy": "sunny",
+        "site": "guildra"
+    } });
+    googletag.setConfig({ collapseDiv: 'ON_NO_FILL' });
+    googletag.setConfig({ singleRequest: true });
+    googletag.pubads().addEventListener('slotRenderEnded', function(event) {
+        var slot = event.slot;
+        if (document.getElementById(slot.getSlotElementId()) != null){
+            var slotElm = document.getElementById(slot.getSlotElementId());
+            if (slotElm && slotElm.className === 'overlay-ad-wrapper') {
+                var overlayRenderedEvent = document.createEvent('Event');
+                overlayRenderedEvent.initEvent('overlay-ad-rendered', true, true);
+                slotElm.dispatchEvent(overlayRenderedEvent);
+            }
+        }
+    });
+    googletag.setConfig({
+        lazyLoad: {
+            fetchMarginPercent: 50,   // 0.5画面分まできたらリクエスト
+            renderMarginPercent: 50,  // 0.5画面分まできたら描画
+            mobileScaling: 2.0        // モバイルはスクロールが早いため2倍（1.0画面分）にする
+        }
+    });
+    if (defineSlotFlux.length) {googletag.setConfig({ disableInitialLoad: true });};
+    googletag.enableServices();
+    if (defineSlotFlux.length) {
+        pbjs.que.push(function () {
+            window.pbFlux.prebidBidder();
+        });
+    }
+});
+</script>
+
+<script>
+googletag.cmd.push(function() {
+  googletag.setConfig({ targeting: {
+    "wi_agreement": String(wi_data.agreementStatus || "false"),
+    "wi_group": String(wi_data.group || "N"),
+    "wi_comment": wi_comment.length.toString(),
+    "wi_edit": wi_edit.length.toString(),
+    "wi_freeze": wi_freeze.length.toString(),
+    "wi_smsAuth": String(wi_data.smsAuth || false),
+    "wi_hasPosted": String(wi_data.hasPosted || false),
+    "wi_referer": String(wi_referer || "unknown"),
+    "wi_random110": String(wi_random110 || "0"),
+    "wi_hour": ('0' + new Date().getHours()).slice(-2)
+  } });
+});
+</script>
+
+<style>
+.pc-caption-ad-default {
+    margin-top:20px;
+    display:flex;
+    justify-content:flex-start;
+    gap: 10px 5px;
+    min-height:280px;
+    position: sticky;
+    z-index: 3;
+    top: 45px;
+}
+
+.pc-caption-ad-center{
+    margin-top:20px;
+    display:flex;
+    justify-content:center;
+    gap: 10px 5px;
+    min-height:280px;
+    position: sticky;
+    z-index: 3;
+    top: 45px;
+}
+.pc-caption-ad-mobile{
+    margin-top:20px;
+    margin-bottom:20px;
+    display:flex;
+    justify-content:center;
+    min-height:331px;
+    position: sticky;
+    z-index: 3;
+    top: 45px;
+}
+.pc-caption-ad-mobile-300x600{
+    margin-top:20px;
+    margin-bottom:20px;
+    display:flex;
+    justify-content:center;
+    min-height:331px;
+}
+.default-advertisement {
+    background-color: transparent;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 576 512'%3E%3C!--!Font Awesome Pro 6.6.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2024 Fonticons, Inc.--%3E%3Cpath d='M16 48l0 416 544 0 0-416L16 48zM0 32l16 0 544 0 16 0 0 16 0 416 0 16-16 0L16 480 0 480l0-16L0 48 0 32zM320 280a56 56 0 1 0 112 0 56 56 0 1 0 -112 0zm56-72c22.6 0 42.8 10.4 56 26.7l0-66.7 0-8 16 0 0 8 0 112 0 64 0 8-16 0 0-8 0-18.7c-13.2 16.3-33.4 26.7-56 26.7c-39.8 0-72-32.2-72-72s32.2-72 72-72zM183.1 160l5.2 0 7.3 0 5.2 0 2.1 4.8L284.2 352l-17.4 0-20.8-48-107.8 0-20.8 48-17.4 0L181 164.8l2.1-4.8zM145 288l94 0L192 179.7 145 288z' fill='%23BBB'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 25px 25px;
+}
+
+@media (max-width: 500px) {
+  .caption-flybox:has(iframe[id^="google_ads_iframe_"]) {
+    position: relative;
+    min-height: 450px;
+  }
+}
+</style>
+
+
+<script>
+googletag.cmd.push(function() {
+    const pcCaptionPaths = [
+        '/19033742/WIKIWIKI_PC_CAPTION',
+        '/19033742/WIKIWIKI_PC_CAPTION_SIDE_BY',
+        '/19033742/WIKIWIKI_PC_CAPTION_20TH',
+        '/19033742/WIKIWIKI_CAPTION_B'
+    ];
+
+    const spCaptionPaths = [
+        '/19033742/WIKIWIKI_SP_CAPTION',
+        '/19033742/WIKIWIKI_SP_CAPTION_300x600'
+    ];
+
+    googletag.pubads().addEventListener('slotRenderEnded', function(event) {
+        const slotElement = document.getElementById(event.slot.getSlotElementId());
+        const parent = slotElement?.parentNode;
+
+        if (parent && !event.isEmpty) {
+            if (pcCaptionPaths.includes(event.slot.getAdUnitPath())) {
+                parent.classList.add(parent.clientWidth < 769 ? "pc-caption-ad-center" : "pc-caption-ad-default");
+            } else if (spCaptionPaths.includes(event.slot.getAdUnitPath())) {
+                if (event.slot.getAdUnitPath() === '/19033742/WIKIWIKI_SP_CAPTION_300x600') {
+                    parent.classList.add("pc-caption-ad-mobile-300x600");
+                } else {
+                    parent.classList.add("pc-caption-ad-mobile");
+                }
+            }
+        }
+    });
+
+    googletag.pubads().addEventListener('slotOnload', function(event) {
+        const slotElement = document.getElementById(event.slot.getSlotElementId());
+        slotElement?.parentNode?.classList.remove("default-advertisement");
+    });
+});
+</script>
+
+<link rel="preload" as="script" href="https://pdn.adingo.jp/p.js">
+<link rel="preconnect" href="https://sh.adingo.jp" crossorigin="use-credentials">
+    <link rel="canonical" href="https://wikiwiki.jp/guildra/%E9%87%8D%E8%A3%85NORMAL">
+    <style>
+@media screen and (min-width: 820px) {
+  .container-wrapper {
+    min-width: 930px;
+    max-width: 930px;
+  }
+}
+</style>
+<style>
+  body {
+      font-family: Verdana, Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+      font-size: 12px;
+  }
+</style>
+<style>
+  @media screen and (max-width: 819px), print and (max-width: 180mm) {
+    body {
+        font-size: 13px;
+    }
+  }
+</style>
+        <script>
+        window.globalParamsContainer = {"smsAuthParams":{"actionTrollingDefenceCheck":"\/guildra\/::cmd\/trolling_defence_pass","actionSubmitNumber":"\/p\/sms-auth\/code\/request","actionSubmitCode":"\/p\/sms-auth\/code\/activate","cookieName":"authkey"},"editAssistantImgSrc":{"face_smile":"https:\/\/cdn.wikiwiki.jp\/to\/w\/common\/image\/face\/smile.png?v=4","face_bigsmile":"https:\/\/cdn.wikiwiki.jp\/to\/w\/common\/image\/face\/bigsmile.png?v=4","face_huh":"https:\/\/cdn.wikiwiki.jp\/to\/w\/common\/image\/face\/huh.png?v=4","face_oh":"https:\/\/cdn.wikiwiki.jp\/to\/w\/common\/image\/face\/oh.png?v=4","face_wink":"https:\/\/cdn.wikiwiki.jp\/to\/w\/common\/image\/face\/wink.png?v=4","face_sad":"https:\/\/cdn.wikiwiki.jp\/to\/w\/common\/image\/face\/sad.png?v=4","face_worried":"https:\/\/cdn.wikiwiki.jp\/to\/w\/common\/image\/face\/worried.png?v=4","face_tear":"https:\/\/cdn.wikiwiki.jp\/to\/w\/common\/image\/face\/tear.png?v=4","face_tere":"https:\/\/cdn.wikiwiki.jp\/to\/w\/common\/image\/face\/tere.png?v=4","face_shock":"https:\/\/cdn.wikiwiki.jp\/to\/w\/common\/image\/face\/shock.png?v=4","face_heart":"https:\/\/cdn.wikiwiki.jp\/to\/w\/common\/image\/face\/heart.png?v=4","face_star":"https:\/\/cdn.wikiwiki.jp\/to\/w\/common\/image\/face\/star.gif?v=4","face_hatena":"https:\/\/cdn.wikiwiki.jp\/to\/w\/common\/image\/face\/hatena.gif?v=4","face_tip":"https:\/\/cdn.wikiwiki.jp\/to\/w\/common\/image\/face\/tip.gif?v=4"},"experimentalFeature":false};
+    </script>
+</head>
+<body class="">
+<!-- Google Tag Manager (noscript) -->
+<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-KQ52VZ3"
+height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+<!-- End Google Tag Manager (noscript) -->
+<style>
+/* 1 */
+@media (max-width: 500px) {
+    body {
+        margin-bottom: 129px !important;
+        transition: margin-bottom 0.4s ease-in-out;
+    }
+    body:has(#div-gpt-ad-1563441919648-0 iframe[height="50"]) {
+        margin-bottom: 79px !important;
+    }
+}
+
+/* 2 */
+#overlay-anchor-wrapper {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    width: 100%;
+    z-index: 99998;
+    pointer-events: none;
+    transform: translateY(100%);
+    transition: transform 0.4s ease-in-out 10s;
+}
+
+body:has(#div-gpt-ad-1563441919648-0 iframe) #overlay-anchor-wrapper {
+    transform: translateY(0);
+    transition: transform 1.2s cubic-bezier(0.22, 1, 0.36, 1) 0.6s;
+}
+
+/* 3 */
+#pc-overlay-ad-parent-container {
+    contain: layout style;
+    content-visibility: auto;
+
+    width: 100%;
+    background-color: var(--h2-background-color, #ffffff) !important;
+    padding-top: 5px;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.1);
+    pointer-events: auto;
+
+    max-height: 105px;
+    height: auto;
+    transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: visible !important;
+}
+
+#pc-overlay-ad-parent-container:has(iframe[height="50"]) {
+    max-height: 60px;
+}
+
+/* 4 */
+#pc-overlay-ad-close-button {
+    position: absolute;
+    top: -24px;
+    right: 12px;
+    width: 38px; height: 24px;
+    background-color: var(--h2-background-color, #ffffff) !important;
+    border-radius: 8px 8px 0 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 99999;
+    cursor: pointer;
+    pointer-events: auto;
+    opacity: 0;
+    transform: translateY(5px);
+    transition: opacity 0.6s ease-out 10s, transform 0.6s ease-out 10s;
+}
+
+body:has(#div-gpt-ad-1563441919648-0 iframe) #pc-overlay-ad-close-button {
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 0.6s ease-out 1.8s, transform 0.6s ease-out 1.8s;
+}
+
+#pc-overlay-ad-close-button svg {
+    width: 14px; height: 14px;
+    fill: var(--h2-text-color, #666666) !important;
+}
+
+/* 5 */
+#ad-close-trigger { display: none; }
+
+#ad-close-trigger:checked ~ #overlay-anchor-wrapper {
+    transform: translateY(100%) !important;
+    opacity: 0;
+    transition: transform 0.4s cubic-bezier(0.4, 0, 1, 1), opacity 0.4s cubic-bezier(0.4, 0, 1, 1) !important;
+    pointer-events: none;
+}
+
+body:has(#ad-close-trigger:checked) {
+    margin-bottom: 0 !important;
+}
+
+/* 6 */
+.overlay-ad-container { 
+    display: flex; justify-content: center; align-items: center; 
+    min-height: 50px; position: relative; 
+}
+.overlay-ad-container::before { 
+    content: ""; position: absolute; width: 320px; height: 100%; 
+    border-radius: 4px; z-index: 0;
+    animation: quietPulse 3s infinite; 
+}
+@keyframes quietPulse { 0%, 100% { background-color: transparent; } 50% { background-color: rgba(0, 0, 0, 0.04); } }
+
+#div-gpt-ad-1563441919648-0 { position: relative; z-index: 1; display: flex; justify-content: center; width: 100%; }
+#div-gpt-ad-1563441919648-0 iframe {
+    animation: fadeInQuick 0.5s ease-in-out 0.2s both !important;
+    background: var(--h2-background-color, #ffffff);
+}
+@keyframes fadeInQuick { from { opacity: 0; } to { opacity: 1; } }
+</style>
+
+<input type="checkbox" id="ad-close-trigger">
+<div id="overlay-anchor-wrapper" class="hidden-switch-class">
+    <label for="ad-close-trigger" id="pc-overlay-ad-close-button">
+        <svg viewBox="0 0 384 512"><path d="M342.6 150.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L192 210.7 86.6 105.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3L146.7 256 41.4 361.4c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0L192 301.3 297.4 406.6c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L237.3 256 342.6 150.6z"/></svg>
+    </label>
+<div id="pc-overlay-ad-parent-container" class="hidden-switch-class">
+    <div id="pc-overlay-ad-container-hidden" class="overlay-ad-container">
+        <div id="pc-overlay-ad-container">
+            <div id='div-gpt-ad-1563441919648-0' class="overlay-ad-wrapper"></div>
+        </div>
+    </div>
+</div>
+</div>
+<noscript>
+    <div class="noscript-alert">
+        <i class="fa-solid fa-exclamation-triangle"></i>
+        ブラウザの JavaScript がオフ（ブロックまたは許可しない）に設定されているため、このページは正常に機能しません。
+    </div>
+</noscript>
+<div class="container-wrapper">
+
+    <div class="container clearfix">
+                                <div id="header" class="user-header">
+                <p><img src="https://cdn.wikiwiki.jp/to/w/guildra/%3AHeader/::ref/header.png.webp?rev=a8b09b9f3011d765b84f2b4db163226a&amp;t=20130122193719" alt="トップ画像" title="トップ画像" width="910" height="140"  loading="lazy"></p>            </div>
+                <div class="toolbox-container system-ui clearfix" id="naviframe">
+            <div class="toolbox toolbox-desktop navibar-container">
+                <div id="navigator">[ <a href="/guildra/">ホーム</a> | <a href="/guildra/::cmd/newpage?refer=%E9%87%8D%E8%A3%85NORMAL" rel="nofollow">新規</a> | <a href="/guildra/::cmd/edit?page=%E9%87%8D%E8%A3%85NORMAL" rel="nofollow">編集</a> | <a href="/guildra/::cmd/attach?page=%E9%87%8D%E8%A3%85NORMAL" rel="nofollow">添付</a> ]</div>            </div>
+            <div class="toolbox toolbox-desktop toolbar-container">
+                <div class="toolbar"><a href="/guildra/::cmd/list" title="一覧" rel="nofollow"><span class="system-icon toolbar list"></span></a>
+<a href="/guildra/RecentChanges" title="最終更新" rel="nofollow"><span class="system-icon toolbar recent"></span></a>
+<a href="/guildra/::cmd/diff?page=%E9%87%8D%E8%A3%85NORMAL" title="差分" rel="nofollow"><span class="system-icon toolbar diff"></span></a>
+<a href="/guildra/::cmd/backup?page=%E9%87%8D%E8%A3%85NORMAL" title="バックアップ" rel="nofollow"><span class="system-icon toolbar backup"></span></a>
+<a href="/guildra/::cmd/freeze?page=%E9%87%8D%E8%A3%85NORMAL" title="凍結" rel="nofollow"><span class="system-icon toolbar freeze"></span></a>
+<a href="/guildra/::cmd/template?refer=%E9%87%8D%E8%A3%85NORMAL" title="複製" rel="nofollow"><span class="system-icon toolbar copy"></span></a>
+<a href="/guildra/::cmd/rename?refer=%E9%87%8D%E8%A3%85NORMAL" title="名前変更" rel="nofollow"><span class="system-icon toolbar rename"></span></a>
+<a href="/guildra/::cmd/help" title="ヘルプ" rel="nofollow"><span class="system-icon toolbar help"></span></a></div>            </div>
+            <div class="toolbox toolbox-mobile toolbar-container">
+                <div class="toolbar"><a href="/guildra/" title="ホーム"><span class="system-icon toolbar top"></span></a>
+<a href="/guildra/RecentChanges" title="最終更新" rel="nofollow"><span class="system-icon toolbar recent"></span></a>
+<a id="menu-in-nav" href="#menubar" class="menu-in-nav">Menu<i class="fa-solid fa-arrow-alt-down"></i></a></div>            </div>
+            <div class="toolbox toolbox-searchbar">
+                <form action="/guildra/::cmd/search" method="get">
+                    <input type="search" name="word" value="" size="16" aria-label="サイト内検索" placeholder="サイト内検索">
+                    <input type="hidden" name="type" value="AND">
+                    <input type="submit" value="検索">
+                </form>
+            </div>
+        </div>
+            <div id="responsive-navigation"></div>
+    <div style="display: none;">
+        <div id="edit-menu" class="system-ui">
+            <div id="edit-menu-items">
+                <ul><li><a href="/guildra/::cmd/newpage?refer=%E9%87%8D%E8%A3%85NORMAL" rel="nofollow"><span class='system-icon toolbar new'></span> 新規</a></li><li><a href="/guildra/::cmd/edit?page=%E9%87%8D%E8%A3%85NORMAL" rel="nofollow"><span class='system-icon toolbar edit'></span> 編集</a></li><li><a href="/guildra/::cmd/attach?page=%E9%87%8D%E8%A3%85NORMAL" rel="nofollow"><span class='system-icon toolbar upload'></span> 添付</a></li></ul>
+<ul><li><a href="/guildra/::cmd/list" rel="nofollow"><span class='system-icon toolbar list'></span> 一覧</a></li><li><a href="/guildra/RecentChanges" rel="nofollow"><span class='system-icon toolbar recent'></span> 最終更新</a></li><li><a href="/guildra/::cmd/diff?page=%E9%87%8D%E8%A3%85NORMAL" rel="nofollow"><span class='system-icon toolbar diff'></span> 差分</a></li><li><a href="/guildra/::cmd/backup?page=%E9%87%8D%E8%A3%85NORMAL" rel="nofollow"><span class='system-icon toolbar backup'></span> バックアップ</a></li></ul>
+<ul><li><a href="/guildra/::cmd/freeze?page=%E9%87%8D%E8%A3%85NORMAL" rel="nofollow"><span class='system-icon toolbar freeze'></span> 凍結</a></li><li><a href="/guildra/::cmd/template?refer=%E9%87%8D%E8%A3%85NORMAL" rel="nofollow"><span class='system-icon toolbar copy'></span> 複製</a></li><li><a href="/guildra/::cmd/rename?refer=%E9%87%8D%E8%A3%85NORMAL" rel="nofollow"><span class='system-icon toolbar rename'></span> 名前変更</a></li></ul>
+<ul><li><a href="/guildra/::cmd/help" rel="nofollow"><span class='system-icon toolbar help'></span> ヘルプ</a></li></ul>
+
+            </div>
+        </div>
+    </div>    </div>
+
+    <div class="container">
+        <div class="clearfix">
+            <div id="breadcrumbs" class="system-ui">
+                <div id="topicpath"><a href="/guildra/" title="FrontPage"><i class="fa-solid fa-home" style="margin-left: 6px; display: inline-block; min-width: 1.2em;"></i></a> &gt; 重装NORMAL</div>            </div>
+            <div id="system-icon-container" class="system-ui">
+                                <span id="share-button-root"></span>                <span id="admin-contact-root" class="single-system-icon"></span>
+                <div id="load-panel-root"></div>
+                <span id="admin-login" class="single-system-icon">
+                    
+<a class="admin-login-status" href="/guildra/::cmd/admin_login?return_to=%2Fguildra%2F%E9%87%8D%E8%A3%85NORMAL" title="未ログイン">
+    <i class="fa-solid fa-cog"></i>
+</a>
+                </span>
+            </div>
+        </div>
+        <hr />
+    </div>
+
+    <div id="contents" class="columns-container three-columns-container container clearfix has-left-column">
+
+        <div class="column-center clearfix">
+            <div id="body">
+                                                <div id="title">
+                                            <h1 class="title">重装NORMAL</h1>
+                                                                <div id="lastmodified">
+                            Last-modified: 2016-02-28 (日) 21:29:23                                                    </div>
+                                    </div>
+
+                
+<div id="inbound-ad-container">
+  <!-- /19033742/WIKIWIKI_PC_INBOUND -->
+  <div id='div-gpt-ad-1567409776345-0'></div>
+  <!-- /19033742/WIKIWIKI_PC_INBOUND_RIGHT -->
+  <div id='div-gpt-ad-1658802281376-0'></div>
+  <!-- /19033742/WIKIWIKI_SP_INBOUND -->
+  <div id='div-gpt-ad-1563430750445-0' class="hidden-switch-class"></div>
+</div>
+
+<style>
+.pc-inbound-ad-default {
+    margin-top:40px;
+    margin-bottom:40px;
+    display:flex;
+    justify-content:flex-start;
+    gap: 10px 5px;
+    min-height:280px;
+}
+.pc-inbound-ad-center{
+    margin-top:40px;
+    margin-bottom:40px;
+    display:flex;
+    justify-content:center;
+    gap: 10px 5px;
+    min-height:280px;
+    position: relative;
+}
+.pc-inbound-ad-mobile{
+    margin-top:20px;
+    margin-bottom:20px;
+    display:flex;
+    justify-content:center;
+    min-height:280px;
+}
+.pc-inbound-ad-close-button {
+    position: absolute;
+    top: -25px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 20px;
+    height: 20px;
+    background: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"%3E%3C!--! Font Awesome Pro 6.6.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2024 Fonticons, Inc. --%3E%3Cpath class="fa-secondary" opacity=".4" d="M281.4 390.6L304 413.3 349.3 368l-22.6-22.6L237.3 256l89.4-89.4L349.3 144 304 98.7l-22.6 22.6L192 210.7l-89.4-89.4L80 98.7 34.7 144l22.6 22.6L146.7 256 57.4 345.4 34.7 368 80 413.3l22.6-22.6L192 301.3l89.4 89.4z" fill="%23888"/%3E%3C/svg%3E') no-repeat center;
+    background-size: contain;
+    cursor: pointer;
+}
+</style>
+
+<script>
+(function () {
+    const co = document.getElementById('inbound-ad-container');
+    const inboundPaths = [
+        '/19033742/WIKIWIKI_PC_INBOUND',
+        '/19033742/WIKIWIKI_PC_INBOUND_RIGHT'
+    ];
+
+    if (wi_isinbound && wi_group === "N" && wi_agreement === "false") {
+        if (wi_ismobile) {
+            co.classList.add("pc-inbound-ad-mobile","default-advertisement");
+        } else {
+            const width = co.clientWidth;
+            const adClass = width < 683 || (width >= 683 && width < 900) ? ["pc-inbound-ad-center","default-advertisement"] : ["pc-inbound-ad-default"];
+            co.classList.add(...adClass);
+
+            if (adClass.includes("pc-inbound-ad-center")) {
+                googletag.cmd.push(function() {
+                    googletag.pubads().addEventListener('slotOnload', function(event) {
+                        if (inboundPaths.includes(event.slot.getAdUnitPath())) {
+                            let closeButton = co.querySelector(".pc-inbound-ad-close-button");
+                            if (!closeButton) {
+                                closeButton = document.createElement("div");
+                                closeButton.classList.add("pc-inbound-ad-close-button");
+                                closeButton.onclick = () => co.style.display = "none";
+                                co.appendChild(closeButton);
+                            }
+                        }
+                    });
+                });
+            }
+        }
+    }
+})();
+</script>
+
+                <div class="search-words small" style="display: none;">
+    <div class="small">これらのキーワードがハイライトされています：<ul class="search-words-words"></ul></div>
+    <hr class="full_hr">
+</div>
+                <div id="content">
+                                        <p>＋を押すと各一覧が表示されます<br />
+名称画像クリックで詳細画面に飛びます<br />
+順番は図鑑ユニット順に並べています</p>
+<div class="fold-container  clearfix">
+    <button class="fold-toggle-button hidden-on-open"><i class="fal fa-plus-square"></i></button>
+    <button class="fold-toggle-button visible-on-open"><i class="fal fa-minus-square"></i></button>
+    <div class="fold-summary hidden-on-open">各一覧</div>
+    <div class="fold-content visible-on-open"><p>重装   <a href="/guildra/%E9%87%8D%E8%A3%85NORMAL" title="重装NORMAL" class="rel-wiki-page">【N】</a>  <a href="/guildra/%E9%87%8D%E8%A3%85NORMAL%2B" title="重装NORMAL+" class="rel-wiki-page">【N+】</a>  <a href="/guildra/%E9%87%8D%E8%A3%85RARE" title="重装RARE" class="rel-wiki-page">【R】</a>  <a href="/guildra/%E9%87%8D%E8%A3%85RARE%2B" title="重装RARE+" class="rel-wiki-page">【R+】</a>  <a href="/guildra/%E9%87%8D%E8%A3%85SUPERRARE" title="重装SUPERRARE" class="rel-wiki-page">【SR】</a>  <a href="/guildra/%E9%87%8D%E8%A3%85SUPERRARE%2B" title="重装SUPERRARE+" class="rel-wiki-page">【SR+】</a></p>
+<p>軽装   <a href="/guildra/%E8%BB%BD%E8%A3%85NORMAL" title="軽装NORMAL" class="rel-wiki-page">【N】</a>  <a href="/guildra/%E8%BB%BD%E8%A3%85NORMAL%2B" title="軽装NORMAL+" class="rel-wiki-page">【N+】</a>  <a href="/guildra/%E8%BB%BD%E8%A3%85RARE" title="軽装RARE" class="rel-wiki-page">【R】</a>  <a href="/guildra/%E8%BB%BD%E8%A3%85RARE%2B" title="軽装RARE+" class="rel-wiki-page">【R+】</a>  <a href="/guildra/%E8%BB%BD%E8%A3%85SUPERRARE" title="軽装SUPERRARE" class="rel-wiki-page">【SR】</a>  <a href="/guildra/%E8%BB%BD%E8%A3%85SUPERRARE%2B" title="軽装SUPERRARE+" class="rel-wiki-page">【SR+】</a></p>
+<p>魔装   <a href="/guildra/%E9%AD%94%E8%A3%85NORMAL" title="魔装NORMAL" class="rel-wiki-page">【N】</a>  <a href="/guildra/%E9%AD%94%E8%A3%85NORMAL%2B" title="魔装NORMAL+" class="rel-wiki-page">【N+】</a>  <a href="/guildra/%E9%AD%94%E8%A3%85RARE" title="魔装RARE" class="rel-wiki-page">【R】</a>  <a href="/guildra/%E9%AD%94%E8%A3%85RARE%2B" title="魔装RARE+" class="rel-wiki-page">【R+】</a>  <a href="/guildra/%E9%AD%94%E8%A3%85SUPERRARE" title="魔装SUPERRARE" class="rel-wiki-page">【SR】</a>  <a href="/guildra/%E9%AD%94%E8%A3%85SUPERRARE%2B" title="魔装SUPERRARE+" class="rel-wiki-page">【SR+】</a><br />
+素材   <a href="/guildra/%E3%83%AC%E3%83%99%E3%83%AB%E3%82%A2%E3%83%83%E3%83%97%E7%B4%A0%E6%9D%90" title="レベルアップ素材" class="rel-wiki-page">レベルアップ素材</a>  <a href="/guildra/%E3%82%B9%E3%82%AD%E3%83%AB%E3%82%A2%E3%83%83%E3%83%97%E7%B4%A0%E6%9D%90" title="スキルアップ素材" class="rel-wiki-page">スキルアップ素材</a>　<a href="/guildra/%E5%A3%B2%E5%8D%B4%E7%94%A8%E3%83%A6%E3%83%8B%E3%83%83%E3%83%88" title="売却用ユニット" class="rel-wiki-page">売却用ユニット</a>  <a href="/guildra/%E8%A8%98%E7%AB%A0" title="記章" class="rel-wiki-page">記章</a></p>
+</div>
+</div>
+<div class="h-scrollable"><table><tbody><tr><td style="text-align:center;"><a href="/guildra/%E5%AF%BA%E5%B3%B6%E8%89%AF%E5%AD%90" title="寺島良子" class="rel-wiki-page"><img src="https://cdn.wikiwiki.jp/to/w/guildra/%E9%87%8D%E8%A3%85NORMAL/::ref/%E5%AF%BA%E5%B3%B6%E8%89%AF%E5%AD%901.png.webp?rev=d0479d8892d6e7fe4713d1d43afdc01c&amp;t=20130123091644" alt="寺島良子" title="寺島良子" width="120" height="120"  loading="lazy"></a> <br class="spacer"> <a href="/guildra/%E5%AF%BA%E5%B3%B6%E8%89%AF%E5%AD%90" title="寺島良子" class="rel-wiki-page">寺島良子</a></td><td style="text-align:center;"><a href="/guildra/%E8%A3%8F%E5%88%87%E3%82%8A%E3%81%AE%E3%82%A2%E3%82%B9%E3%82%BF" title="裏切りのアスタ" class="rel-wiki-page"><img src="https://cdn.wikiwiki.jp/to/w/guildra/%E9%87%8D%E8%A3%85NORMAL/::ref/%E8%A3%8F%E5%88%87%E3%82%8A%E3%81%AE%E3%82%A2%E3%82%B9%E3%82%BF1.png.webp?rev=b1fd19e6cfe821df36805d2fa10917ec&amp;t=20130123091700" alt="裏切りのアスタ1.png" title="裏切りのアスタ1.png" width="120" height="120"  loading="lazy"></a> <br class="spacer"> <a href="/guildra/%E8%A3%8F%E5%88%87%E3%82%8A%E3%81%AE%E3%82%A2%E3%82%B9%E3%82%BF" title="裏切りのアスタ" class="rel-wiki-page">裏切りのアスタ</a></td><td style="text-align:center;"><a href="/guildra/%E3%83%9F%E3%83%9F%E3%83%AB" title="ミミル" class="rel-wiki-page"><img src="https://cdn.wikiwiki.jp/to/w/guildra/%E9%87%8D%E8%A3%85NORMAL/::ref/%E3%83%9F%E3%83%9F%E3%83%AB1.png.webp?rev=70f2e636c1dc29f5ea26a47bd2491bdd&amp;t=20130123091627" alt="ミミル1.png" title="ミミル1.png" width="120" height="120"  loading="lazy"></a> <br class="spacer"> <a href="/guildra/%E3%83%9F%E3%83%9F%E3%83%AB" title="ミミル" class="rel-wiki-page">ミミル</a></td><td style="text-align:center;"><a href="/guildra/%E3%82%AC%E3%83%AB%E3%83%87%E3%83%8B%E3%82%A2" title="ガルデニア" class="rel-wiki-page"><img src="https://cdn.wikiwiki.jp/to/w/guildra/%E9%87%8D%E8%A3%85NORMAL/::ref/%E3%82%AC%E3%83%AB%E3%83%87%E3%83%8B%E3%82%A21.png.webp?rev=5af75a935e90ddb9566779d1bf419310&amp;t=20130123091544" alt="ガルデニア1.png" title="ガルデニア1.png" width="120" height="120"  loading="lazy"></a> <br class="spacer"> <a href="/guildra/%E3%82%AC%E3%83%AB%E3%83%87%E3%83%8B%E3%82%A2" title="ガルデニア" class="rel-wiki-page">ガルデニア</a></td><td style="text-align:center;"><a href="/guildra/%E3%82%AB%E3%83%BC%E3%83%AB" title="カール" class="rel-wiki-page"><img src="https://cdn.wikiwiki.jp/to/w/guildra/%E9%87%8D%E8%A3%85NORMAL/::ref/%E3%82%AB%E3%83%BC%E3%83%AB1.png.webp?rev=2eceedf2c4c15dcecfb29ecd24b03fec&amp;t=20130123091520" alt="カール1.png" title="カール1.png" width="120" height="120"  loading="lazy"></a> <br class="spacer"> <a href="/guildra/%E3%82%AB%E3%83%BC%E3%83%AB" title="カール" class="rel-wiki-page">カール</a></td></tr><tr><td style="text-align:center;"><a href="/guildra/%E3%82%AB%E3%82%AA%E3%81%A1%E3%82%93" title="カオちん" class="rel-wiki-page"><img src="https://cdn.wikiwiki.jp/to/w/guildra/%E9%87%8D%E8%A3%85NORMAL/::ref/%E3%82%AB%E3%82%AA%E3%81%A1%E3%82%931.png.webp?rev=73e0df10124025d0a5425f88222f8f43&amp;t=20130123091537" alt="カオちん1.png" title="カオちん1.png" width="120" height="120"  loading="lazy"></a> <br class="spacer"> <a href="/guildra/%E3%82%AB%E3%82%AA%E3%81%A1%E3%82%93" title="カオちん" class="rel-wiki-page">カオちん</a></td><td style="text-align:center;"><a href="/guildra/%E3%83%98%E3%83%AB%E3%83%AB%E3%83%BC%E3%82%AC" title="ヘルルーガ" class="rel-wiki-page"><img src="https://cdn.wikiwiki.jp/to/w/guildra/%E9%87%8D%E8%A3%85NORMAL/::ref/%E3%83%98%E3%83%AB%E3%83%AB%E3%83%BC%E3%82%AC1.png.webp?rev=4302fa4709cc64c16bfcfc1aa8255b2f&amp;t=20130607174849" alt="ヘルルーガ1.png" title="ヘルルーガ1.png" width="120" height="120"  loading="lazy"></a> <br class="spacer"> <a href="/guildra/%E3%83%98%E3%83%AB%E3%83%AB%E3%83%BC%E3%82%AC" title="ヘルルーガ" class="rel-wiki-page">ヘルルーガ</a></td><td style="text-align:center;"><a href="/guildra/%E4%B8%89%E9%83%8E" title="三郎" class="rel-wiki-page"><img src="https://cdn.wikiwiki.jp/to/w/guildra/%E9%87%8D%E8%A3%85NORMAL/::ref/%E4%B8%89%E9%83%8E1.png.webp?rev=f8a4781c6f27ed931ef8ead55f50efc5&amp;t=20130123091634" alt="三郎1.png" title="三郎1.png" width="120" height="120"  loading="lazy"></a> <br class="spacer"> <a href="/guildra/%E4%B8%89%E9%83%8E" title="三郎" class="rel-wiki-page">三郎</a></td><td style="text-align:center;"><a href="/guildra/%E7%A5%9E%E5%A8%81" title="神威" class="rel-wiki-page"><img src="https://cdn.wikiwiki.jp/to/w/guildra/%E9%87%8D%E8%A3%85NORMAL/::ref/%E7%A5%9E%E5%A8%811.png.webp?rev=e2876adba245f149b9dc86b9e9b63a8d&amp;t=20130123091653" alt="神威1.png" title="神威1.png" width="120" height="120"  loading="lazy"></a> <br class="spacer"> <a href="/guildra/%E7%A5%9E%E5%A8%81" title="神威" class="rel-wiki-page">神威</a></td><td style="text-align:center;"><a href="/guildra/%E6%AC%85" title="欅" class="rel-wiki-page"><img src="https://cdn.wikiwiki.jp/to/w/guildra/%E9%87%8D%E8%A3%85NORMAL/::ref/%E6%AC%851.png.webp?rev=e32ca0f8d42ce6440280cb597b5fc619&amp;t=20130123091708" alt="欅1.png" title="欅1.png" width="120" height="120"  loading="lazy"></a> <br class="spacer"> <a href="/guildra/%E6%AC%85" title="欅" class="rel-wiki-page">欅</a></td></tr><tr><td style="text-align:center;"><a href="/guildra/%E3%82%AF%E3%83%BC%E3%83%B3" title="クーン" class="rel-wiki-page"><img src="https://cdn.wikiwiki.jp/to/w/guildra/%E9%87%8D%E8%A3%85NORMAL/::ref/%E3%82%AF%E3%83%BC%E3%83%B31.png.webp?rev=45313b5fe4b76b0061141159c76b9841&amp;t=20130607174940" alt="クーン1.png" title="クーン1.png" width="120" height="120"  loading="lazy"></a> <br class="spacer"> <a href="/guildra/%E3%82%AF%E3%83%BC%E3%83%B3" title="クーン" class="rel-wiki-page">クーン</a></td><td style="text-align:center;"><a href="/guildra/%E3%82%AA%E3%83%AB%E3%82%AB" title="オルカ" class="rel-wiki-page"><img src="https://cdn.wikiwiki.jp/to/w/guildra/%E9%87%8D%E8%A3%85NORMAL/::ref/%E3%82%AA%E3%83%AB%E3%82%AB1.png.webp?rev=fe81aa323019b8447462749136304f7f&amp;t=20130123091512" alt="オルカ1.png" title="オルカ1.png" width="120" height="120"  loading="lazy"></a> <br class="spacer"> <a href="/guildra/%E3%82%AA%E3%83%AB%E3%82%AB" title="オルカ" class="rel-wiki-page">オルカ</a></td><td style="text-align:center;"><a href="/guildra/%E3%83%97%E3%83%81%E3%83%87%E3%83%93%E3%83%AB%E3%81%8B%E3%81%AA%E3%82%81" title="プチデビルかなめ" class="rel-wiki-page"><img src="https://cdn.wikiwiki.jp/to/w/guildra/%E9%87%8D%E8%A3%85NORMAL/::ref/%E3%83%97%E3%83%81%E3%83%87%E3%83%93%E3%83%AB%E3%81%8B%E3%81%AA%E3%82%811.png.webp?rev=a6b92e74be83cb9e63e9336eb4faee37&amp;t=20130123091610" alt="プチデビルかなめ1.png" title="プチデビルかなめ1.png" width="120" height="120"  loading="lazy"></a> <br class="spacer"> <a href="/guildra/%E3%83%97%E3%83%81%E3%83%87%E3%83%93%E3%83%AB%E3%81%8B%E3%81%AA%E3%82%81" title="プチデビルかなめ" class="rel-wiki-page">プチデビルかなめ</a></td><td style="text-align:center;"><a href="/guildra/%E3%82%AA%E3%83%BC%E3%82%B1%E3%83%B3" title="オーケン" class="rel-wiki-page"><img src="https://cdn.wikiwiki.jp/to/w/guildra/%E9%87%8D%E8%A3%85NORMAL/::ref/%E3%82%AA%E3%83%BC%E3%82%B1%E3%83%B31.png.webp?rev=c2f1cdc5d1535a526d4f970686976dc8&amp;t=20130607175039" alt="オーケン1.png" title="オーケン1.png" width="120" height="120"  loading="lazy"></a> <br class="spacer"> <a href="/guildra/%E3%82%AA%E3%83%BC%E3%82%B1%E3%83%B3" title="オーケン" class="rel-wiki-page">オーケン</a></td><td style="text-align:center;"><a href="/guildra/%E5%B1%88%E6%8A%98%E3%81%AE%E3%82%AB%E3%82%AA%E3%81%A1%E3%82%93" title="屈折のカオちん" class="rel-wiki-page"><img src="https://cdn.wikiwiki.jp/to/w/guildra/%E9%87%8D%E8%A3%85NORMAL/::ref/%E5%B1%88%E6%8A%98%E3%81%AE%E3%82%AB%E3%82%AA%E3%81%A1%E3%82%931.png.webp?rev=d2359a2a53fe21ff3b216c3dc4720fbe&amp;t=20130201122009" alt="屈折のカオちん1.png" title="屈折のカオちん1.png" width="120" height="120"  loading="lazy"></a> <br class="spacer"> <a href="/guildra/%E5%B1%88%E6%8A%98%E3%81%AE%E3%82%AB%E3%82%AA%E3%81%A1%E3%82%93" title="屈折のカオちん" class="rel-wiki-page">屈折のカオちん</a></td></tr><tr><td style="text-align:center;"><a href="/guildra/%E6%AE%8B%E5%BF%83%E3%81%AE%E7%A5%9E%E5%A8%81" title="残心の神威" class="rel-wiki-page"><img src="https://cdn.wikiwiki.jp/to/w/guildra/%E9%87%8D%E8%A3%85NORMAL/::ref/%E6%AE%8B%E5%BF%83%E3%81%AE%E7%A5%9E%E5%A8%811.png.webp?rev=e6228f91e471f1e3c044859a6ec14a09&amp;t=20130225210020" alt="残心の神威1.png" title="残心の神威1.png" width="120" height="120"  loading="lazy"></a> <br class="spacer"> <a href="/guildra/%E6%AE%8B%E5%BF%83%E3%81%AE%E7%A5%9E%E5%A8%81" title="残心の神威" class="rel-wiki-page">残心の神威</a></td><td style="text-align:center;"><a href="/guildra/%E3%81%8A%E6%98%BC%E5%AF%9D%E3%81%AE%E5%AF%85" title="お昼寝の寅" class="rel-wiki-page"><img src="https://cdn.wikiwiki.jp/to/w/guildra/%E9%87%8D%E8%A3%85NORMAL/::ref/%E3%81%8A%E6%98%BC%E5%AF%9D%E3%81%AE%E5%AF%851.png.webp?rev=2a21995a907ece7659e03b996f6259e4&amp;t=20130225205949" alt="お昼寝の寅1.png" title="お昼寝の寅1.png" width="120" height="120"  loading="lazy"></a> <br class="spacer"> <a href="/guildra/%E3%81%8A%E6%98%BC%E5%AF%9D%E3%81%AE%E5%AF%85" title="お昼寝の寅" class="rel-wiki-page">お昼寝の寅</a></td><td style="text-align:center;"><a href="/guildra/%E5%90%A0%E3%81%88%E7%8C%9B%E3%82%8B%E3%83%90%E3%83%AB%E3%82%B6%E3%83%83%E3%82%AF" title="吠え猛るバルザック" class="rel-wiki-page"><img src="https://cdn.wikiwiki.jp/to/w/guildra/%E9%87%8D%E8%A3%85NORMAL/::ref/%E5%90%A0%E3%81%88%E7%8C%9B%E3%82%8B%E3%83%90%E3%83%AB%E3%82%B6%E3%83%83%E3%82%AF1.png.webp?rev=4e95287d7baadb67f5f776db4a3cf87b&amp;t=20130225210008" alt="吠え猛るバルザック1.png" title="吠え猛るバルザック1.png" width="120" height="120"  loading="lazy"></a> <br class="spacer"> <a href="/guildra/%E5%90%A0%E3%81%88%E7%8C%9B%E3%82%8B%E3%83%90%E3%83%AB%E3%82%B6%E3%83%83%E3%82%AF" title="吠え猛るバルザック" class="rel-wiki-page">吠え猛るバルザック</a></td><td style="text-align:center;"><a href="/guildra/%E5%8D%98%E4%BD%8D%E3%83%8F%E3%83%B3%E3%82%BF%E3%83%BC%E3%83%AA%E3%83%AA%E3%82%AB" title="単位ハンターリリカ" class="rel-wiki-page"><img src="https://cdn.wikiwiki.jp/to/w/guildra/%E9%87%8D%E8%A3%85NORMAL/::ref/%E5%8D%98%E4%BD%8D%E3%83%8F%E3%83%B3%E3%82%BF%E3%83%BC%E3%83%AA%E3%83%AA%E3%82%AB1.png.webp?rev=6e08dc787d0d3060273034627f41a933&amp;t=20130310163908" alt="単位ハンターリリカ1.png" title="単位ハンターリリカ1.png" width="120" height="120"  loading="lazy"></a> <br class="spacer"> <a href="/guildra/%E5%8D%98%E4%BD%8D%E3%83%8F%E3%83%B3%E3%82%BF%E3%83%BC%E3%83%AA%E3%83%AA%E3%82%AB" title="単位ハンターリリカ" class="rel-wiki-page">単位ハンターリリカ</a></td><td style="text-align:center;"><a href="/guildra/%E3%81%B4%E3%82%8D%E3%81%97" title="ぴろし" class="rel-wiki-page"><img src="https://cdn.wikiwiki.jp/to/w/guildra/%E9%87%8D%E8%A3%85NORMAL/::ref/%E3%81%B4%E3%82%8D%E3%81%971.png.webp?rev=917a1328369f24b0506e692ed562fe72&amp;t=20130310163941" alt="ぴろし1.png" title="ぴろし1.png" width="120" height="120"  loading="lazy"></a> <br class="spacer"> <a href="/guildra/%E3%81%B4%E3%82%8D%E3%81%97" title="ぴろし" class="rel-wiki-page">ぴろし</a></td></tr><tr><td style="text-align:center;"><a href="/guildra/%E4%B8%96%E8%A9%B1%E7%84%BC%E3%81%8D%E5%89%A3%E5%A3%AB%E3%83%9F%E3%83%9F%E3%83%AB" title="世話焼き剣士ミミル" class="rel-wiki-page"><img src="https://cdn.wikiwiki.jp/to/w/guildra/%E9%87%8D%E8%A3%85NORMAL/::ref/%E4%B8%96%E8%A9%B1%E7%84%BC%E3%81%8D%E5%89%A3%E5%A3%AB%E3%83%9F%E3%83%9F%E3%83%AB1.png.webp?rev=a2ec9843c2a99de255c598031f4c22cf&amp;t=20130310163958" alt="世話焼き剣士ミミル1.png" title="世話焼き剣士ミミル1.png" width="120" height="120"  loading="lazy"></a> <br class="spacer"> <a href="/guildra/%E4%B8%96%E8%A9%B1%E7%84%BC%E3%81%8D%E5%89%A3%E5%A3%AB%E3%83%9F%E3%83%9F%E3%83%AB" title="世話焼き剣士ミミル" class="rel-wiki-page">世話焼き剣士ミミル</a></td><td style="text-align:center;"><a href="/guildra/%E8%8D%92%E3%82%8C%E3%81%9F%E4%B8%83%E3%81%A4%E3%81%AE%E6%B5%B7%E3%81%AE%E9%88%B4%E6%9C%A8" title="荒れた七つの海の鈴木" class="rel-wiki-page"><img src="https://cdn.wikiwiki.jp/to/w/guildra/%E9%87%8D%E8%A3%85NORMAL/::ref/%E8%8D%92%E3%82%8C%E3%81%9F%E4%B8%83%E3%81%A4%E3%81%AE%E6%B5%B7%E3%81%AE%E9%88%B4%E6%9C%A81.png.webp?rev=b0dab32e4159ef0696c057bc399f8a51&amp;t=20130325023542" alt="荒れた七つの海の鈴木1.png" title="荒れた七つの海の鈴木1.png" width="120" height="120"  loading="lazy"></a> <br class="spacer"> <a href="/guildra/%E8%8D%92%E3%82%8C%E3%81%9F%E4%B8%83%E3%81%A4%E3%81%AE%E6%B5%B7%E3%81%AE%E9%88%B4%E6%9C%A8" title="荒れた七つの海の鈴木" class="rel-wiki-page">荒れた七つの海の鈴木</a></td><td style="text-align:center;"><a href="/guildra/%E6%98%A5%E9%A2%A8%E9%A6%99%E3%82%8B%E3%82%A8%E3%83%AC%E3%83%9F%E3%82%A2" title="春風香るエレミア" class="rel-wiki-page"><img src="https://cdn.wikiwiki.jp/to/w/guildra/%E9%87%8D%E8%A3%85NORMAL/::ref/%E6%98%A5%E9%A2%A8%E9%A6%99%E3%82%8B%E3%82%A8%E3%83%AC%E3%83%9F%E3%82%A21.png.webp?rev=5b399a1d93c8bc76b47fcae318a73738&amp;t=20130402052838" alt="春風香るエレミア1.png" title="春風香るエレミア1.png" width="120" height="120"  loading="lazy"></a> <br class="spacer"> <a href="/guildra/%E6%98%A5%E9%A2%A8%E9%A6%99%E3%82%8B%E3%82%A8%E3%83%AC%E3%83%9F%E3%82%A2" title="春風香るエレミア" class="rel-wiki-page">春風香るエレミア</a></td><td style="text-align:center;"><a href="/guildra/%E9%87%8E%E5%96%B6%E3%81%AE%E5%8C%82%E5%9D%82" title="野営の匂坂" class="rel-wiki-page"><img src="https://cdn.wikiwiki.jp/to/w/guildra/%E9%87%8D%E8%A3%85NORMAL/::ref/%E9%87%8E%E5%96%B6%E3%81%AE%E5%8C%82%E5%9D%821.png.webp?rev=c4e961e486f344e78f5aefaf55f636d8&amp;t=20130420230237" alt="野営の匂坂1.png" title="野営の匂坂1.png" width="120" height="120"  loading="lazy"></a> <br class="spacer"> <a href="/guildra/%E9%87%8E%E5%96%B6%E3%81%AE%E5%8C%82%E5%9D%82" title="野営の匂坂" class="rel-wiki-page">野営の匂坂</a></td><td style="text-align:center;"><a href="/guildra/%E9%AB%98%E5%8E%9F%E3%81%AE%E4%BB%A4%E5%AC%A2" title="高原の令嬢" class="rel-wiki-page"><img src="https://cdn.wikiwiki.jp/to/w/guildra/%E9%87%8D%E8%A3%85NORMAL/::ref/%E9%AB%98%E5%8E%9F%E3%81%AE%E4%BB%A4%E5%AC%A21.png.webp?rev=2f4239329f6acc9562377a06309173de&amp;t=20130508184042" alt="高原の令嬢1.png" title="高原の令嬢1.png" width="120" height="120"  loading="lazy"></a> <br class="spacer"> <a href="/guildra/%E9%AB%98%E5%8E%9F%E3%81%AE%E4%BB%A4%E5%AC%A2" title="高原の令嬢" class="rel-wiki-page">高原の令嬢</a></td></tr><tr><td style="text-align:center;"><a href="/guildra/%E4%B8%80%E8%A7%92%E3%81%AE%E3%83%88%E3%82%AD%E3%82%AA" title="一角のトキオ" class="rel-wiki-page"><img src="https://cdn.wikiwiki.jp/to/w/guildra/%E9%87%8D%E8%A3%85NORMAL/::ref/%E4%B8%80%E8%A7%92%E3%81%AE%E3%83%88%E3%82%AD%E3%82%AA1.png.webp?rev=471cd15826368fe3da087ea40ca9a8dd&amp;t=20130607144513" alt="一角のトキオ1.png" title="一角のトキオ1.png" width="120" height="120"  loading="lazy"></a> <br class="spacer"> <a href="/guildra/%E4%B8%80%E8%A7%92%E3%81%AE%E3%83%88%E3%82%AD%E3%82%AA" title="一角のトキオ" class="rel-wiki-page">一角のトキオ</a></td><td style="text-align:center;"><a href="/guildra/%E3%82%AC%E3%82%AD%E5%A4%A7%E5%B0%86%E3%81%8C%E3%81%B3" title="ガキ大将がび" class="rel-wiki-page"><img src="https://cdn.wikiwiki.jp/to/w/guildra/%E9%87%8D%E8%A3%85NORMAL/::ref/%E3%82%AC%E3%82%AD%E5%A4%A7%E5%B0%86%E3%81%8C%E3%81%B31.png.webp?rev=009d7630ea6e04327ce1eb39ba4736f1&amp;t=20130607144506" alt="ガキ大将がび1.png" title="ガキ大将がび1.png" width="120" height="120"  loading="lazy"></a> <br class="spacer"> <a href="/guildra/%E3%82%AC%E3%82%AD%E5%A4%A7%E5%B0%86%E3%81%8C%E3%81%B3" title="ガキ大将がび" class="rel-wiki-page">ガキ大将がび</a></td><td style="text-align:center;"><a href="/guildra/%E4%B8%83%E3%81%A4%E3%81%AE%E6%B5%B7%E3%82%92%E8%A1%8C%E3%81%8F%E9%88%B4%E6%9C%A8" title="七つの海を行く鈴木" class="rel-wiki-page"><img src="https://cdn.wikiwiki.jp/to/w/guildra/%E9%87%8D%E8%A3%85NORMAL/::ref/%E4%B8%83%E3%81%A4%E3%81%AE%E6%B5%B7%E3%82%92%E8%A1%8C%E3%81%8F%E9%88%B4%E6%9C%A81.png.webp?rev=9ab9935c87e5467765f42d271fac7cad&amp;t=20130607144459" alt="七つの海を行く鈴木1.png" title="七つの海を行く鈴木1.png" width="120" height="120"  loading="lazy"></a> <br class="spacer"> <a href="/guildra/%E4%B8%83%E3%81%A4%E3%81%AE%E6%B5%B7%E3%82%92%E8%A1%8C%E3%81%8F%E9%88%B4%E6%9C%A8" title="七つの海を行く鈴木" class="rel-wiki-page">七つの海を行く鈴木</a></td><td style="text-align:center;"><a href="/guildra/%E5%A0%85%E3%81%8D%E8%BB%9F%E5%BC%B1%E3%81%AE%E3%81%B4%E3%82%8D%E3%81%97%EF%BC%93" title="堅き軟弱のぴろし３" class="rel-wiki-page"><img src="https://cdn.wikiwiki.jp/to/w/guildra/%E9%87%8D%E8%A3%85NORMAL/::ref/%E5%A0%85%E3%81%8D%E8%BB%9F%E5%BC%B1%E3%81%AE%E3%81%B4%E3%82%8D%E3%81%97%EF%BC%931.png.webp?rev=a0048262a56d2e87bc71c2c042bbd080&amp;t=20130622190236" alt="堅き軟弱のぴろし３1.png" title="堅き軟弱のぴろし３1.png" width="120" height="120"  loading="lazy"></a> <br class="spacer"> <a href="/guildra/%E5%A0%85%E3%81%8D%E8%BB%9F%E5%BC%B1%E3%81%AE%E3%81%B4%E3%82%8D%E3%81%97%EF%BC%93" title="堅き軟弱のぴろし３" class="rel-wiki-page">堅き軟弱のぴろし３</a></td><td style="text-align:center;"><a href="/guildra/%E3%83%97%E3%83%81%E3%82%B0%E3%82%BD%E3%81%82%E3%81%9D%EF%BD%9E%E3%81%A8" title="プチグソあそ～と" class="rel-wiki-page"><img src="https://cdn.wikiwiki.jp/to/w/guildra/%E9%87%8D%E8%A3%85NORMAL/::ref/%E3%83%97%E3%83%81%E3%82%B0%E3%82%BD%E3%81%82%E3%81%9D%EF%BD%9E%E3%81%A81.png.webp?rev=ac9e90a42350c3a930e51dd029717b60&amp;t=20130701231505" alt="プチグソあそ～と1.png" title="プチグソあそ～と1.png" width="120" height="120"  loading="lazy"></a> <br class="spacer"> <a href="/guildra/%E3%83%97%E3%83%81%E3%82%B0%E3%82%BD%E3%81%82%E3%81%9D%EF%BD%9E%E3%81%A8" title="プチグソあそ～と" class="rel-wiki-page">プチグソあそ～と</a></td></tr><tr><td style="text-align:center;"><a href="/guildra/%E3%81%99%E3%81%84%E3%81%8B%E3%82%AF%E3%83%A9%E3%83%83%E3%82%B7%E3%83%A3%E3%83%BC%E5%AF%85" title="すいかクラッシャー寅" class="rel-wiki-page"><img src="https://cdn.wikiwiki.jp/to/w/guildra/%E9%87%8D%E8%A3%85NORMAL/::ref/%E3%81%99%E3%81%84%E3%81%8B%E3%82%AF%E3%83%A9%E3%83%83%E3%82%B7%E3%83%A3%E3%83%BC%E5%AF%851.png.webp?rev=18869692b93f0f6fb37dab8144907d94&amp;t=20130703012737" alt="すいかクラッシャー寅1.png" title="すいかクラッシャー寅1.png" width="120" height="120"  loading="lazy"></a> <br class="spacer"> <a href="/guildra/%E3%81%99%E3%81%84%E3%81%8B%E3%82%AF%E3%83%A9%E3%83%83%E3%82%B7%E3%83%A3%E3%83%BC%E5%AF%85" title="すいかクラッシャー寅" class="rel-wiki-page">すいかクラッシャー寅</a></td><td style="text-align:center;"><a href="/guildra/%E5%86%B7%E3%82%84%E3%81%97%E3%82%A8%E3%83%AA%E3%83%B3%E3%82%AE%E3%81%86%E3%81%BE%E3%81%84" title="冷やしエリンギうまい" class="rel-wiki-page"><img src="https://cdn.wikiwiki.jp/to/w/guildra/%E9%87%8D%E8%A3%85NORMAL/::ref/%E5%86%B7%E3%82%84%E3%81%97%E3%82%A8%E3%83%AA%E3%83%B3%E3%82%AE%E3%81%86%E3%81%BE%E3%81%841.png.webp?rev=c1e13ab444112b977deccf64bcde6c19&amp;t=20130731205639" alt="冷やしエリンギうまい1.png" title="冷やしエリンギうまい1.png" width="120" height="120"  loading="lazy"></a> <br class="spacer"> <a href="/guildra/%E5%86%B7%E3%82%84%E3%81%97%E3%82%A8%E3%83%AA%E3%83%B3%E3%82%AE%E3%81%86%E3%81%BE%E3%81%84" title="冷やしエリンギうまい" class="rel-wiki-page">冷やしエリンギうまい</a></td><td style="text-align:center;"><a href="/guildra/%E8%BD%9F%E3%81%8F%E7%BE%8E%E3%81%AE%E9%9B%B7" title="轟く美の雷" class="rel-wiki-page"><img src="https://cdn.wikiwiki.jp/to/w/guildra/%E9%87%8D%E8%A3%85NORMAL/::ref/%E8%BD%9F%E3%81%8F%E7%BE%8E%E3%81%AE%E9%9B%B71.png.webp?rev=d6465ea6dd827848451ea9b6fd4f7693&amp;t=20130731205705" alt="轟く美の雷1.png" title="轟く美の雷1.png" width="120" height="120"  loading="lazy"></a> <br class="spacer"> <a href="/guildra/%E8%BD%9F%E3%81%8F%E7%BE%8E%E3%81%AE%E9%9B%B7" title="轟く美の雷" class="rel-wiki-page">轟く美の雷</a></td><td style="text-align:center;"><a href="/guildra/%E8%9B%8D%E7%81%AB%E3%81%AE%E5%A4%A7%E7%81%AB" title="蛍火の大火" class="rel-wiki-page"><img src="https://cdn.wikiwiki.jp/to/w/guildra/%E9%87%8D%E8%A3%85NORMAL/::ref/%E8%9B%8D%E7%81%AB%E3%81%AE%E5%A4%A7%E7%81%AB1.png.webp?rev=4759bd33b8770ceb7580bdf68058738f&amp;t=20130731205634" alt="蛍火の大火1.png" title="蛍火の大火1.png" width="120" height="120"  loading="lazy"></a> <br class="spacer"> <a href="/guildra/%E8%9B%8D%E7%81%AB%E3%81%AE%E5%A4%A7%E7%81%AB" title="蛍火の大火" class="rel-wiki-page">蛍火の大火</a></td><td style="text-align:center;"><a href="/guildra/%E6%80%AA%E5%8A%9B%E7%94%B7%E3%83%88%E3%83%AD%E3%83%B3%E3%83%A1%E3%83%AB" title="怪力男トロンメル" class="rel-wiki-page"><img src="https://cdn.wikiwiki.jp/to/w/guildra/%E9%87%8D%E8%A3%85NORMAL/::ref/%E6%80%AA%E5%8A%9B%E7%94%B7%E3%83%88%E3%83%AD%E3%83%B3%E3%83%A1%E3%83%AB1.png.webp?rev=8955dd329b777b3adbcd35a63f607fd5&amp;t=20130830200105" alt="怪力男トロンメル1.png" title="怪力男トロンメル1.png" width="120" height="120"  loading="lazy"></a> <br class="spacer"> <a href="/guildra/%E6%80%AA%E5%8A%9B%E7%94%B7%E3%83%88%E3%83%AD%E3%83%B3%E3%83%A1%E3%83%AB" title="怪力男トロンメル" class="rel-wiki-page">怪力男トロンメル</a></td></tr><tr><td style="text-align:center;"><a href="/guildra/%E3%82%B9%E3%83%9E%E3%83%83%E3%82%B7%E3%83%A5%E3%82%BF%E3%82%A4%E3%82%AC%E3%83%BC" title="スマッシュタイガー" class="rel-wiki-page"><img src="https://cdn.wikiwiki.jp/to/w/guildra/%E9%87%8D%E8%A3%85NORMAL/::ref/%E3%82%B9%E3%83%9E%E3%83%83%E3%82%B7%E3%83%A5%E3%82%BF%E3%82%A4%E3%82%AC%E3%83%BC1.png.webp?rev=feda5ed2398a9615f425e76b88821687&amp;t=20130912140138" alt="スマッシュタイガー1.png" title="スマッシュタイガー1.png" width="120" height="120"  loading="lazy"></a> <br class="spacer"> <a href="/guildra/%E3%82%B9%E3%83%9E%E3%83%83%E3%82%B7%E3%83%A5%E3%82%BF%E3%82%A4%E3%82%AC%E3%83%BC" title="スマッシュタイガー" class="rel-wiki-page">スマッシュタイガー</a></td><td style="text-align:center;"><a href="/guildra/%E6%B3%B0%E7%84%B6%E3%81%9F%E3%82%8B%E3%82%AC%E3%83%AB%E3%83%87%E3%83%8B%E3%82%A2" title="泰然たるガルデニア" class="rel-wiki-page"><img src="https://cdn.wikiwiki.jp/to/w/guildra/%E9%87%8D%E8%A3%85NORMAL/::ref/%E6%B3%B0%E7%84%B6%E3%81%9F%E3%82%8B%E3%82%AC%E3%83%AB%E3%83%87%E3%83%8B%E3%82%A21.png.webp?rev=88345e890847febc446f0d03f66ba387&amp;t=20140824034446" alt="泰然たるガルデニア1.png" title="泰然たるガルデニア1.png" width="120" height="119"  loading="lazy"></a> <br class="spacer"> <a href="/guildra/%E6%B3%B0%E7%84%B6%E3%81%9F%E3%82%8B%E3%82%AC%E3%83%AB%E3%83%87%E3%83%8B%E3%82%A2" title="泰然たるガルデニア" class="rel-wiki-page">泰然たるガルデニア</a></td><td style="text-align:center;"><a href="/guildra/%E7%A7%8B%E6%97%A5%E5%92%8C%E3%81%AE%E5%8C%82%E5%9D%82" title="秋日和の匂坂" class="rel-wiki-page"><img src="https://cdn.wikiwiki.jp/to/w/guildra/%E9%87%8D%E8%A3%85NORMAL/::ref/%E7%A7%8B%E6%97%A5%E5%92%8C%E3%81%AE%E5%8C%82%E5%9D%821.png.webp?rev=fd7ed45f7be98bbb2b93afe4d08dbf24&amp;t=20140827021600" alt="秋日和の匂坂1.png" title="秋日和の匂坂1.png" width="120" height="120"  loading="lazy"></a> <br class="spacer"> <a href="/guildra/%E7%A7%8B%E6%97%A5%E5%92%8C%E3%81%AE%E5%8C%82%E5%9D%82" title="秋日和の匂坂" class="rel-wiki-page">秋日和の匂坂</a></td><td style="text-align:center;"><a href="/guildra/%E8%88%B9%E5%A4%A7%E5%B7%A5%E3%81%AE%E3%83%90%E3%83%AB%E3%82%B6%E3%83%83%E3%82%AF" title="船大工のバルザック" class="rel-wiki-page"><img src="https://cdn.wikiwiki.jp/to/w/guildra/%E9%87%8D%E8%A3%85NORMAL/::ref/%E8%88%B9%E5%A4%A7%E5%B7%A5%E3%81%AE%E3%83%90%E3%83%AB%E3%82%B6%E3%83%83%E3%82%AF1.png.webp?rev=1f62ea4996408e929f4ca5c4ba13797c&amp;t=20140827024454" alt="船大工のバルザック1.png" title="船大工のバルザック1.png" width="120" height="120"  loading="lazy"></a> <br class="spacer"> <a href="/guildra/%E8%88%B9%E5%A4%A7%E5%B7%A5%E3%81%AE%E3%83%90%E3%83%AB%E3%82%B6%E3%83%83%E3%82%AF" title="船大工のバルザック" class="rel-wiki-page">船大工のバルザック</a></td><td style="text-align:center;"><a href="/guildra/%E5%A4%A9%E4%BD%BF%E9%81%94%E3%81%AE%E5%BA%83%E5%A0%B4" title="天使達の広場" class="rel-wiki-page"><img src="https://cdn.wikiwiki.jp/to/w/guildra/%E9%87%8D%E8%A3%85NORMAL/::ref/%E5%A4%A9%E4%BD%BF%E9%81%94%E3%81%AE%E5%BA%83%E5%A0%B41.png.webp?rev=e3d0ae7c101ddd00fbdeafd20732f8ba&amp;t=20140827025744" alt="天使達の広場1.png" title="天使達の広場1.png" width="120" height="121"  loading="lazy"></a> <br class="spacer"> <a href="/guildra/%E5%A4%A9%E4%BD%BF%E9%81%94%E3%81%AE%E5%BA%83%E5%A0%B4" title="天使達の広場" class="rel-wiki-page">天使達の広場</a></td></tr><tr><td style="text-align:center;"><a href="/guildra/%E6%84%9F%E8%AC%9D%E3%81%AE%E5%B8%86%E8%88%B9%E6%A8%A1%E5%9E%8B" title="感謝の帆船模型" class="rel-wiki-page"><img src="https://cdn.wikiwiki.jp/to/w/guildra/%E9%87%8D%E8%A3%85NORMAL/::ref/%E6%84%9F%E8%AC%9D%E3%81%AE%E5%B8%86%E8%88%B9%E6%A8%A1%E5%9E%8B1.png.webp?rev=fbbbb450f689533696c44282d8e4c6c3&amp;t=20140827031916" alt="感謝の帆船模型1.png" title="感謝の帆船模型1.png" width="120" height="119"  loading="lazy"></a> <br class="spacer"> <a href="/guildra/%E6%84%9F%E8%AC%9D%E3%81%AE%E5%B8%86%E8%88%B9%E6%A8%A1%E5%9E%8B" title="感謝の帆船模型" class="rel-wiki-page">感謝の帆船模型</a></td><td style="text-align:center;"><a href="/guildra/%E5%88%9D%E5%A3%B2%E3%82%8A%E5%B7%A1%E5%9B%9E%E4%B8%AD" title="初売り巡回中" class="rel-wiki-page"><img src="https://cdn.wikiwiki.jp/to/w/guildra/%E9%87%8D%E8%A3%85NORMAL/::ref/%E5%88%9D%E5%A3%B2%E3%82%8A%E5%B7%A1%E5%9B%9E%E4%B8%AD1.png.webp?rev=b817530de56eb538f8ba0669e8e8fbc5&amp;t=20140827031907" alt="初売り巡回中1.png" title="初売り巡回中1.png" width="120" height="120"  loading="lazy"></a> <br class="spacer"> <a href="/guildra/%E5%88%9D%E5%A3%B2%E3%82%8A%E5%B7%A1%E5%9B%9E%E4%B8%AD" title="初売り巡回中" class="rel-wiki-page">初売り巡回中</a></td><td style="text-align:center;"><a href="/guildra/%E5%95%86%E4%BA%BA%E5%89%A3%E5%A3%AB%E3%83%AC%E3%82%A4%E3%83%81%E3%82%A7%E3%83%AB" title="商人剣士レイチェル" class="rel-wiki-page"><img src="https://cdn.wikiwiki.jp/to/w/guildra/%E9%87%8D%E8%A3%85NORMAL/::ref/%E5%95%86%E4%BA%BA%E5%89%A3%E5%A3%AB%E3%83%AC%E3%82%A4%E3%83%81%E3%82%A7%E3%83%AB1.png.webp?rev=8c6767353e6b938372ed9e5e4dd265c4&amp;t=20140827032449" alt="商人剣士レイチェル1.png" title="商人剣士レイチェル1.png" width="120" height="120"  loading="lazy"></a> <br class="spacer"> <a href="/guildra/%E5%95%86%E4%BA%BA%E5%89%A3%E5%A3%AB%E3%83%AC%E3%82%A4%E3%83%81%E3%82%A7%E3%83%AB" title="商人剣士レイチェル" class="rel-wiki-page">商人剣士レイチェル</a></td><td style="text-align:center;"><a href="/guildra/%E5%BC%A7%E9%AB%98%E7%8E%8B%E3%82%B3%E3%83%9F%E3%83%A4%E3%83%B3%EF%BC%93%E4%B8%96" title="弧高王コミヤン３世" class="rel-wiki-page"><img src="https://cdn.wikiwiki.jp/to/w/guildra/%E9%87%8D%E8%A3%85NORMAL/::ref/%E5%BC%A7%E9%AB%98%E7%8E%8B%E3%82%B3%E3%83%9F%E3%83%A4%E3%83%B3%EF%BC%93%E4%B8%961.png.webp?rev=d51c27c90a91891e880c73b894841003&amp;t=20140827032420" alt="弧高王コミヤン３世1.png" title="弧高王コミヤン３世1.png" width="120" height="121"  loading="lazy"></a> <br class="spacer"><a href="/guildra/%E5%BC%A7%E9%AB%98%E7%8E%8B%E3%82%B3%E3%83%9F%E3%83%A4%E3%83%B3%EF%BC%93%E4%B8%96" title="弧高王コミヤン３世" class="rel-wiki-page">弧高王コミヤン３世</a></td><td style="text-align:center;"><a href="/guildra/%E3%83%98%E3%83%86%E3%83%AD" title="ヘテロ" class="rel-wiki-page"><img src="https://cdn.wikiwiki.jp/to/w/guildra/%E9%87%8D%E8%A3%85NORMAL/::ref/%E3%83%98%E3%83%86%E3%83%AD1.png.webp?rev=c4f2aa79f33c8c047d3bd4a368bca2aa&amp;t=20140827032436" alt="ヘテロ1.png" title="ヘテロ1.png" width="120" height="119"  loading="lazy"></a> <br class="spacer"> <a href="/guildra/%E3%83%98%E3%83%86%E3%83%AD" title="ヘテロ" class="rel-wiki-page">ヘテロ</a></td></tr><tr><td style="text-align:center;"><a href="/guildra/%E6%AB%BB%E9%9B%A8" title="櫻雨" class="rel-wiki-page"><img src="https://cdn.wikiwiki.jp/to/w/guildra/%E9%87%8D%E8%A3%85NORMAL/::ref/%E6%AB%BB%E9%9B%A81.png.webp?rev=4f10beb2b686a14b76fec38f323741a2&amp;t=20140828023116" alt="櫻雨1.png" title="櫻雨1.png" width="120" height="121"  loading="lazy"></a> <br class="spacer"> <a href="/guildra/%E6%AB%BB%E9%9B%A8" title="櫻雨" class="rel-wiki-page">櫻雨</a></td><td style="text-align:center;"><a href="/guildra/%E9%8A%80%E3%81%AE%E5%AF%85" title="銀の寅" class="rel-wiki-page"><img src="https://cdn.wikiwiki.jp/to/w/guildra/%E9%87%8D%E8%A3%85NORMAL/::ref/%E9%8A%80%E3%81%AE%E5%AF%851.png.webp?rev=6d4aa80c5420f14381479e9ea4e53944&amp;t=20140828023343" alt="銀の寅1.png" title="銀の寅1.png" width="120" height="120"  loading="lazy"></a> <br class="spacer"> <a href="/guildra/%E9%8A%80%E3%81%AE%E5%AF%85" title="銀の寅" class="rel-wiki-page">銀の寅</a></td><td style="text-align:center;"><a href="/guildra/%E6%BC%A2%E3%81%AE%E8%83%8C%E4%B8%AD" title="漢の背中" class="rel-wiki-page"><img src="https://cdn.wikiwiki.jp/to/w/guildra/%E9%87%8D%E8%A3%85NORMAL/::ref/%E6%BC%A2%E3%81%AE%E8%83%8C%E4%B8%AD1.png.webp?rev=c4d730000c713e5e62172d7fffd293d4&amp;t=20140828023139" alt="漢の背中1.png" title="漢の背中1.png" width="120" height="120"  loading="lazy"></a> <br class="spacer"> <a href="/guildra/%E6%BC%A2%E3%81%AE%E8%83%8C%E4%B8%AD" title="漢の背中" class="rel-wiki-page">漢の背中</a></td><td style="text-align:center;"><a href="/guildra/%E6%98%9F%E3%80%85%E3%81%AE%E8%BC%9D%E3%81%8D" title="星々の輝き" class="rel-wiki-page"><img src="https://cdn.wikiwiki.jp/to/w/guildra/%E9%87%8D%E8%A3%85NORMAL/::ref/%E6%98%9F%E3%80%85%E3%81%AE%E8%BC%9D%E3%81%8D1.png.webp?rev=cc4d2317f0e7532073d70975da83afc5&amp;t=20140828023126" alt="星々の輝き1.png" title="星々の輝き1.png" width="120" height="121"  loading="lazy"></a><br class="spacer"> <a href="/guildra/%E6%98%9F%E3%80%85%E3%81%AE%E8%BC%9D%E3%81%8D" title="星々の輝き" class="rel-wiki-page">星々の輝き</a></td><td style="text-align:center;"><a href="/guildra/%E7%81%AB%E5%90%B9%E3%81%8D%E7%94%B7%E3%81%AEBBQ" title="火吹き男のBBQ" class="rel-wiki-page"><img src="https://cdn.wikiwiki.jp/to/w/guildra/%E9%87%8D%E8%A3%85NORMAL/::ref/%E7%81%AB%E5%90%B9%E3%81%8D%E7%94%B7%E3%81%AEBBQ1.png.webp?rev=7de2a3b989ec51de0fc587d89d281292&amp;t=20140828023205" alt="火吹き男のBBQ1.png" title="火吹き男のBBQ1.png" width="120" height="120"  loading="lazy"></a> <br class="spacer"> <a href="/guildra/%E7%81%AB%E5%90%B9%E3%81%8D%E7%94%B7%E3%81%AEBBQ" title="火吹き男のBBQ" class="rel-wiki-page">火吹き男のBBQ</a></td></tr><tr><td style="text-align:center;"><a href="/guildra/%E7%84%A6%E3%82%89%E3%81%97%E3%81%A6%E3%83%9E%E3%82%A4%E3%83%8F%E3%83%8B%E3%83%BC" title="焦らしてマイハニー" class="rel-wiki-page"><img src="https://cdn.wikiwiki.jp/to/w/guildra/%E9%87%8D%E8%A3%85NORMAL/::ref/%E7%84%A6%E3%82%89%E3%81%97%E3%81%A6%E3%83%9E%E3%82%A4%E3%83%8F%E3%83%8B%E3%83%BC1.png.webp?rev=d33eb54a9c5579220e131c9a038bb0e6&amp;t=20150812004334" alt="焦らしてマイハニー1.png" title="焦らしてマイハニー1.png" width="120" height="120"  loading="lazy"></a> <br class="spacer"> <a href="/guildra/%E7%84%A6%E3%82%89%E3%81%97%E3%81%A6%E3%83%9E%E3%82%A4%E3%83%8F%E3%83%8B%E3%83%BC" title="焦らしてマイハニー" class="rel-wiki-page">焦らしてマイハニー</a></td><td style="text-align:center;"><a href="/guildra/%E9%A2%A8%E9%9B%A8%E5%87%84%E5%87%84%E3%81%AE%E4%BA%BA%E5%88%83" title="風雨凄凄の人刃" class="rel-wiki-page"><img src="https://cdn.wikiwiki.jp/to/w/guildra/%E9%87%8D%E8%A3%85NORMAL/::ref/%E9%A2%A8%E9%9B%A8%E5%87%84%E5%87%84%E3%81%AE%E4%BA%BA%E5%88%831.png.webp?rev=3711f8eff164577c4b2a543060a2688d&amp;t=20150812005022" alt="風雨凄凄の人刃1.png" title="風雨凄凄の人刃1.png" width="120" height="120"  loading="lazy"></a> <br class="spacer"> <a href="/guildra/%E9%A2%A8%E9%9B%A8%E5%87%84%E5%87%84%E3%81%AE%E4%BA%BA%E5%88%83" title="風雨凄凄の人刃" class="rel-wiki-page">風雨凄凄の人刃</a></td><td style="text-align:center;"><a href="/guildra/%E4%B9%9D%E5%8D%81%E4%B9%9D%E3%81%AE%E9%AC%BC%E7%81%AB" title="九十九の鬼火" class="rel-wiki-page"><img src="https://cdn.wikiwiki.jp/to/w/guildra/%E9%87%8D%E8%A3%85NORMAL/::ref/%E4%B9%9D%E5%8D%81%E4%B9%9D%E3%81%AE%E9%AC%BC%E7%81%AB1.png.webp?rev=f5eb131e4ffc9afa2c05bb58cf5cb3b1&amp;t=20150812005312" alt="九十九の鬼火1.png" title="九十九の鬼火1.png" width="120" height="120"  loading="lazy"></a> <br class="spacer"> <a href="/guildra/%E4%B9%9D%E5%8D%81%E4%B9%9D%E3%81%AE%E9%AC%BC%E7%81%AB" title="九十九の鬼火" class="rel-wiki-page">九十九の鬼火</a></td><td style="text-align:center;"><a href="/guildra/%E7%86%B1%E6%84%8F%E3%81%AE%E8%A9%A9%E4%BA%BA" title="熱意の詩人" class="rel-wiki-page"><img src="https://cdn.wikiwiki.jp/to/w/guildra/%E9%87%8D%E8%A3%85NORMAL/::ref/%E7%86%B1%E6%84%8F%E3%81%AE%E8%A9%A9%E4%BA%BA1.png.webp?rev=4d7d49ae6275ca54682d107c5bb2f511&amp;t=20150812010840" alt="熱意の詩人1.png" title="熱意の詩人1.png" width="120" height="120"  loading="lazy"></a> <br class="spacer"> <a href="/guildra/%E7%86%B1%E6%84%8F%E3%81%AE%E8%A9%A9%E4%BA%BA" title="熱意の詩人" class="rel-wiki-page">熱意の詩人</a></td><td style="text-align:center;"><a href="/guildra/%E6%B9%AF%E8%88%B9%E3%81%AE%E3%83%AF%E3%83%B3%E3%83%9E%E3%83%B3%E3%82%B7%E3%83%A7%E3%83%BC" title="湯船のワンマンショー" class="rel-wiki-page"><img src="https://cdn.wikiwiki.jp/to/w/guildra/%E9%87%8D%E8%A3%85NORMAL/::ref/%E6%B9%AF%E8%88%B9%E3%81%AE%E3%83%AF%E3%83%B3%E3%83%9E%E3%83%B3%E3%82%B7%E3%83%A7%E3%83%BC1.png.webp?rev=dea7b1939233794d12890fff817a1a9f&amp;t=20150812013321" alt="湯船のワンマンショー1.png" title="湯船のワンマンショー1.png" width="120" height="120"  loading="lazy"></a> <br class="spacer"> <a href="/guildra/%E6%B9%AF%E8%88%B9%E3%81%AE%E3%83%AF%E3%83%B3%E3%83%9E%E3%83%B3%E3%82%B7%E3%83%A7%E3%83%BC" title="湯船のワンマンショー" class="rel-wiki-page">湯船のワンマンショー</a></td></tr><tr><td style="text-align:center;"><a href="/guildra/%E5%B9%B4%E5%A7%8B%E3%81%AE%E8%BF%B7%E6%83%91%E5%AE%A2" title="年始の迷惑客" class="rel-wiki-page"><img src="https://cdn.wikiwiki.jp/to/w/guildra/%E9%87%8D%E8%A3%85NORMAL/::ref/%E5%B9%B4%E5%A7%8B%E3%81%AE%E8%BF%B7%E6%83%91%E5%AE%A21.png.webp?rev=eefb9fa88dd543d16f444e5011018c5e&amp;t=20150812014649" alt="年始の迷惑客1.png" title="年始の迷惑客1.png" width="120" height="120"  loading="lazy"></a> <br class="spacer"> <a href="/guildra/%E5%B9%B4%E5%A7%8B%E3%81%AE%E8%BF%B7%E6%83%91%E5%AE%A2" title="年始の迷惑客" class="rel-wiki-page">年始の迷惑客</a></td><td style="text-align:center;"><a href="/guildra/%E8%BA%AB%E3%82%92%E5%AF%84%E3%81%9B%E5%90%88%E3%81%86%E5%B9%BD%E9%AC%BC" title="身を寄せ合う幽鬼" class="rel-wiki-page"><img src="https://cdn.wikiwiki.jp/to/w/guildra/%E9%87%8D%E8%A3%85NORMAL/::ref/%E8%BA%AB%E3%82%92%E5%AF%84%E3%81%9B%E5%90%88%E3%81%86%E5%B9%BD%E9%AC%BC1.png.webp?rev=f6833d7a1397eb8e726dabeca287a321&amp;t=20150812020058" alt="身を寄せ合う幽鬼1.png" title="身を寄せ合う幽鬼1.png" width="120" height="120"  loading="lazy"></a> <br class="spacer"> <a href="/guildra/%E8%BA%AB%E3%82%92%E5%AF%84%E3%81%9B%E5%90%88%E3%81%86%E5%B9%BD%E9%AC%BC" title="身を寄せ合う幽鬼" class="rel-wiki-page">身を寄せ合う幽鬼</a></td><td style="text-align:center;"><a href="/guildra/%E6%B2%88%E9%BB%99%E3%81%AE%E5%BE%8C" title="沈黙の後" class="rel-wiki-page"><img src="https://cdn.wikiwiki.jp/to/w/guildra/%E9%87%8D%E8%A3%85NORMAL/::ref/%E6%B2%88%E9%BB%99%E3%81%AE%E5%BE%8C1.png.webp?rev=d2716ba6de855be344abb7fe068a9c7b&amp;t=20150812021036" alt="沈黙の後1.png" title="沈黙の後1.png" width="120" height="120"  loading="lazy"></a> <br class="spacer"> <a href="/guildra/%E6%B2%88%E9%BB%99%E3%81%AE%E5%BE%8C" title="沈黙の後" class="rel-wiki-page">沈黙の後</a></td><td style="text-align:center;"><a href="/guildra/%E4%B8%BB%E5%B8%AD%E3%81%AE%E8%B2%AB%E9%8C%B2" title="主席の貫録" class="rel-wiki-page"><img src="https://cdn.wikiwiki.jp/to/w/guildra/%E9%87%8D%E8%A3%85NORMAL/::ref/%E4%B8%BB%E5%B8%AD%E3%81%AE%E8%B2%AB%E9%8C%B21.png.webp?rev=7a085076739d42a14253d3d1c9d11ac3&amp;t=20150812022348" alt="主席の貫録1.png" title="主席の貫録1.png" width="120" height="120"  loading="lazy"></a> <br class="spacer"> <a href="/guildra/%E4%B8%BB%E5%B8%AD%E3%81%AE%E8%B2%AB%E9%8C%B2" title="主席の貫録" class="rel-wiki-page">主席の貫録</a></td><td style="text-align:center;"><a href="/guildra/%E3%83%90%E3%83%AB%E3%83%A0%E3%83%B3%E3%82%AF%E3%81%AE%E5%AE%A3%E8%AA%93" title="バルムンクの宣誓" class="rel-wiki-page"><img src="https://cdn.wikiwiki.jp/to/w/guildra/%E9%87%8D%E8%A3%85NORMAL/::ref/%E3%83%90%E3%83%AB%E3%83%A0%E3%83%B3%E3%82%AF%E3%81%AE%E5%AE%A3%E8%AA%931.png.webp?rev=ed94d7ae045064331f0b642691f0f2af&amp;t=20150812023243" alt="バルムンクの宣誓1.png" title="バルムンクの宣誓1.png" width="120" height="120"  loading="lazy"></a> <br class="spacer"> <a href="/guildra/%E3%83%90%E3%83%AB%E3%83%A0%E3%83%B3%E3%82%AF%E3%81%AE%E5%AE%A3%E8%AA%93" title="バルムンクの宣誓" class="rel-wiki-page">バルムンクの宣誓</a></td></tr><tr><td style="text-align:center;"><a href="/guildra/%E4%B8%80%E9%80%94%E3%81%AA%E4%B8%80%E9%9D%A2" title="一途な一面" class="rel-wiki-page"><img src="https://cdn.wikiwiki.jp/to/w/guildra/%E9%87%8D%E8%A3%85NORMAL/::ref/%E4%B8%80%E9%80%94%E3%81%AA%E4%B8%80%E9%9D%A21.png.webp?rev=b725eb5413bfac3391779892fc11e02b&amp;t=20150812024828" alt="一途な一面1.png" title="一途な一面1.png" width="120" height="120"  loading="lazy"></a> <br class="spacer"> <a href="/guildra/%E4%B8%80%E9%80%94%E3%81%AA%E4%B8%80%E9%9D%A2" title="一途な一面" class="rel-wiki-page">一途な一面</a></td><td style="text-align:center;"><a href="/guildra/%E5%87%9B%E3%80%85%E3%81%97%E3%81%8D%E8%8A%B1%E5%AB%81" title="凛々しき花嫁" class="rel-wiki-page"><img src="https://cdn.wikiwiki.jp/to/w/guildra/%E9%87%8D%E8%A3%85NORMAL/::ref/%E5%87%9B%E3%80%85%E3%81%97%E3%81%8D%E8%8A%B1%E5%AB%811.png.webp?rev=5889236417c94459c31740e5b2214b26&amp;t=20150812025209" alt="凛々しき花嫁1.png" title="凛々しき花嫁1.png" width="120" height="120"  loading="lazy"></a> <br class="spacer"> <a href="/guildra/%E5%87%9B%E3%80%85%E3%81%97%E3%81%8D%E8%8A%B1%E5%AB%81" title="凛々しき花嫁" class="rel-wiki-page">凛々しき花嫁</a></td><td style="text-align:center;"><span class="noexists">  [添付]<a href="/guildra/::cmd/edit?page=%E3%83%80%E3%83%BC%E3%82%AF%E3%83%9E%E3%82%BF%E3%83%BC&refer=%E9%87%8D%E8%A3%85NORMAL" rel="nofollow">?</a></span> <br class="spacer"> <span class="noexists">ダークマター<a href="/guildra/::cmd/edit?page=%E3%83%80%E3%83%BC%E3%82%AF%E3%83%9E%E3%82%BF%E3%83%BC&refer=%E9%87%8D%E8%A3%85NORMAL" rel="nofollow">?</a></span></td><td style="text-align:center;"></td><td style="text-align:center;"></td></tr></tbody></table></div>
+                </div>
+                <div id="main-contents-bottom">
+                    <div class="caption-flybox" >
+<div id="pc-bottom-parent-ad-container" style="min-height:250px;">
+<div id="pc-bottom-left-ad-container">
+    <!-- /19033742/WIKIWIKI_PC_BOTTOM_LEFT or /19033742/WIKIWIKI_SP_SECOND -->
+    <div id='div-gpt-ad-1567408559923-0' class="hidden-switch-class"></div>
+</div>
+<div id="pc-bottom-right-ad-container">
+    <!-- /19033742/WIKIWIKI_PC_BOTTOM_RIGHT -->
+    <div id='div-gpt-ad-1658912377789-0'></div>
+</div>
+</div>
+</div>
+
+<style>
+.pc-bottom-ad-default {
+    margin-top:120px;
+    margin-bottom:20px;
+    display:flex;
+    justify-content:flex-start;
+    gap: 10px 5px;
+}
+.pc-bottom-ad-center{
+    margin-top:120px;
+    margin-bottom:20px;
+    display:flex;
+    justify-content:center;
+    flex-wrap:wrap;
+    gap: 10px 5px;
+}
+.pc-bottom-ad-mobile{
+    margin-top:20px;
+    margin-bottom:20px;
+    display:flex;
+    align-items: center;
+    flex-direction:column;
+    position:sticky;
+    z-index: 3;
+    top:45px;
+}
+</style>
+
+<script>
+(function() {
+    var body = document.getElementById('body');
+    var co = document.getElementById("pc-bottom-parent-ad-container");
+    var fh = 50;
+    if (!wi_ismobile && body.clientHeight < 620) {
+        co.style.marginTop = '200px';
+    }
+    if (wi_ismobile && body.clientWidth < 400){
+        co.classList.add("pc-bottom-ad-mobile");
+    } else if (co.clientWidth < 769) {
+        co.classList.add("pc-bottom-ad-center");
+    } else {
+        co.classList.add("pc-bottom-ad-default");
+    }
+}());
+</script>
+                </div>
+
+            </div>
+        </div>
+
+        
+                    <div class="column-left">
+                <div id="menubar">
+                                        <h2 id="h2_content_6_0" >ガイド</h2>
+<ul class="list1"><li><a href="http://wikiwiki.jp/guildra/" rel="nofollow">トップページ </a></li>
+<li><img src="https://cdn.wikiwiki.jp/to/w/guildra/FrontPage/::ref/%E5%88%9D%E5%BF%83%E8%80%85%E3%83%9E%E3%83%BC%E3%82%AF.png?rev=62790be25f34e96564c96019f84e3a88&amp;t=20130205051537" alt="初心者向け" title="初心者向け" width="12" height="12"  loading="lazy"><a href="/guildra/%E5%88%9D%E5%BF%83%E8%80%85FAQ" title="初心者FAQ" class="rel-wiki-page">初心者FAQ</a></li>
+<li><a href="/guildra/FAQ" title="FAQ" class="rel-wiki-page"><span class="wikicolor" style="color:#fcc">よくある質問(FAQ)</span></a></li>
+<li><a href="/guildra/WikiBBS" title="WikiBBS" class="rel-wiki-page">WikiBBS</a></li>
+<li><a href="/guildra/%E8%B3%AA%E5%95%8F%E6%9D%BF" title="質問板" class="rel-wiki-page">質問板</a></li>
+<li><a href="/guildra/BBS%E9%81%8E%E5%8E%BB%E3%83%AD%E3%82%B0" title="BBS過去ログ" class="rel-wiki-page">BBS過去ログ</a></li>
+<li><a href="/guildra/%E3%83%AA%E3%83%B3%E3%82%AF" title="リンク" class="rel-wiki-page">リンク</a></li></ul>
+<div class="fold-container  clearfix">
+    <button class="fold-toggle-button hidden-on-open"><i class="fal fa-plus-square"></i></button>
+    <button class="fold-toggle-button visible-on-open"><i class="fal fa-minus-square"></i></button>
+    <div class="fold-summary hidden-on-open"><span class="wikicolor" style="color:white">人気ページ</span></div>
+    <div class="fold-content visible-on-open"><div class="wikiwiki-popular wikiwiki-popular-yesterday" data-popular-data="{&quot;error&quot;:&quot;&quot;,&quot;errorInfo&quot;:null,&quot;list&quot;:[{&quot;page&quot;:&quot;ストーリー　海賊島の秘宝&quot;,&quot;pv&quot;:1},{&quot;page&quot;:&quot;散策日和のアトリ&quot;,&quot;pv&quot;:1},{&quot;page&quot;:&quot;スキル&quot;,&quot;pv&quot;:1},{&quot;page&quot;:&quot;にわか雨のあとら&quot;,&quot;pv&quot;:1},{&quot;page&quot;:&quot;白熱☆ビーチバトル&quot;,&quot;pv&quot;:1}]}" data-popular-today="false">
+</div>
+</div>
+</div>
+<div class="fold-container  clearfix">
+    <button class="fold-toggle-button hidden-on-open"><i class="fal fa-plus-square"></i></button>
+    <button class="fold-toggle-button visible-on-open"><i class="fal fa-minus-square"></i></button>
+    <div class="fold-summary hidden-on-open"><span class="wikicolor" style="color:white">今日の人気</span></div>
+    <div class="fold-content visible-on-open"><div class="wikiwiki-popular wikiwiki-popular-yesterday" data-popular-data="{&quot;error&quot;:&quot;&quot;,&quot;errorInfo&quot;:null,&quot;list&quot;:[{&quot;page&quot;:&quot;ストーリー　海賊島の秘宝&quot;,&quot;pv&quot;:1},{&quot;page&quot;:&quot;散策日和のアトリ&quot;,&quot;pv&quot;:1},{&quot;page&quot;:&quot;スキル&quot;,&quot;pv&quot;:1},{&quot;page&quot;:&quot;にわか雨のあとら&quot;,&quot;pv&quot;:1},{&quot;page&quot;:&quot;白熱☆ビーチバトル&quot;,&quot;pv&quot;:1}]}" data-popular-today="false">
+</div>
+</div>
+</div>
+<h2 id="h2_content_6_1" class="heading-after-first">イベント情報</h2>
+<p><strong>開催中イベント</strong></p>
+<ul class="list1"><li><a href="/guildra/%E7%AE%A1%E7%90%86%E5%A4%96%E9%A0%98%E5%9F%9F" title="管理外領域" class="rel-wiki-page">管理外領域</a></li>
+<li><a href="/guildra/%E3%83%87%E3%82%A4%E3%83%AA%E3%83%BC%E3%82%AF%E3%82%A8%E3%82%B9%E3%83%88" title="デイリークエスト" class="rel-wiki-page">デイリークエスト</a></li>
+<li><a href="/guildra/%E3%82%A4%E3%83%99%E3%83%B3%E3%83%88%E3%83%9E%E3%82%B9%E3%82%BF%E3%83%BC" title="イベントマスター" class="rel-wiki-page">イベントマスター</a>　</li></ul>
+<div class="fold-container  clearfix">
+    <button class="fold-toggle-button hidden-on-open"><i class="fal fa-plus-square"></i></button>
+    <button class="fold-toggle-button visible-on-open"><i class="fal fa-minus-square"></i></button>
+    <div class="fold-summary hidden-on-open"><span class="wikicolor" style="color:white">過去のイベント</span></div>
+    <div class="fold-content visible-on-open"><p><span class="wikicolor" style="color:white">過去のイベント</span><br />
+<a href="/guildra/GvG" title="GvG" class="rel-wiki-page">GvG</a><br />
+<a href="/guildra/%E3%83%89%E3%83%A9%E3%82%B4%E3%83%B3%E3%82%B3%E3%83%B3%E3%83%95%E3%83%AA%E3%82%AF%E3%83%88" title="ドラゴンコンフリクト" class="rel-wiki-page">ドラゴンコンフリクト</a><br />
+<a href="/guildra/%E7%AB%9C%E5%93%AD%E5%B1%B1%E3%81%AE%E6%B4%9E%E7%AA%9F" title="竜哭山の洞窟" class="rel-wiki-page">竜哭山の洞窟</a><br />
+<a href="/guildra/%E8%BF%B7%E5%AE%AE%E9%97%98%E6%8A%80%E5%A0%B4" title="迷宮闘技場" class="rel-wiki-page">迷宮闘技場</a><br />
+<a href="/guildra/%E6%8F%BA%E7%B1%83%E3%81%AE%E6%B4%9E%E7%AA%9F" title="揺籃の洞窟" class="rel-wiki-page">揺籃の洞窟</a><br />
+<a href="/guildra/%E5%8B%BE%E6%AC%84%E3%81%AE%E6%B4%9E%E7%AA%9F" title="勾欄の洞窟" class="rel-wiki-page">勾欄の洞窟</a><br />
+<a href="/guildra/%E3%83%A2%E3%83%B3%E3%82%B9%E3%82%BF%E3%83%BC%E3%82%A2%E3%82%BF%E3%83%83%E3%82%AF" title="モンスターアタック" class="rel-wiki-page">モンスターアタック</a><br />
+<a href="/guildra/%E3%82%B4%E3%83%BC%E3%83%AB%E3%83%89%E3%83%A9%E3%83%83%E3%82%B7%E3%83%A5" title="ゴールドラッシュ" class="rel-wiki-page">ゴールドラッシュ</a><br />
+<a href="/guildra/%E3%83%95%E3%82%A1%E3%83%B3%E3%83%88%E3%83%A0" title="ファントム" class="rel-wiki-page">ファントム</a><br />
+<a href="/guildra/%E4%BF%AE%E7%B7%B4%E3%81%AE%E5%A1%94" title="修練の塔" class="rel-wiki-page">修練の塔</a><br />
+<a href="/guildra/%E7%AE%A1%E7%90%86%E5%A4%96%E9%A0%98%E5%9F%9F" title="管理外領域" class="rel-wiki-page">管理外領域</a></p>
+<p><a href="/guildra/%E6%98%A5%E3%81%A8%E5%8D%92%E6%A5%AD%E3%81%A8%E3%81%B2%E3%81%AA%E7%A5%AD%E3%82%8A" title="春と卒業とひな祭り" class="rel-wiki-page">春と卒業とひな祭り</a><br />
+<a href="/guildra/%E3%83%81%E3%81%AE%E3%83%90%E3%83%AC%E3%83%B3%E3%82%BF%E3%82%A4%E3%83%B3" title="チのバレンタイン" class="rel-wiki-page">チのバレンタイン</a><br />
+<a href="/guildra/%E5%A5%87%E5%B5%90%E3%81%AE%E6%AD%BB%E9%87%8E" title="奇嵐の死野" class="rel-wiki-page">奇嵐の死野</a><br />
+<a href="/guildra/%E4%B8%80%E5%B9%B4%E3%81%AE%E8%A8%88%E3%81%AF%E5%BE%A1%E5%AE%A3%E8%A8%97%EF%BC%81" title="一年の計は御宣託！" class="rel-wiki-page">一年の計は御宣託！</a><br />
+<a href="/guildra/%E3%81%82%E3%82%8A%E3%81%8C%E5%B3%B6" title="ありが島" class="rel-wiki-page">ありが島</a><br />
+<a href="/guildra/%E9%BB%92%E3%81%AE%E3%82%B5%E3%83%B3%E3%82%BF" title="黒のサンタ" class="rel-wiki-page">黒のサンタ</a><br />
+<a href="/guildra/%E3%83%8F%E3%83%AD%E3%82%A6%E3%82%A3%E3%83%B3%E7%8B%82%E6%83%B3%E6%9B%B2%EF%BC%81" title="ハロウィン狂想曲！" class="rel-wiki-page">ハロウィン狂想曲！</a><br />
+<a href="/guildra/%E9%97%87%E3%81%AE%E8%83%8E%E5%8B%95" title="闇の胎動" class="rel-wiki-page">闇の胎動</a><br />
+<a href="/guildra/%E3%82%B9%E3%83%9D%E3%83%BC%E3%83%84%E7%A7%8B%E3%81%AE%E7%A5%AD%E5%85%B8%EF%BC%81" title="スポーツ秋の祭典！" class="rel-wiki-page">スポーツ秋の祭典！</a><br />
+<a href="/guildra/%E5%84%9A%E3%81%8F%E5%92%B2%E3%81%8F%E3%82%84%E5%A4%9C%E3%81%AE%E8%8F%AF" title="儚く咲くや夜の華" class="rel-wiki-page">儚く咲くや夜の華</a><br />
+<a href="/guildra/%E5%A3%AE%E7%B5%B6%EF%BC%81%E3%82%B5%E3%83%90%E3%82%A4%E3%83%90%E3%83%AB" title="壮絶！サバイバル" class="rel-wiki-page">壮絶！サバイバル</a><br />
+<a href="/guildra/%E9%AD%85%E6%83%91%E3%81%AE%E3%83%AA%E3%82%BE%E3%83%BC%E3%83%88" title="魅惑のリゾート" class="rel-wiki-page">魅惑のリゾート</a><br />
+<a href="/guildra/%E7%99%BD%E7%86%B1%E2%98%86%E3%83%93%E3%83%BC%E3%83%81%E3%83%90%E3%83%88%E3%83%AB" title="白熱☆ビーチバトル" class="rel-wiki-page">白熱☆ビーチバトル</a><br />
+<a href="/guildra/%E6%B5%B7%E8%B3%8A%E5%B3%B6%E3%81%AE%E7%A7%98%E5%AE%9D" title="海賊島の秘宝" class="rel-wiki-page">海賊島の秘宝</a><br />
+<a href="/guildra/%E3%81%8A%E5%A7%89%E3%81%95%E3%82%93%E3%81%A8%E5%AE%9D%E5%B3%B6" title="お姉さんと宝島" class="rel-wiki-page">お姉さんと宝島</a><br />
+<a href="/guildra/%E7%A6%8D%E4%B9%B1%E3%81%AE%E6%B4%9E%E7%AA%9F" title="禍乱の洞窟" class="rel-wiki-page">禍乱の洞窟</a><br />
+<a href="/guildra/%E6%84%9B%E3%81%97%E3%81%8D%E4%BA%BA%E3%81%B8%E3%81%AE%E8%B4%88%E3%82%8A%E7%89%A9" title="愛しき人への贈り物" class="rel-wiki-page">愛しき人への贈り物</a><br />
+<a href="/guildra/%E9%BB%84%E9%87%91%E3%81%AE%E3%82%B9%E3%82%BF%E3%83%B3%E3%83%97" title="黄金のスタンプ" class="rel-wiki-page">黄金のスタンプ</a><br />
+<a href="/guildra/%E6%80%92%E3%82%8C%E3%82%8B%E5%A4%A7%E6%A1%9C" title="怒れる大桜" class="rel-wiki-page">怒れる大桜</a><br />
+<a href="/guildra/%E6%A1%9C%E5%BD%A9%E3%82%8B%E7%A5%9D%E6%B0%B4" title="桜彩る祝水" class="rel-wiki-page">桜彩る祝水</a><br />
+<a href="/guildra/%E7%A9%B6%E6%A5%B5%E3%81%AE%E7%9C%9F%E5%AE%9F" title="究極の真実" class="rel-wiki-page">究極の真実</a><br />
+<a href="/guildra/%E7%A9%B6%E6%A5%B5%E5%91%AA%E7%B4%8B%E8%B3%87%E6%A0%BC%E4%BA%89%E5%A5%AA%E6%88%A6" title="究極呪紋資格争奪戦" class="rel-wiki-page">究極呪紋資格争奪戦</a><br />
+<a href="/guildra/%E3%83%81%E3%83%A7%E3%82%B3%E5%B7%A5%E6%88%BF%E3%81%AE%E6%94%BB%E9%98%B2" title="チョコ工房の攻防" class="rel-wiki-page">チョコ工房の攻防</a><br />
+<a href="/guildra/%E7%A7%98%E5%AF%86%E3%81%AE%E3%83%81%E3%83%A7%E3%82%B3%E5%B7%A5%E6%88%BF" title="秘密のチョコ工房" class="rel-wiki-page">秘密のチョコ工房</a><br />
+<a href="/guildra/%E4%B8%89%E7%A4%BE%E5%8F%82%E3%82%8A" title="三社参り" class="rel-wiki-page">三社参り</a><br />
+<span class="noexists">クリスマスタワー<a href="/guildra/::cmd/edit?page=%E3%82%AF%E3%83%AA%E3%82%B9%E3%83%9E%E3%82%B9%E3%82%BF%E3%83%AF%E3%83%BC&refer=MenuBar" rel="nofollow">?</a></span></p>
+</div>
+</div>
+<h2 id="h2_content_6_2" class="heading-after-first">ストーリー</h2>
+<div class="fold-container  clearfix">
+    <button class="fold-toggle-button hidden-on-open"><i class="fal fa-plus-square"></i></button>
+    <button class="fold-toggle-button visible-on-open"><i class="fal fa-minus-square"></i></button>
+    <div class="fold-summary hidden-on-open"><span class="wikicolor" style="color:white">第一章</span></div>
+    <div class="fold-content visible-on-open"><p><span class="wikicolor" style="color:white">第一章</span><br />
+<a href="/guildra/%E3%82%B9%E3%83%88%E3%83%BC%E3%83%AA%E3%83%BC1-10" title="ストーリー1-10" class="rel-wiki-page"> 1-10話  </a><br />
+<a href="/guildra/%E3%82%B9%E3%83%88%E3%83%BC%E3%83%AA%E3%83%BC11-20" title="ストーリー11-20" class="rel-wiki-page">11-20話</a><br />
+<a href="/guildra/%E3%82%B9%E3%83%88%E3%83%BC%E3%83%AA%E3%83%BC21-30" title="ストーリー21-30" class="rel-wiki-page">21-30話</a></p>
+</div>
+</div>
+<div class="fold-container  clearfix">
+    <button class="fold-toggle-button hidden-on-open"><i class="fal fa-plus-square"></i></button>
+    <button class="fold-toggle-button visible-on-open"><i class="fal fa-minus-square"></i></button>
+    <div class="fold-summary hidden-on-open"><span class="wikicolor" style="color:white">第二章</span></div>
+    <div class="fold-content visible-on-open"><p><span class="wikicolor" style="color:white">第二章</span><br />
+<a href="/guildra/%E3%82%B9%E3%83%88%E3%83%BC%E3%83%AA%E3%83%BC2%E7%AB%A01-10" title="ストーリー2章1-10" class="rel-wiki-page"> 1-7話  </a><br />
+<a href="/guildra/%E3%82%B9%E3%83%88%E3%83%BC%E3%83%AA%E3%83%BC2%E7%AB%A08-14" title="ストーリー2章8-14" class="rel-wiki-page"> 8-14話  </a><br />
+<a href="/guildra/%E3%82%B9%E3%83%88%E3%83%BC%E3%83%AA%E3%83%BC2%E7%AB%A015-21" title="ストーリー2章15-21" class="rel-wiki-page"> 15-21話  </a></p>
+</div>
+</div>
+<div class="fold-container  clearfix">
+    <button class="fold-toggle-button hidden-on-open"><i class="fal fa-plus-square"></i></button>
+    <button class="fold-toggle-button visible-on-open"><i class="fal fa-minus-square"></i></button>
+    <div class="fold-summary hidden-on-open"><span class="wikicolor" style="color:white">第三章</span></div>
+    <div class="fold-content visible-on-open"><p><span class="wikicolor" style="color:white">第三章</span><br />
+<a href="/guildra/%E3%82%B9%E3%83%88%E3%83%BC%E3%83%AA%E3%83%BC3%E7%AB%A01-10" title="ストーリー3章1-10" class="rel-wiki-page"> 1-10話  </a><br />
+<a href="/guildra/%E3%82%B9%E3%83%88%E3%83%BC%E3%83%AA%E3%83%BC3%E7%AB%A010-20" title="ストーリー3章10-20" class="rel-wiki-page"> 10-20話  </a></p>
+</div>
+</div>
+<div class="fold-container  clearfix">
+    <button class="fold-toggle-button hidden-on-open"><i class="fal fa-plus-square"></i></button>
+    <button class="fold-toggle-button visible-on-open"><i class="fal fa-minus-square"></i></button>
+    <div class="fold-summary hidden-on-open"><span class="wikicolor" style="color:white">最終章</span></div>
+    <div class="fold-content visible-on-open"><p><span class="wikicolor" style="color:white">最終章</span><br />
+<a href="/guildra/%E3%82%B9%E3%83%88%E3%83%BC%E3%83%AA%E3%83%BC%E6%9C%80%E7%B5%82%E7%AB%A01-Last" title="ストーリー最終章1-Last" class="rel-wiki-page"> 1-Last  </a></p>
+</div>
+</div>
+<div class="fold-container  clearfix">
+    <button class="fold-toggle-button hidden-on-open"><i class="fal fa-plus-square"></i></button>
+    <button class="fold-toggle-button visible-on-open"><i class="fal fa-minus-square"></i></button>
+    <div class="fold-summary hidden-on-open"><span class="wikicolor" style="color:white">イベント</span></div>
+    <div class="fold-content visible-on-open"><p><span class="wikicolor" style="color:white">イベント</span><br />
+<a href="/guildra/%E3%82%B9%E3%83%88%E3%83%BC%E3%83%AA%E3%83%BC%E4%BF%AE%E7%B7%B4%E3%81%AE%E5%A1%94" title="ストーリー修練の塔" class="rel-wiki-page">修練の塔</a><br />
+<a href="/guildra/%E3%82%B9%E3%83%88%E3%83%BC%E3%83%AA%E3%83%BC%E8%BF%B7%E5%AE%AE%E9%97%98%E6%8A%80%E5%A0%B4" title="ストーリー迷宮闘技場" class="rel-wiki-page">迷宮闘技場</a><br />
+<a href="/guildra/%E3%82%B9%E3%83%88%E3%83%BC%E3%83%AA%E3%83%BC%E3%82%B4%E3%83%BC%E3%83%AB%E3%83%89%E3%83%A9%E3%83%83%E3%82%B7%E3%83%A5%21" title="ストーリーゴールドラッシュ!" class="rel-wiki-page">ゴールドラッシュ!</a><br />
+<a href="/guildra/%E3%82%B9%E3%83%88%E3%83%BC%E3%83%AA%E3%83%BC%20%E3%82%AF%E3%83%AA%E3%82%B9%E3%83%9E%E3%82%B9%E3%82%BF%E3%83%AF%E3%83%BC" title="ストーリー クリスマスタワー" class="rel-wiki-page">クリスマスタワー</a><br />
+<a href="/guildra/%E3%82%B9%E3%83%88%E3%83%BC%E3%83%AA%E3%83%BC%20%E4%B8%89%E7%A4%BE%E5%8F%82%E3%82%8A" title="ストーリー 三社参り" class="rel-wiki-page">三社参り</a><br />
+<a href="/guildra/%E3%82%B9%E3%83%88%E3%83%BC%E3%83%AA%E3%83%BC%E3%80%80%E7%A7%98%E5%AF%86%E3%81%AE%E3%83%81%E3%83%A7%E3%82%B3%E5%B7%A5%E6%88%BF" title="ストーリー　秘密のチョコ工房" class="rel-wiki-page">秘密のチョコ工房</a><br />
+<a href="/guildra/%E3%82%B9%E3%83%88%E3%83%BC%E3%83%AA%E3%83%BC%E3%80%80%E3%83%81%E3%83%A7%E3%82%B3%E5%B7%A5%E6%88%BF%E3%81%AE%E6%94%BB%E9%98%B2%EF%BC%81" title="ストーリー　チョコ工房の攻防！" class="rel-wiki-page">チョコ工房の攻防！</a><br />
+<a href="/guildra/%E3%82%B9%E3%83%88%E3%83%BC%E3%83%AA%E3%83%BC%E3%80%80%E7%A9%B6%E6%A5%B5%E5%91%AA%E7%B4%8B%E8%B3%87%E6%A0%BC%E4%BA%89%E5%A5%AA%E6%88%A6" title="ストーリー　究極呪紋資格争奪戦" class="rel-wiki-page">究極呪紋資格争奪戦</a><br />
+<a href="/guildra/%E3%82%B9%E3%83%88%E3%83%BC%E3%83%AA%E3%83%BC%E3%80%80%E7%A9%B6%E6%A5%B5%E3%81%AE%E7%9C%9F%E5%AE%9F" title="ストーリー　究極の真実" class="rel-wiki-page">究極の真実</a><br />
+<a href="/guildra/%E3%82%B9%E3%83%88%E3%83%BC%E3%83%AA%E3%83%BC/%E6%A1%9C%E5%BD%A9%E3%82%8B%E7%A5%9D%E6%B0%B4" title="ストーリー/桜彩る祝水" class="rel-wiki-page">桜彩る祝水</a><br />
+<a href="/guildra/%E3%82%B9%E3%83%88%E3%83%BC%E3%83%AA%E3%83%BC/%E6%80%92%E3%82%8C%E3%82%8B%E5%A4%A7%E6%A1%9C" title="ストーリー/怒れる大桜" class="rel-wiki-page">怒れる大桜</a><br />
+<a href="/guildra/%E3%82%B9%E3%83%88%E3%83%BC%E3%83%AA%E3%83%BC/%E9%BB%84%E9%87%91%E3%81%AE%E3%82%B9%E3%82%BF%E3%83%B3%E3%83%97%EF%BC%81" title="ストーリー/黄金のスタンプ！" class="rel-wiki-page">黄金のスタンプ！</a><br />
+<a href="/guildra/%E3%82%B9%E3%83%88%E3%83%BC%E3%83%AA%E3%83%BC/%E6%84%9B%E3%81%97%E3%81%8D%E4%BA%BA%E3%81%B8%E3%81%AE%E8%B4%88%E3%82%8A%E7%89%A9" title="ストーリー/愛しき人への贈り物" class="rel-wiki-page">愛しき人への贈り物</a><br />
+<a href="/guildra/%E3%82%B9%E3%83%88%E3%83%BC%E3%83%AA%E3%83%BC/%E3%81%8A%E5%A7%89%E3%81%95%E3%82%93%E3%81%A8%E5%AE%9D%E5%B3%B6" title="ストーリー/お姉さんと宝島" class="rel-wiki-page">お姉さんと宝島</a><br />
+<a href="/guildra/%E3%82%B9%E3%83%88%E3%83%BC%E3%83%AA%E3%83%BC%E3%80%80%E6%B5%B7%E8%B3%8A%E5%B3%B6%E3%81%AE%E7%A7%98%E5%AE%9D" title="ストーリー　海賊島の秘宝" class="rel-wiki-page">海賊島の秘宝</a><br />
+<a href="/guildra/%E3%82%B9%E3%83%88%E3%83%BC%E3%83%AA%E3%83%BC/%E7%99%BD%E7%86%B1%E2%98%86%E3%83%93%E3%83%BC%E3%83%81%E3%83%90%E3%83%88%E3%83%AB" title="ストーリー/白熱☆ビーチバトル" class="rel-wiki-page">白熱☆ビーチバトル</a><br />
+<a href="/guildra/%E3%82%B9%E3%83%88%E3%83%BC%E3%83%AA%E3%83%BC/%E9%AD%85%E6%83%91%E3%81%AE%E3%83%AA%E3%82%BE%E3%83%BC%E3%83%88" title="ストーリー/魅惑のリゾート" class="rel-wiki-page">魅惑のリゾート</a><br />
+<span class="noexists">壮絶！サバイバル<a href="/guildra/::cmd/edit?page=%E3%82%B9%E3%83%88%E3%83%BC%E3%83%AA%E3%83%BC%2F%E5%A3%AE%E7%B5%B6%EF%BC%81%E3%82%B5%E3%83%90%E3%82%A4%E3%83%90%E3%83%AB&refer=MenuBar" rel="nofollow">?</a></span><br />
+<span class="noexists">儚く咲くや夜の華<a href="/guildra/::cmd/edit?page=%E3%82%B9%E3%83%88%E3%83%BC%E3%83%AA%E3%83%BC%2F%E5%84%9A%E3%81%8F%E5%92%B2%E3%81%8F%E3%82%84%E5%A4%9C%E3%81%AE%E8%8F%AF&refer=MenuBar" rel="nofollow">?</a></span><br />
+<a href="/guildra/%E3%82%B9%E3%83%88%E3%83%BC%E3%83%AA%E3%83%BC/%E7%AE%A1%E7%90%86%E5%A4%96%E9%A0%98%E5%9F%9F" title="ストーリー/管理外領域" class="rel-wiki-page">管理外領域</a></p>
+</div>
+</div>
+<h2 id="h2_content_6_3" class="heading-after-first">デュエル</h2>
+<ul class="list1"><li><a href="/guildra/%E3%82%B7%E3%82%B9%E3%83%86%E3%83%A0" title="システム" class="rel-wiki-page">システム</a></li>
+<li><a href="/guildra/%E3%83%87%E3%83%83%E3%82%AD%E6%A7%8B%E7%AF%89" title="デッキ構築" class="rel-wiki-page">デッキ構築</a></li></ul>
+<h2 id="h2_content_6_4" class="heading-after-first">ユニット</h2>
+<div class="fold-container  clearfix">
+    <button class="fold-toggle-button hidden-on-open"><i class="fal fa-plus-square"></i></button>
+    <button class="fold-toggle-button visible-on-open"><i class="fal fa-minus-square"></i></button>
+    <div class="fold-summary hidden-on-open"><span class="wikicolor" style="color:white">重装</span></div>
+    <div class="fold-content visible-on-open"><p><span class="wikicolor" style="color:white">重装</span><br />
+<a href="/guildra/%E9%87%8D%E8%A3%85NORMAL" title="重装NORMAL" class="rel-wiki-page">【N】 </a><br />
+<a href="/guildra/%E9%87%8D%E8%A3%85NORMAL%2B" title="重装NORMAL+" class="rel-wiki-page">【N+】</a><br />
+<a href="/guildra/%E9%87%8D%E8%A3%85RARE" title="重装RARE" class="rel-wiki-page">【R】 </a><br />
+<a href="/guildra/%E9%87%8D%E8%A3%85RARE%2B" title="重装RARE+" class="rel-wiki-page">【R+】 </a><br />
+<a href="/guildra/%E9%87%8D%E8%A3%85SUPERRARE" title="重装SUPERRARE" class="rel-wiki-page">【SR】 </a><br />
+<a href="/guildra/%E9%87%8D%E8%A3%85SUPERRARE%2B" title="重装SUPERRARE+" class="rel-wiki-page">【SR+】 </a></p>
+</div>
+</div>
+<div class="fold-container  clearfix">
+    <button class="fold-toggle-button hidden-on-open"><i class="fal fa-plus-square"></i></button>
+    <button class="fold-toggle-button visible-on-open"><i class="fal fa-minus-square"></i></button>
+    <div class="fold-summary hidden-on-open"><span class="wikicolor" style="color:white">軽装</span></div>
+    <div class="fold-content visible-on-open"><p><span class="wikicolor" style="color:white">軽装</span><br />
+<a href="/guildra/%E8%BB%BD%E8%A3%85NORMAL" title="軽装NORMAL" class="rel-wiki-page">【N】 </a><br />
+<a href="/guildra/%E8%BB%BD%E8%A3%85NORMAL%2B" title="軽装NORMAL+" class="rel-wiki-page">【N+】</a><br />
+<a href="/guildra/%E8%BB%BD%E8%A3%85RARE" title="軽装RARE" class="rel-wiki-page">【R】 </a><br />
+<a href="/guildra/%E8%BB%BD%E8%A3%85RARE%2B" title="軽装RARE+" class="rel-wiki-page">【R+】 </a><br />
+<a href="/guildra/%E8%BB%BD%E8%A3%85SUPERRARE" title="軽装SUPERRARE" class="rel-wiki-page">【SR】 </a><br />
+<a href="/guildra/%E8%BB%BD%E8%A3%85SUPERRARE%2B" title="軽装SUPERRARE+" class="rel-wiki-page">【SR+】 </a></p>
+</div>
+</div>
+<div class="fold-container  clearfix">
+    <button class="fold-toggle-button hidden-on-open"><i class="fal fa-plus-square"></i></button>
+    <button class="fold-toggle-button visible-on-open"><i class="fal fa-minus-square"></i></button>
+    <div class="fold-summary hidden-on-open"><span class="wikicolor" style="color:white">魔装</span></div>
+    <div class="fold-content visible-on-open"><p><span class="wikicolor" style="color:white">魔装</span><br />
+<a href="/guildra/%E9%AD%94%E8%A3%85NORMAL" title="魔装NORMAL" class="rel-wiki-page">【N】 </a><br />
+<a href="/guildra/%E9%AD%94%E8%A3%85NORMAL%2B" title="魔装NORMAL+" class="rel-wiki-page">【N+】</a><br />
+<a href="/guildra/%E9%AD%94%E8%A3%85RARE" title="魔装RARE" class="rel-wiki-page">【R】 </a><br />
+<a href="/guildra/%E9%AD%94%E8%A3%85RARE%2B" title="魔装RARE+" class="rel-wiki-page">【R+】 </a><br />
+<a href="/guildra/%E9%AD%94%E8%A3%85SUPERRARE" title="魔装SUPERRARE" class="rel-wiki-page">【SR】 </a><br />
+<a href="/guildra/%E9%AD%94%E8%A3%85SUPERRARE%2B" title="魔装SUPERRARE+" class="rel-wiki-page">【SR+】 </a></p>
+</div>
+</div>
+<div class="fold-container  clearfix">
+    <button class="fold-toggle-button hidden-on-open"><i class="fal fa-plus-square"></i></button>
+    <button class="fold-toggle-button visible-on-open"><i class="fal fa-minus-square"></i></button>
+    <div class="fold-summary hidden-on-open"><span class="wikicolor" style="color:white">素材</span></div>
+    <div class="fold-content visible-on-open"><p><span class="wikicolor" style="color:white">素材</span><br />
+<a href="/guildra/%E3%83%AC%E3%83%99%E3%83%AB%E3%82%A2%E3%83%83%E3%83%97%E7%B4%A0%E6%9D%90" title="レベルアップ素材" class="rel-wiki-page">レベルアップ素材 </a><br />
+<a href="/guildra/%E3%82%B9%E3%82%AD%E3%83%AB%E3%82%A2%E3%83%83%E3%83%97%E7%B4%A0%E6%9D%90" title="スキルアップ素材" class="rel-wiki-page">スキルアップ素材</a><br />
+<a href="/guildra/%E5%A3%B2%E5%8D%B4%E7%94%A8%E3%83%A6%E3%83%8B%E3%83%83%E3%83%88" title="売却用ユニット" class="rel-wiki-page">売却用ユニット</a><br />
+<a href="/guildra/%E8%A8%98%E7%AB%A0" title="記章" class="rel-wiki-page">記章</a></p>
+</div>
+</div>
+<hr class="short_line">
+<div class="fold-container  clearfix">
+    <button class="fold-toggle-button hidden-on-open"><i class="fal fa-plus-square"></i></button>
+    <button class="fold-toggle-button visible-on-open"><i class="fal fa-minus-square"></i></button>
+    <div class="fold-summary hidden-on-open"><a href="/guildra/%E3%83%A6%E3%83%8B%E3%83%83%E3%83%88%E6%97%A9%E8%A6%8B%E8%A1%A8" title="ユニット早見表" class="rel-wiki-page"><span class="wikicolor" style="color:white">ユニット早見表</span></a></div>
+    <div class="fold-content visible-on-open"><p><a href="/guildra/%E3%83%A6%E3%83%8B%E3%83%83%E3%83%88%E6%97%A9%E8%A6%8B%E8%A1%A8" title="ユニット早見表" class="rel-wiki-page"><span class="wikicolor" style="color:white">ユニット早見表</span></a><br />
+<a href="/guildra/%E3%83%A6%E3%83%8B%E3%83%83%E3%83%88%E6%97%A9%E8%A6%8B%E8%A1%A8/%E3%82%BD%E3%83%BC%E3%83%88%E6%9C%80%E5%A4%A7POW" title="ユニット早見表/ソート最大POW" class="rel-wiki-page">最大POW順</a><br />
+<a href="/guildra/%E3%83%A6%E3%83%8B%E3%83%83%E3%83%88%E6%97%A9%E8%A6%8B%E8%A1%A8/%E3%82%BD%E3%83%BC%E3%83%88%E3%83%89%E3%83%AD%E3%83%BC" title="ユニット早見表/ソートドロー" class="rel-wiki-page">ドロー順</a></p>
+</div>
+</div>
+<ul class="list1"><li><a href="/guildra/%E3%82%B9%E3%82%AD%E3%83%AB%E5%88%A5%E4%B8%80%E8%A6%A7" title="スキル別一覧" class="rel-wiki-page">スキル別早見表</a></li>
+<li>合成
+<ul class="list2"><li><a href="/guildra/%E3%83%AC%E3%83%99%E3%83%AB%E3%82%A2%E3%83%83%E3%83%97%E5%90%88%E6%88%90" title="レベルアップ合成" class="rel-wiki-page">レベルアップ合成</a></li>
+<li><a href="/guildra/%E3%82%B9%E3%82%AD%E3%83%AB%E3%82%A2%E3%83%83%E3%83%97%E5%90%88%E6%88%90" title="スキルアップ合成" class="rel-wiki-page">スキルアップ合成</a></li></ul></li>
+<li><a href="/guildra/%E3%82%B9%E3%82%AD%E3%83%AB" title="スキル" class="rel-wiki-page">スキル</a></li>
+<li><a href="/guildra/%E3%81%8A%E3%81%99%E3%81%99%E3%82%81%E3%82%B9%E3%82%AD%E3%83%AB" title="おすすめスキル" class="rel-wiki-page">おすすめスキル</a></li>
+<li><a href="/guildra/%E3%81%8A%E3%81%99%E3%81%99%E3%82%81%E3%83%A6%E3%83%8B%E3%83%83%E3%83%88" title="おすすめユニット" class="rel-wiki-page">おすすめユニット</a></li></ul>
+<h2 id="h2_content_6_5" class="heading-after-first">プレイヤー</h2>
+<ul class="list1"><li><a href="/guildra/%E3%82%B9%E3%83%86%E3%83%BC%E3%82%BF%E3%82%B9" title="ステータス" class="rel-wiki-page">ステータス</a></li>
+<li><a href="/guildra/%E3%82%AE%E3%83%AB%E3%83%89" title="ギルド" class="rel-wiki-page">ギルド</a>
+<ul class="list2"><li><a href="/guildra/GvG%E6%A6%82%E8%A6%81" title="GvG概要" class="rel-wiki-page">GvG概要</a></li>
+<li><a href="/guildra/%E3%83%89%E3%83%A9%E3%82%B4%E3%83%B3%E3%82%B3%E3%83%B3%E3%83%95%E3%83%AA%E3%82%AF%E3%83%88" title="ドラゴンコンフリクト" class="rel-wiki-page">ドラゴンコンフリクト</a></li></ul></li>
+<li><a href="/guildra/%E8%A3%85%E5%82%99" title="装備" class="rel-wiki-page">装備</a>
+<ul class="list2"><li><a href="/guildra/%E8%A3%85%E5%82%99%E5%A4%89%E6%9B%B4" title="装備変更" class="rel-wiki-page">装備変更</a></li>
+<li><a href="/guildra/%E8%A3%85%E5%82%99%E5%90%88%E6%88%90" title="装備合成" class="rel-wiki-page">装備合成</a></li>
+<li><a href="/guildra/%E8%A3%85%E5%82%99%E8%A7%A3%E4%BD%93" title="装備解体" class="rel-wiki-page">装備解体</a></li></ul></li>
+<li><a href="/guildra/%E7%A7%98%E4%BC%9D%E6%9B%B8" title="秘伝書" class="rel-wiki-page">秘伝書</a></li>
+<li><a href="/guildra/%E3%83%95%E3%83%AC%E3%83%B3%E3%83%89" title="フレンド" class="rel-wiki-page">フレンド</a></li>
+<li><a href="/guildra/%E3%82%A2%E3%82%A4%E3%83%86%E3%83%A0" title="アイテム" class="rel-wiki-page">アイテム</a></li>
+<li><a href="http://guildra.channel.or.jp/event/info_trd01/" rel="nofollow">トレード</a></li></ul>
+<h2 id="h2_content_6_6" class="heading-after-first">キャンペーン</h2>
+<ul class="list1"><li><a href="http://guildra.channel.or.jp/event/info_logbns01/" rel="nofollow">ログインボーナス</a></li>
+<li><a href="/guildra/%E6%8B%9B%E5%BE%85%E3%82%AD%E3%83%A3%E3%83%B3%E3%83%9A%E3%83%BC%E3%83%B3" title="招待キャンペーン" class="rel-wiki-page">招待キャンペーン</a></li></ul>
+<h2 id="h2_content_6_7" class="heading-after-first">その他</h2>
+<ul class="list1"><li><a href="/guildra/%E3%83%9C%E3%83%83%E3%82%AF%E3%82%B9%E3%82%AC%E3%82%B7%E3%83%A3" title="ボックスガシャ" class="rel-wiki-page">ボックスガシャ</a></li>
+<li><a href="/guildra/%E5%B0%8F%E3%83%8D%E3%82%BF" title="小ネタ" class="rel-wiki-page">小ネタ</a></li>
+<li><a href="/guildra/%E3%82%BB%E3%83%BC%E3%83%AB%E3%82%B9%E3%83%A9%E3%83%B3%E3%82%AD%E3%83%B3%E3%82%B0" title="セールスランキング" class="rel-wiki-page">セールスランキング</a></li>
+<li><a href="/guildra/%E5%AE%9F%E7%B8%BE" title="実績" class="rel-wiki-page">実績</a></li></ul>
+<div class="recent-container" data-recent-hash="a6362802726a3ffc5d24310fb9ed2054"></div>
+<p><a href="/guildra/RecentChanges" title="RecentChanges" class="rel-wiki-page"><strong>最新をもっと見る</strong></a></p>
+<hr class="full_hr" />
+<p><a href="/guildra/EditorsInfo" title="EditorsInfo" class="rel-wiki-page">編集者向け情報</a></p>
+<hr class="full_hr" />
+<div style="text-align:right"><span style="font-size:10px">T.<span class="wikiwiki-counter wikiwiki-counter-today">?</span>　Y.<span class="wikiwiki-counter wikiwiki-counter-yesterday">?</span></span><br />
+<span style="font-size:10px"><span class="wikicolor" style="color:#663300">NOW.<span class="wikiwiki-online">?</span></span></span>　<span style="font-size:10px">TOTAL.<span class="wikiwiki-counter wikiwiki-counter-total">?</span></span></div>                </div>
+                <div class="admenu-sticky">
+<!-- /19033742/WIKIWIKI_PC_MENU_STICKY -->
+<div id='div-gpt-ad-1567834179057-0'></div>
+</div>
+<script>
+if (document.documentElement.clientWidth > 805 && !wi_ismobile && wi_group === 'N' && wi_agreement === 'false' && !wi_isinbound &&
+    document.getElementById('body').clientHeight - document.getElementById('menubar').clientHeight > 1000) {
+    googletag.cmd.push(() => {
+        googletag.display(
+            googletag.defineSlot('/19033742/WIKIWIKI_PC_MENU_STICKY', [[120,600],[160,600],[1,1]], 'div-gpt-ad-1567834179057-0').addService(googletag.pubads())
+        );
+    });
+    defineSlotFlux.push({"slotID": "div-gpt-ad-1567834179057-0", "sizes": [[160,600]], "slotName":"WIKIWIKI_PC_MENU_STICKY"});
+}
+</script>
+<style>
+.admenu-sticky {
+    display: flex;
+    justify-content: center;
+    position: -webkit-sticky;
+    position: sticky;
+    margin-top: 50px;
+    top: 50px;
+    max-width: 160px;
+    margin-left: auto;
+    margin-right: auto;
+}
+</style>
+
+            </div>
+            </div>
+
+    
+    <div id="footer">
+                <div class="container">
+            <hr />
+            <div class="footer-block clearfix">
+                <div class="footer-block-item-left" id="signature">
+                    <!-- google_ad_section_start(weight=ignore) -->
+                    レンタルWIKI by <a href="https://wikiwiki.jp/" title="無料レンタルWIKIサービス">WIKIWIKI.jp*</a>&nbsp;/&nbsp;
+                    Designed by <a href="https://wikiwiki.jp/pp/skin-design-policy" title="スキンデザインのご利用についてのお願い">Olivia</a>&nbsp;/&nbsp;
+                    <a href="https://wikiwiki.jp/pp/aboutad" title="広告について">広告について</a>&nbsp;/&nbsp;
+                    無料レンタル掲示板 <a href="https://z.wikiwiki.jp/" title="zawazawa">zawazawa</a>
+                    <!-- google_ad_section_end -->
+                </div>
+                <div class="footer-block-item-right">
+                    <div class="footer-mixirss">
+                        <div class="toolbar"><a href="/guildra/::cmd/mixirss" title="最終更新のRSS" rel="nofollow"><span class="system-icon rss"></span></a></div>                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="pageload" style="display: none" data-pageload="{&quot;time&quot;:{&quot;all&quot;:{&quot;real&quot;:0.0834970474243164,&quot;cost&quot;:0.11293482780456543},&quot;body&quot;:{&quot;real&quot;:0.06609106063842773,&quot;cost&quot;:0.06609106063842773},&quot;main&quot;:{&quot;real&quot;:0.06438517570495605,&quot;cost&quot;:0.06438517570495605},&quot;menu&quot;:{&quot;real&quot;:0.021615982055664062,&quot;cost&quot;:0.021615982055664062},&quot;head&quot;:{&quot;real&quot;:0.006939888000488281,&quot;cost&quot;:0.006939888000488281},&quot;foot&quot;:{&quot;real&quot;:0.0008819103240966797,&quot;cost&quot;:0.0008819103240966797}},&quot;include&quot;:0,&quot;memory&quot;:1575568,&quot;io&quot;:{&quot;read&quot;:{&quot;files&quot;:4,&quot;bytes&quot;:5395,&quot;locks&quot;:2},&quot;write&quot;:{&quot;files&quot;:0,&quot;bytes&quot;:0,&quot;locks&quot;:0},&quot;directory&quot;:{&quot;traversals&quot;:0,&quot;files&quot;:0},&quot;misc&quot;:751},&quot;contentSize&quot;:{&quot;all&quot;:73253,&quot;body&quot;:43223},&quot;timestamp&quot;:&quot;2026-10-29 18:21:11&quot;}"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mark.js@8.11.1/dist/jquery.mark.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/clipboard@2.0.11/dist/clipboard.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.2.0/js/fontawesome.min.js" data-auto-replace-svg="false"></script>
+<script type="text/javascript" src="https://cdn.wikiwiki.jp/to/w/common/assets/dist/wikiwiki-b70e8ba0ce7e3ce9d7fa.min.js"></script>
+<script type="text/javascript" src="https://cdn.wikiwiki.jp/to/w/common/assets/dist/wikiwiki-ex1-e13505c57a12af32bb51.min.js"></script>
+    <script>
+        if (window.FontAwesome) {
+            window.FontAwesome.dom.watch();
+        } else {
+            console.warn('FontAwesome is not loaded.');
+        }
+    </script>
+<script type="text/javascript">
+    bootLazy.addJqPluginInit('.fold-container', function() {
+        this.fold({
+            buttonSelector: '.fold-toggle-button',
+            openClassName: 'fold-open'
+        });
+    });
+</script>
+    <script>
+        bootLazy.addJqPluginInit('.security-check-interrupt', function() {
+            this.securityCheckInterrupt({});
+        });
+    </script>
+<div id="wikiwiki-pageview-counter" data-endpoint="https://counter.wikiwiki.jp/c/guildra/pv/%E9%87%8D%E8%A3%85NORMAL" style="display: none;"></div>
+<script>
+    $('#wikiwiki-pageview-counter').pageview();
+</script>
+    <script type="text/javascript">
+        bootLazy.addJqPluginInit('.recent-container[data-recent-hash="a6362802726a3ffc5d24310fb9ed2054"]', function() {
+            this.recent({"timestamp":1467701233,"list":[{"time":1467701233,"page":"WikiBBS/コメント","link":"/guildra/WikiBBS/%E3%82%B3%E3%83%A1%E3%83%B3%E3%83%88"},{"time":1460975001,"page":"ストーリー3章10-20","link":"/guildra/%E3%82%B9%E3%83%88%E3%83%BC%E3%83%AA%E3%83%BC3%E7%AB%A010-20"},{"time":1459251954,"page":"ストーリー最終章1-Last","link":"/guildra/%E3%82%B9%E3%83%88%E3%83%BC%E3%83%AA%E3%83%BC%E6%9C%80%E7%B5%82%E7%AB%A01-Last"},{"time":1458581548,"page":"ストーリー2章15-21","link":"/guildra/%E3%82%B9%E3%83%88%E3%83%BC%E3%83%AA%E3%83%BC2%E7%AB%A015-21"},{"time":1458236178,"page":"ストーリー3章1-10","link":"/guildra/%E3%82%B9%E3%83%88%E3%83%BC%E3%83%AA%E3%83%BC3%E7%AB%A01-10"},{"time":1458133534,"page":"重装SUPERRARE","link":"/guildra/%E9%87%8D%E8%A3%85SUPERRARE"},{"time":1457595337,"page":"MenuBar","link":"/guildra/MenuBar"},{"time":1456662563,"page":"重装NORMAL","link":"/guildra/%E9%87%8D%E8%A3%85NORMAL"},{"time":1456662362,"page":"魔装NORMAL","link":"/guildra/%E9%AD%94%E8%A3%85NORMAL"},{"time":1456658376,"page":"軽装NORMAL","link":"/guildra/%E8%BB%BD%E8%A3%85NORMAL"},{"time":1456634333,"page":"秘伝書","link":"/guildra/%E7%A7%98%E4%BC%9D%E6%9B%B8"},{"time":1456582407,"page":"魔蒼覚醒のココレ","link":"/guildra/%E9%AD%94%E8%92%BC%E8%A6%9A%E9%86%92%E3%81%AE%E3%82%B3%E3%82%B3%E3%83%AC"},{"time":1448084829,"page":"火怨都市の女戦士","link":"/guildra/%E7%81%AB%E6%80%A8%E9%83%BD%E5%B8%82%E3%81%AE%E5%A5%B3%E6%88%A6%E5%A3%AB"},{"time":1446523046,"page":"裸足の天使アトリ","link":"/guildra/%E8%A3%B8%E8%B6%B3%E3%81%AE%E5%A4%A9%E4%BD%BF%E3%82%A2%E3%83%88%E3%83%AA"},{"time":1440802765,"page":"ドラゴンコンフリクト","link":"/guildra/%E3%83%89%E3%83%A9%E3%82%B4%E3%83%B3%E3%82%B3%E3%83%B3%E3%83%95%E3%83%AA%E3%82%AF%E3%83%88"},{"time":1439448281,"page":"凛々しき花嫁","link":"/guildra/%E5%87%9B%E3%80%85%E3%81%97%E3%81%8D%E8%8A%B1%E5%AB%81"},{"time":1439337577,"page":"一途な一面","link":"/guildra/%E4%B8%80%E9%80%94%E3%81%AA%E4%B8%80%E9%9D%A2"},{"time":1439315041,"page":"バルムンクの宣誓","link":"/guildra/%E3%83%90%E3%83%AB%E3%83%A0%E3%83%B3%E3%82%AF%E3%81%AE%E5%AE%A3%E8%AA%93"},{"time":1439314188,"page":"主席の貫録","link":"/guildra/%E4%B8%BB%E5%B8%AD%E3%81%AE%E8%B2%AB%E9%8C%B2"},{"time":1439313592,"page":"沈黙の後","link":"/guildra/%E6%B2%88%E9%BB%99%E3%81%AE%E5%BE%8C"}]});
+        });
+    </script>
+    <script type="text/javascript">
+        bootLazy.addJqPluginInit('.wikiwiki-popular', function() {
+            this.popular({
+                wikiRootUrl: '/guildra/',
+            });
+        });
+    </script>
+    <script>
+        bootLazy.addJqPluginInit('#responsive-navigation', function() {
+            this.responsiveNavigation({
+                menuBarSelector: '#menubar',
+                editMenuSelector: '#edit-menu',
+
+                mainContentsBottomElement: '#main-contents-bottom',
+                sidebarBottomElement: '#sidebar-bottom',
+                menuBarContainerElement: '#contents .column-left',
+                footerElement: '#footer',
+
+                overlayAdRenderedEventName: 'overlay-ad-rendered',
+                overlayAdMarginTop: 25
+            });
+        });
+    </script>
+    <script>
+        $('#share-button-root').sharePanel({
+            title: "重装NORMAL - ギルティドラゴン 罪竜と八つの呪い　攻略 Wiki*",
+            controlPanelUrl: "https:\/\/c.wikiwiki.jp\/wiki\/guildra\/design",
+            imageUrl: "https:\/\/cdn.wikiwiki.jp\/to\/w\/common\/image\/wikiwiki_ogp.png?v=4",
+            description: "",
+            shareUrl: "https:\/\/wikiwiki.jp\/guildra\/%E9%87%8D%E8%A3%85NORMAL",
+            shortUrlRequestUrl: "\/guildra\/::cmd\/short_url?mode=json&page=%E9%87%8D%E8%A3%85NORMAL",
+            hasOgSettings: false,
+        })
+    </script>
+<script>
+    $('#admin-contact-root').adminContact({
+        logoImgUrl: "https:\/\/cdn.wikiwiki.jp\/to\/w\/common\/image\/pukiwiki.svg?v=4",
+        pageTitle: "ギルティドラゴン 罪竜と八つの呪い　攻略 Wiki*",
+        controlPanelUrl: "https:\/\/c.wikiwiki.jp\/wiki\/guildra\/settings",
+        contact: "",
+        helpLink: 'https://wikiwiki.jp/pp/admin_contact',
+    });
+</script>
+<script>
+$("#load-panel-root").loadpanel({
+    dataSelector: "#pageload",
+    helpLink: 'https://wikiwiki.jp/pp/page_load_panel'
+});
+</script>
+<script>
+    $('.admin-login-status').adminLoginStatus({
+        cookieName: 'login_session',
+    });
+</script>
+<script>
+    $(function() {
+        $('.search-words').searchWordHighlight({
+            paramName: 'word',
+            selector: "#content,#note",
+            limit: 10,
+            markedClassResolver: function (i) { return "word" + i; }
+        });
+    });
+</script>
+<script>$(".realtime-date").realtimeDate();</script>
+<script>
+    $("body").notificationBar();
+</script>
+<script>
+$("#contents").anchorLink({
+    url: '/guildra/%E9%87%8D%E8%A3%85NORMAL',
+});
+</script>
+<script>window.lazyLoadViewingContext = {"viewingPage":"重装NORMAL","viewingMode":"read"};</script>
+    <script>
+        bootLazy.addJqPluginInit('.tooltip', function() {
+            this.tooltip();
+        });
+    </script>
+    <script>
+        bootLazy.addPlainScript(function() {
+            lightbox.option({
+                resizeDuration: 0
+            });
+        });
+    </script>
+<script>
+    $(function() {
+        window.bootLazy.bootOn(document);
+    });
+</script>
+<script>
+    $(document).pukiwiki();
+</script>
+<script>
+jQuery(function() {
+    $('form').usageStatistics({
+        keyName: 'usageStatistics',
+        smsAuthCookieName: 'authkey',
+        hasPostedCookieName: '__posted2',
+    });
+    $(document).browsingStatistics({
+        keyName: 'browsingStatistics'
+    });
+});
+</script>
+</body>
+</html>

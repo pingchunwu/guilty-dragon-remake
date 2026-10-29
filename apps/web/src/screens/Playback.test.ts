@@ -19,7 +19,7 @@ import {
 } from "@gdr/engine";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { AttackScene, playbackFrames, preOf } from "./Playback";
+import { AttackScene, afterDefense, calcSteps, playbackFrames, preOf, startOf } from "./Playback";
 
 const card = (id: string, attack: number): CardDefinition =>
   ({ id, name: id, type: "heavy", attack, rarity: "N", skill: null }) as unknown as CardDefinition;
@@ -123,6 +123,43 @@ describe("playbackFrames, rule 0.7.0-draft", () => {
       expect(end.sides[id]).toMatchObject({ sum: s.weaponAttack + s.baseAttack, counted: s.played.length });
       expect(end.sides[id].row.map((c) => c.card)).toEqual(s.chain.map((c) => c.card));
     }
+  });
+});
+
+describe("calculation steps from skills", () => {
+  // Real skill ids: 力量提升 (weapon +flat), 天秤 (element), 追加傷害 (final damage), 防護 (guard).
+  const use = (id: string) => ({ id, level: 1, blocked: false });
+  const sd = (o: Partial<SideResult>) =>
+    ({ baseAttack: 100, weaponAttack: 50, combo: 1, advantage: false, advantageMultiplier: 1, attack: 150, defense: 0, skill: null, ...o }) as SideResult;
+  const round = (a: Partial<SideResult>, b: Partial<SideResult>) =>
+    ({ kind: "normal", sides: { challenger: sd(a), defender: sd(b) } }) as unknown as PhaseResult;
+
+  it("shows a weapon-power change before the combo step, and nothing extra without one", () => {
+    const r = round({ skill: use("power-up-1"), skillWeapon: 70, attack: 170 }, {});
+    expect(startOf(r, "challenger")).toBe(150);
+    const steps = calcSteps(r);
+    expect(steps).toHaveLength(2);
+    expect(steps[0]!.to.challenger).toBe(170);
+    expect(steps[0]!.tag.challenger).toContain("武器 +20");
+    expect(steps[0]!.tag.defender).toBe("");
+    expect(steps[1]!.tag.challenger).toBe("COMBO ×1");
+    expect(calcSteps(round({}, {}))).toHaveLength(1);
+  });
+
+  it("adds a colour step for 天秤 even though nobody's number changes", () => {
+    const steps = calcSteps(round({ skill: use("balance-art") }, {}));
+    expect(steps).toHaveLength(2);
+    expect(steps[1]!.tag.challenger.length).toBeGreaterThan(0);
+    expect(steps[1]!.tag.defender).toBe("");
+  });
+
+  it("adds a damage-skill step after the defense step only when the skill changed the damage", () => {
+    const r = round({ attack: 300, skill: use("plus-damage-1") }, { attack: 100, defense: 50 });
+    expect(afterDefense(r, "challenger", 100)).toBeNull(); // floor(200 × 50%) = 100
+    const more = afterDefense(r, "challenger", 150)!;
+    expect(more.from).toBe(100);
+    expect(more.tag).toContain("+50");
+    expect(afterDefense(round({ attack: 300 }, { attack: 100, skill: use("guard-1") }), "challenger", 0)!.tag).toContain("−200");
   });
 });
 

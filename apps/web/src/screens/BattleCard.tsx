@@ -277,8 +277,6 @@ export function BattleCard({ card, owned, show, className, onClick }: Props) {
       <span className="bcard-num">
         <CardNumber n={value} label={show === "draw" ? "DRAW" : "POW"} uid={`${uid}n`} />
       </span>
-      {/* While the big number is DRAW, the POW still shows above it, so a leader can be weighed by both. */}
-      {show === "draw" && <small className="bcard-pow">POW {card.attack}</small>}
       <span className="bcard-stars">
         <Stars n={RARITIES.indexOf(card.rarity) + 1} uid={`${uid}s`} />
       </span>
