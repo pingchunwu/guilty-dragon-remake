@@ -1753,3 +1753,306 @@ p.error {
   opacity: 0.35;
   filter: grayscale(1);
 }
+
+/* Gacha SSR cut-in */
+.gcut {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 16px;
+  cursor: pointer;
+  color: #fff;
+}
+.gcut-bg {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 40%, #fff7c2 0%, #ff9ad5 25%, #6a5cff 55%, #120a2e 100%);
+}
+.gcut-rays {
+  position: absolute;
+  left: 50%;
+  top: 40%;
+  width: 250vmax;
+  height: 250vmax;
+  margin: -125vmax 0 0 -125vmax;
+  background: repeating-conic-gradient(rgba(255, 255, 255, 0.55) 0deg 2deg, transparent 2deg 9deg);
+  mask-image: radial-gradient(circle, transparent 8%, #000 30%);
+  -webkit-mask-image: radial-gradient(circle, transparent 8%, #000 30%);
+  animation: gcut-spin 6s linear infinite;
+}
+@keyframes gcut-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.gcut-stage {
+  position: relative;
+  width: min(72vw, 36vh, 300px);
+}
+.gcut-card {
+  position: relative;
+  overflow: hidden;
+  pointer-events: none;
+  filter: drop-shadow(0 0 18px rgba(255, 255, 255, 0.8));
+}
+.gcut-card .bcard {
+  width: 100%;
+}
+.gcut-sweep {
+  position: absolute;
+  inset: -10% 0;
+  width: 40%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.9), transparent);
+  transform: skewX(-20deg);
+}
+.gcut-new {
+  position: absolute;
+  right: -14px;
+  top: -14px;
+  padding: 2px 12px;
+  border: 3px solid #fff;
+  border-radius: 6px;
+  background: #e5243b;
+  font-size: 1.4rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+}
+.gcut-info {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  text-align: center;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
+}
+.gcut-rarity {
+  font-size: 1.6rem;
+  font-weight: 900;
+  letter-spacing: 0.2em;
+  background: linear-gradient(90deg, #ff5f6d, #ffd36b, #6bffb0, #6bb8ff, #c46bff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: none;
+  filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.7));
+}
+.gcut-name {
+  font-size: 2rem;
+  font-weight: 900;
+  line-height: 1.15;
+}
+.gcut-skill {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.45);
+  font-size: 0.9rem;
+}
+.gcut-skill strong {
+  color: #ffe27a;
+}
+
+/* Gacha seal */
+.gseal-root {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: radial-gradient(circle at 50% 50%, #1a1030 0%, #05030a 75%);
+  touch-action: manipulation;
+}
+
+.gseal-svg {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: min(86vw, 420px);
+  height: min(86vw, 420px);
+  margin: calc(min(86vw, 420px) / -2) 0 0 calc(min(86vw, 420px) / -2);
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 6px currentColor);
+}
+
+.gseal-ring {
+  stroke-dasharray: 1;
+}
+
+.gseal-aura {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: min(80vw, 380px);
+  height: min(80vw, 380px);
+  margin: calc(min(80vw, 380px) / -2) 0 0 calc(min(80vw, 380px) / -2);
+  border-radius: 50%;
+  opacity: 0;
+  filter: blur(18px);
+}
+
+.gseal-n {
+  background: radial-gradient(circle, rgba(190, 220, 255, 0.85), rgba(110, 160, 255, 0) 70%);
+}
+
+.gseal-sr {
+  background: radial-gradient(circle, rgba(255, 215, 90, 0.9), rgba(255, 170, 30, 0) 70%);
+}
+
+.gseal-ssr::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(#ff5e7e, #ffd34d, #6dff9c, #4dd2ff, #b06dff, #ff5e7e);
+  animation: gseal-spin 1.2s linear infinite;
+}
+
+@keyframes gseal-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.gseal-ember {
+  position: absolute;
+  bottom: 8%;
+  border-radius: 50%;
+  background: #ffb35c;
+  box-shadow: 0 0 6px #ff8a2a;
+  opacity: 0;
+}
+
+.gseal-shard {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 36px;
+  height: 52px;
+  margin: -26px 0 0 -18px;
+  background: linear-gradient(135deg, #fff, #9bb7ff);
+  clip-path: polygon(50% 0, 100% 100%, 0 80%);
+}
+
+.gseal-flash {
+  position: absolute;
+  inset: 0;
+  background: #fff;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Gacha reveal */
+.grev {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 48px 8px 16px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  background: rgba(8, 6, 16, 0.96);
+}
+
+.grev-fade {
+  animation: grev-fade-in 0.4s ease both;
+}
+
+@keyframes grev-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.grev-skip {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+}
+
+.grev-flip,
+.grev-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.grev-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.grev-card {
+  all: unset;
+  display: block;
+  min-width: 0;
+  cursor: pointer;
+  perspective: 600px;
+}
+
+.grev-inner {
+  position: relative;
+  display: block;
+  transform-style: preserve-3d;
+  transition: transform 0.5s;
+}
+
+.grev-flipped .grev-inner {
+  transform: rotateY(180deg);
+}
+
+.grev-front {
+  display: block;
+  transform: rotateY(180deg);
+  backface-visibility: hidden;
+  pointer-events: none;
+}
+
+.grev-back {
+  position: absolute;
+  inset: 0;
+  border-radius: 6px;
+  background: linear-gradient(160deg, #2a2540, #14101f);
+  border: 2px solid #8a93b8;
+  box-shadow: 0 0 6px #8a93b866;
+  backface-visibility: hidden;
+}
+
+.grev-SR .grev-back {
+  border-color: #f2c14e;
+  box-shadow: 0 0 10px #f2c14e;
+}
+
+.grev-SSR .grev-back {
+  border-color: transparent;
+  background:
+    linear-gradient(#14101f, #14101f) padding-box,
+    conic-gradient(#ff5e5e, #ffd35e, #5eff8a, #5ec8ff, #b45eff, #ff5e5e) border-box;
+  box-shadow: 0 0 14px #ffffffaa;
+  animation: grev-hue 2s linear infinite;
+}
+
+@keyframes grev-hue {
+  to {
+    filter: hue-rotate(360deg);
+  }
+}
+
+.grev-all {
+  align-self: center;
+}

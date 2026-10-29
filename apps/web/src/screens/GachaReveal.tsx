@@ -1,0 +1,169 @@
+import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import type { CardDefinition, ItemDefinition, PullResult } from "@gdr/engine";
+import { DeckCard } from "./DeckCard";
+import { ItemTile } from "./ItemTile";
+import { GachaSeal } from "./GachaSeal";
+import { GachaCutIn } from "./GachaCutIn";
+import { omenOf } from "./gachaOmen";
+import { reducedMotion } from "./BattleParts";
+
+type Kind = "card" | "item";
+type Stage = "seal" | "flip" | "summary";
+
+export function pullBadge(r: PullResult): string {
+  if (r.isNew) return "NEW";
+  return r.leveledUp ? `升級 Lv ${r.level}` : "已滿級";
+}
+
+interface GridProps {
+  kind: Kind;
+  results: PullResult[];
+  cards: ReadonlyMap<string, CardDefinition>;
+  items: ReadonlyMap<string, ItemDefinition>;
+}
+
+function Face({ kind, r, cards, items }: { kind: Kind; r: PullResult } & Omit<GridProps, "kind" | "results">) {
+  const owned = { level: r.level, shards: r.shards };
+  if (kind === "card") {
+    const card = cards.get(r.id);
+    return card ? <DeckCard card={card} owned={owned} badge={pullBadge(r)} /> : null;
+  }
+  const item = items.get(r.id);
+  return item ? <ItemTile item={item} owned={owned} badge={pullBadge(r)} /> : null;
+}
+
+/** The plain results grid, shared by the reveal's summary and the page below it. */
+export function PullGrid({ kind, results, cards, items }: GridProps) {
+  return (
+    <div className={kind === "card" ? "grid deck-grid" : "grid"}>
+      {results.map((r, i) => (
+        <Face key={i} kind={kind} r={r} cards={cards} items={items} />
+      ))}
+    </div>
+  );
+}
+
+interface Props extends GridProps {
+  onClose: () => void;
+  onAgain?: (() => void) | undefined;
+}
+
+export function GachaReveal({ kind, results, cards, items, onClose, onAgain }: Props) {
+  const reduced = useMemo(reducedMotion, []);
+  const [stage, setStage] = useState<Stage>(reduced ? "summary" : "seal");
+  const [flipped, setFlipped] = useState<ReadonlySet<number>>(new Set());
+  const [shown, setShown] = useState<ReadonlySet<number>>(new Set());
+  const [cutIn, setCutIn] = useState<number | null>(null);
+  const [skipping, setSkipping] = useState(false);
+  const cardOf = (i: number) => (kind === "card" ? cards.get(results[i]!.id) : undefined);
+  const rarities = useMemo(() => results.map((r) => (kind === "card" ? cards.get(r.id)?.rarity : undefined) ?? "N"), [results, kind, cards]);
+  const omen = useMemo(() => omenOf(rarities), [rarities]);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  // Preload the card art so flips never show a blank face.
+  useEffect(() => {
+    if (kind === "card") for (const r of results) new Image().src = `/cards/${r.id}.webp`;
+  }, [kind, results]);
+
+  // Next SSR cut-in owed: flipped, not yet shown (and, when skipping, only NEW ones).
+  const owed = results.findIndex(
+    (r, i) => stage !== "summary" && rarities[i] === "SSR" && flipped.has(i) && !shown.has(i) && (!skipping || r.isNew),
+  );
+  useEffect(() => {
+    if (cutIn === null && owed >= 0) setCutIn(owed);
+  }, [cutIn, owed]);
+
+  // Auto-flip one by one; paused while a cut-in is showing or owed.
+  const busyCutIn = cutIn !== null || owed >= 0;
+  useEffect(() => {
+    if (stage !== "flip" || busyCutIn || skipping) return;
+    const next = results.findIndex((_, i) => !flipped.has(i));
+    const t = setTimeout(() => (next >= 0 ? flipOne(next) : setStage("summary")), next >= 0 ? 150 : 700);
+    return () => clearTimeout(t);
+  });
+
+  useEffect(() => {
+    if (skipping && !busyCutIn) setStage("summary");
+  }, [skipping, busyCutIn]);
+
+  function flipOne(i: number) {
+    setFlipped((f) => new Set(f).add(i));
+  }
+  const flipAll = () => setFlipped(new Set(results.keys()));
+  function skip() {
+    flipAll();
+    setStage("flip");
+    setSkipping(true);
+  }
+
+  const card = cutIn !== null ? cardOf(cutIn) : undefined;
+  const cutR = cutIn !== null ? results[cutIn] : undefined;
+  return createPortal(
+    <div ref={rootRef} className={`grev${reduced ? " grev-fade" : ""}`} role="dialog" aria-modal="true" aria-label="抽卡結果">
+      {stage !== "summary" && (
+        <button type="button" className="grev-skip" onClick={skip}>
+          SKIP
+        </button>
+      )}
+      {stage === "seal" && <GachaSeal start={omen.start} best={omen.best} onDone={() => setStage("flip")} />}
+      {stage === "flip" && (
+        <div className="grev-flip">
+          <div className="grev-grid">
+            {results.map((r, i) => (
+              // A div, not a button: the card front (BattleCard) is itself a button.
+              <div
+                key={i}
+                role="button"
+                tabIndex={0}
+                className={`grev-card grev-${rarities[i]}${flipped.has(i) ? " grev-flipped" : ""}`}
+                aria-label={flipped.has(i) ? "已翻開" : "翻開"}
+                onClick={() => flipOne(i)}
+                onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && flipOne(i)}
+              >
+                <span className="grev-inner">
+                  <span className="grev-back" />
+                  <span className="grev-front">
+                    <Face kind={kind} r={r} cards={cards} items={items} />
+                  </span>
+                </span>
+              </div>
+            ))}
+          </div>
+          <button type="button" className="grev-all" onClick={flipAll} disabled={flipped.size === results.length}>
+            全部翻開
+          </button>
+        </div>
+      )}
+      {stage === "summary" && (
+        <div className="grev-summary">
+          <PullGrid kind={kind} results={results} cards={cards} items={items} />
+          <div className="row">
+            {onAgain && (
+              <button type="button" className="primary grow" onClick={onAgain}>
+                再抽一次
+              </button>
+            )}
+            <button type="button" className="grow" onClick={onClose}>
+              確認
+            </button>
+          </div>
+        </div>
+      )}
+      {card && cutR && stage !== "summary" && (
+        <GachaCutIn
+          key={cutIn}
+          card={card}
+          isNew={cutR.isNew}
+          level={cutR.level}
+          onDone={() => {
+            setShown((s) => new Set(s).add(cutIn!));
+            setCutIn(null);
+          }}
+        />
+      )}
+    </div>,
+    document.body,
+  );
+}
+

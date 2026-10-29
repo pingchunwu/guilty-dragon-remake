@@ -3,8 +3,7 @@ import { ITEM_MAX_LEVEL, type PullResult } from "@gdr/engine";
 import type { Content } from "../game/content";
 import { GameError, type GameService, type PlayerState } from "../game/types";
 import { errorText } from "../game/text";
-import { DeckCard } from "./DeckCard";
-import { ItemTile } from "./ItemTile";
+import { GachaReveal, PullGrid } from "./GachaReveal";
 
 type Kind = "card" | "item";
 const KIND_LABEL: Record<Kind, string> = { card: "卡片", item: "裝備" };
@@ -16,14 +15,10 @@ interface Props {
   onState: (s: PlayerState) => void;
 }
 
-function badge(r: PullResult): string {
-  if (r.isNew) return "NEW";
-  return r.leveledUp ? `升級 Lv ${r.level}` : "已滿級";
-}
-
 export function Gacha({ content: { cards, items }, service, state, onState }: Props) {
   const [kind, setKind] = useState<Kind>("card");
   const [results, setResults] = useState<{ kind: Kind; list: PullResult[] } | null>(null);
+  const [revealing, setRevealing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // Kept per kind until a draw succeeds, so a retry after a network failure
@@ -40,6 +35,7 @@ export function Gacha({ content: { cards, items }, service, state, onState }: Pr
     try {
       const outcome = kind === "card" ? await service.drawTen(key) : await service.drawItems(key);
       setResults({ kind, list: outcome.results });
+      setRevealing(true);
       onState(outcome.state);
       setPending(null);
     } catch (e) {
@@ -83,19 +79,24 @@ export function Gacha({ content: { cards, items }, service, state, onState }: Pr
         </button>
         {error && <p className="error">{error}</p>}
       </div>
-      {results && (
-        <div className={results.kind === "card" ? "grid deck-grid" : "grid"}>
-          {results.list.map((r, i) => {
-            const owned = { level: r.level, shards: r.shards };
-            if (results.kind === "card") {
-              const card = cards.get(r.id);
-              return card ? <DeckCard key={i} card={card} owned={owned} badge={badge(r)} /> : null;
-            }
-            const item = items.get(r.id);
-            return item ? <ItemTile key={i} item={item} owned={owned} badge={badge(r)} /> : null;
-          })}
-        </div>
+      {results && revealing && (
+        <GachaReveal
+          kind={results.kind}
+          results={results.list}
+          cards={cards}
+          items={items}
+          onClose={() => setRevealing(false)}
+          onAgain={
+            state.tickets >= 1 && !busy
+              ? () => {
+                  setRevealing(false);
+                  void draw();
+                }
+              : undefined
+          }
+        />
       )}
+      {results && <PullGrid kind={results.kind} results={results.list} cards={cards} items={items} />}
     </section>
   );
 }
