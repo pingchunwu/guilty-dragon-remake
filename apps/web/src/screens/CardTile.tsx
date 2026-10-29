@@ -1,4 +1,4 @@
-import { useEffect, useRef, useSyncExternalStore, type MouseEvent } from "react";
+import { useEffect, useRef, useSyncExternalStore, type MouseEvent, type PointerEvent } from "react";
 import { SKILL_BY_ID, cardMaxLevel, type CardDefinition, type OwnedCard } from "@gdr/engine";
 import { TYPE_LABEL, skillEffectText } from "../game/text";
 
@@ -33,26 +33,39 @@ const subscribe = (l: () => void) => {
 export function useCardInfoPress(card: CardDefinition, owned: OwnedCard | undefined) {
   const timer = useRef<number | undefined>(undefined);
   const opened = useRef(false);
+  const held = useRef<number | null>(null); // `at` of the toast this press opened; closed on release
+  const touch = useRef(false);
   const cancel = () => window.clearTimeout(timer.current);
-  const open = () => {
+  const open = (hold: boolean) => {
     opened.current = true;
-    setInfo({ card, owned, at: Date.now() });
+    const at = Date.now();
+    held.current = hold ? at : null;
+    setInfo({ card, owned, at });
+  };
+  // Press ended: stop the timer and drop the toast this hold opened (a mouse right-click toast stays).
+  const release = () => {
+    cancel();
+    if (held.current !== null && info?.at === held.current) setInfo(null);
+    held.current = null;
   };
   useEffect(() => cancel, []);
   return {
-    onPointerDown: () => {
+    onPointerDown: (e: PointerEvent) => {
       opened.current = false;
+      touch.current = e.pointerType !== "mouse";
       cancel();
-      timer.current = window.setTimeout(open, LONG_PRESS_MS);
+      timer.current = window.setTimeout(() => open(true), LONG_PRESS_MS);
     },
     // Scrolling fires pointercancel, so a swipe never opens it.
-    onPointerUp: cancel,
-    onPointerLeave: cancel,
-    onPointerCancel: cancel,
+    onPointerUp: release,
+    onPointerLeave: release,
+    onPointerCancel: release,
+    // Android Chrome fires contextmenu on long-press; block it so the release isn't eaten.
     onContextMenu: (e: MouseEvent) => {
       e.preventDefault();
+      if (held.current !== null) return; // timer already opened it
       cancel();
-      open();
+      open(touch.current);
     },
     onClickCapture: (e: MouseEvent) => {
       if (!opened.current) return;

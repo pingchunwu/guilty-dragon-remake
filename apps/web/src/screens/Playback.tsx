@@ -47,6 +47,13 @@ export interface Frame {
 }
 
 const SIDES = ["challenger", "defender"] as const;
+const foe = (id: SideId): SideId => (id === "challenger" ? "defender" : "challenger");
+
+/** 0.7.0 cards-plus-weapon total before combo, colour and skill multipliers. */
+export function preOf(result: PhaseResult, id: SideId) {
+  const s = result.sides[id];
+  return result.kind === "normal" ? s.baseAttack + (s.skillWeapon ?? s.weaponAttack) : s.attack;
+}
 
 /**
  * Replays a resolved phase as frames in the original's order: the leader, then
@@ -331,23 +338,51 @@ export function AttackScene({ result, labels, hp, maxHp, onComplete }: SceneProp
   const root = useRef<HTMLDivElement>(null);
   const tl = useRef<gsap.core.Timeline | null>(null);
   const { winner } = result;
-  const loser = winner && (winner === "challenger" ? "defender" : "challenger");
+  const loser = winner && foe(winner);
   const mine = result.sides.challenger.attack;
   const theirs = result.sides.defender.attack;
+  // HP each side loses; results stored before damageTaken existed only had the winner's damage.
+  const taken = (id: SideId) => result.damageTaken?.[id] ?? (loser === id ? result.damage : 0);
+  const hurt = SIDES.filter((id) => taken(id) > 0);
   useGSAP(
     (_, contextSafe) => {
       const q = gsap.utils.selector(root);
       const [top, bottom] = [q(".scene-atk-top")[0]!, q(".scene-atk-bottom")[0]!];
+      const [topNum, botNum] = [q(".scene-atk-top .scene-num")[0]!, q(".scene-atk-bottom .scene-num")[0]!];
+      const [topTag, botTag] = [q(".scene-atk-top .scene-tag")[0]!, q(".scene-atk-bottom .scene-tag")[0]!];
       const apart = root.current!.clientHeight * 0.24;
       gsap.set(top, { y: -apart });
       gsap.set(bottom, { y: apart });
-      const smaller = Math.min(mine, theirs);
+      gsap.set([topTag, botTag], { autoAlpha: 0 });
+      // On a final blow the side that didn't run out throws nothing.
+      if (result.kind === "deck_out") {
+        if (!result.sides.defender.ranOut) gsap.set(top, { autoAlpha: 0 });
+        if (!result.sides.challenger.ranOut) gsap.set(bottom, { autoAlpha: 0 });
+      }
+      // A final blow (deck-out) has no crash: each hand's total hits the other side directly.
+      const smaller = result.kind === "normal" ? Math.min(mine, theirs) : 0;
       const count = { d: 0 };
       // Both numbers lose the same amount, so the smaller reaches 0 and the bigger keeps the remainder.
       const show = () => {
-        top.textContent = String(theirs - Math.round(count.d));
-        bottom.textContent = String(mine - Math.round(count.d));
+        topNum.textContent = String(theirs - Math.round(count.d));
+        botNum.textContent = String(mine - Math.round(count.d));
       };
+      // Round calculation: (cards + weapon) → × combo → × colour / skills (= engine attack) → crash → × (100 − defense)%.
+      const normal = result.kind === "normal";
+      const S = result.sides;
+      const afterCombo = {} as Record<SideId, number>;
+      for (const id of SIDES) afterCombo[id] = Math.floor(preOf(result, id) * S[id].combo);
+      const colourStep = normal && SIDES.some((id) => S[id].advantage || S[id].attack !== afterCombo[id]);
+      // Who deals damage: the winner, or on a final blow every side whose hit lands.
+      const dealers = normal ? (winner ? [winner] : []) : SIDES.filter((id) => taken(foe(id)) > 0);
+      const defend = dealers.length > 0;
+      const rushAt = 0.65 + (normal ? 0.4 : 0) + (colourStep ? 0.4 : 0);
+      const cur = { t: preOf(result, "defender"), b: preOf(result, "challenger") };
+      const paint = () => {
+        topNum.textContent = String(Math.round(cur.t));
+        botNum.textContent = String(Math.round(cur.b));
+      };
+      if (normal) paint();
       tl.current = gsap
         .timeline({ defaults: { ease: "power3.out" }, onComplete: contextSafe!(onComplete) })
         .from(root.current, { autoAlpha: 0, duration: 0.15 })
@@ -355,38 +390,72 @@ export function AttackScene({ result, labels, hp, maxHp, onComplete }: SceneProp
         .from(q(".scene-bar-top"), { yPercent: -110, duration: 0.3 }, 0.25)
         .from(q(".scene-bar-bottom"), { yPercent: 110, duration: 0.3 }, "<")
         .from([top, bottom], { autoAlpha: 0, scale: 1.5, duration: 0.25 }, 0.3)
-        .addLabel("rush", 0.65)
-        .to(top, { y: -28, duration: 0.17, ease: "power3.in" }, "rush")
-        .to(bottom, { y: 28, duration: 0.17, ease: "power3.in" }, "rush")
+        .addLabel("rush", rushAt)
+        .to([topTag, botTag], { autoAlpha: 0, duration: 0.12 }, "rush")
+        // Only a normal round crashes; on a final blow the two numbers stay apart.
+        .to(normal ? top : [], { y: -28, duration: 0.17, ease: "power3.in" }, "rush")
+        .to(normal ? bottom : [], { y: 28, duration: 0.17, ease: "power3.in" }, "rush")
         .addLabel("impact", ">")
         .to(q(".scene-flash"), { autoAlpha: 0.9, duration: 0.05 }, "impact")
         .to(q(".scene-flash"), { autoAlpha: 0, duration: 0.25 }, ">")
-        .to(q(".scene-stage"), { keyframes: { x: [-12, 10, -7, 5, -2, 0] }, duration: 0.4, ease: "none" }, "impact")
-        .to([top, bottom], { scale: 1.3, duration: 0.08, yoyo: true, repeat: 1 }, "impact")
+        .to(normal ? q(".scene-stage") : [], { keyframes: { x: [-12, 10, -7, 5, -2, 0] }, duration: 0.4, ease: "none" }, "impact")
+        .to(normal ? [top, bottom] : [], { scale: 1.3, duration: 0.08, yoyo: true, repeat: 1 }, "impact")
         .to(count, { d: smaller, duration: 0.5, ease: "power1.in", onUpdate: show }, "impact+=0.05")
         .addLabel("shatter", ">")
         // The smaller number (both on a tie) bursts apart; the remainder fades as the banner lands.
-        .to(mine <= theirs ? bottom : [], { scale: 1.9, rotation: 14, autoAlpha: 0, duration: 0.25 }, "shatter")
-        .to(theirs <= mine ? top : [], { scale: 1.9, rotation: -14, autoAlpha: 0, duration: 0.25 }, "shatter")
-        .to(mine > theirs ? bottom : theirs > mine ? top : [], { scale: 0.6, autoAlpha: 0, duration: 0.25 }, "shatter+=0.15")
+        .to(normal && mine <= theirs ? bottom : [], { scale: 1.9, rotation: 14, autoAlpha: 0, duration: 0.25 }, "shatter")
+        .to(normal && theirs <= mine ? top : [], { scale: 1.9, rotation: -14, autoAlpha: 0, duration: 0.25 }, "shatter")
+        .to(normal ? (mine > theirs ? bottom : theirs > mine ? top : []) : [top, bottom], { scale: 0.6, autoAlpha: 0, duration: 0.25 }, defend ? "banner+=0.75" : "shatter+=0.15")
         .addLabel("banner", "shatter+=0.1")
         .from(q(".scene-banner"), { xPercent: -110, duration: 0.3 }, "banner")
-        .addLabel("hit", "banner+=0.3")
+        .addLabel("hit", defend ? "banner+=0.75" : "banner+=0.3")
         .fromTo(q(".scene-flash"), { autoAlpha: 0.85 }, { autoAlpha: 0, duration: 0.3 }, "hit")
         .from(q(".scene-damage"), { scale: 2.6, autoAlpha: 0, duration: 0.3, ease: "back.out(2)" }, "hit");
-      if (loser) {
-        const left = Math.max(0, hp[loser] - result.damage);
-        const n = { v: hp[loser] };
-        const num = q(`.scene-side-${loser} .scene-hp-n`)[0];
-        const cut = q(`.scene-side-${loser} .scene-cut`);
-        gsap.set(cut, { rotation: -9, transformOrigin: "0 50%" });
-        tl.current
-          .fromTo(cut, { scaleX: 0, autoAlpha: 1 }, { scaleX: 1, duration: 0.15, ease: "power4.out" }, "hit+=0.45")
-          .to(q(".scene-stage"), { keyframes: { x: [-12, 10, -7, 5, -2, 0] }, duration: 0.4, ease: "none" }, "<")
-          .fromTo(q(`.scene-side-${loser} .scene-fill`), { scaleX: hp[loser] / maxHp }, { scaleX: left / maxHp, duration: 0.5, ease: "power2.out" }, ">0.05")
-          .to(n, { v: left, duration: 0.5, ease: "power2.out", onUpdate: () => void (num!.textContent = String(Math.round(n.v))) }, "<")
-          .to(cut, { autoAlpha: 0, duration: 0.2 }, "<0.1");
+      const tags = [topTag, botTag];
+      const nums = { defender: [topNum, topTag, top], challenger: [botNum, botTag, bottom] } as const;
+      // One labelled step: tag text on each side (empty = none), the number tweens to its new value.
+      const step = (at: number, text: Record<SideId, string>, to: Record<SideId, number>) => {
+        tl.current!
+          .add(() => {
+            for (const id of SIDES) nums[id][1].textContent = text[id];
+          }, at)
+          .fromTo(tags.filter((_, i) => text[i ? "challenger" : "defender"]), { autoAlpha: 0, scale: 1.6 }, { autoAlpha: 1, scale: 1, duration: 0.2 }, at)
+          .to(cur, { t: to.defender, b: to.challenger, duration: 0.3, ease: "power2.out", onUpdate: paint }, at + 0.05)
+          .fromTo([topNum, botNum], { scale: 1.25 }, { scale: 1, duration: 0.25, ease: "back.out(3)" }, at + 0.3);
+      };
+      if (normal) {
+        step(0.65, { defender: `COMBO ×${+S.defender.combo.toFixed(2)}`, challenger: `COMBO ×${+S.challenger.combo.toFixed(2)}` }, afterCombo);
+        if (colourStep) {
+          const label = (id: SideId) =>
+            S[id].advantage ? `相剋 ×${S[id].advantageMultiplier}` : S[id].attack !== afterCombo[id] ? "技能" : "";
+          step(1.05, { defender: label("defender"), challenger: label("challenger") }, { defender: theirs, challenger: mine });
+        }
       }
+      // Defense: the dealer's remaining number (or whole hand total) × (100 − the target's 防禦)% = the damage taken.
+      for (const w of dealers) {
+        const target = foe(w);
+        const wTag = nums[w][1];
+        const d = { v: normal ? Math.abs(mine - theirs) : S[w].attack };
+        tl.current
+          .add(() => void (wTag.textContent = `防禦 ${S[target].defense}%（×${100 - S[target].defense}%）`), "banner+=0.3")
+          .fromTo(wTag, { autoAlpha: 0, scale: 1.6 }, { autoAlpha: 1, scale: 1, duration: 0.2 }, "banner+=0.3")
+          .to(d, { v: taken(target), duration: 0.3, ease: "power2.out", onUpdate: () => void (nums[w][0].textContent = String(Math.round(d.v))) }, "banner+=0.35")
+          .fromTo(nums[w][0], { scale: 1.25 }, { scale: 1, duration: 0.25, ease: "back.out(3)" }, "banner+=0.65")
+          .to(wTag, { autoAlpha: 0, duration: 0.12 }, "banner+=0.7");
+      }
+      hurt.forEach((id, i) => {
+        const left = Math.max(0, hp[id] - taken(id));
+        const n = { v: hp[id] };
+        const num = q(`.scene-side-${id} .scene-hp-n`)[0];
+        const cut = q(`.scene-side-${id} .scene-cut`);
+        gsap.set(cut, { rotation: -3.5, transformOrigin: "0 50%" });
+        tl.current!
+          .fromTo(cut, { scaleX: 0, autoAlpha: 1 }, { scaleX: 1, duration: 0.15, ease: "power4.out" }, "hit+=0.45")
+          .fromTo(q(`.scene-side-${id} .scene-fill`), { scaleX: hp[id] / maxHp }, { scaleX: left / maxHp, duration: 0.5, ease: "power2.out" }, "hit+=0.65")
+          .to(n, { v: left, duration: 0.5, ease: "power2.out", onUpdate: () => void (num!.textContent = String(Math.round(n.v))) }, "hit+=0.65")
+          .to(cut, { autoAlpha: 0, duration: 0.2 }, "hit+=0.75");
+        if (i === 0) tl.current!.to(q(".scene-stage"), { keyframes: { x: [-12, 10, -7, 5, -2, 0] }, duration: 0.4, ease: "none" }, "hit+=0.45");
+      });
       tl.current.to(root.current, { autoAlpha: 0, duration: 0.25 }, ">0.5");
     },
     { scope: root },
@@ -404,7 +473,7 @@ export function AttackScene({ result, labels, hp, maxHp, onComplete }: SceneProp
         <div className="hp-track">
           <div className="hp-fill scene-fill" style={{ transform: `scaleX(${hp[id] / maxHp})` }} />
         </div>
-        {loser === id && <div className="scene-cut" />}
+        {taken(id) > 0 && <div className="scene-cut" />}
       </div>
     </div>
   );
@@ -412,13 +481,19 @@ export function AttackScene({ result, labels, hp, maxHp, onComplete }: SceneProp
     <div ref={root} className="attack-scene" role="presentation" onClick={() => tl.current?.progress(1)}>
       <div className="scene-stage">
         {bar("defender", "top")}
-        <div className="scene-atk scene-atk-top">{theirs}</div>
-        <div className="scene-atk scene-atk-bottom">{mine}</div>
+        <div className="scene-atk scene-atk-top">
+          <span className="scene-tag" />
+          <span className="scene-num">{preOf(result, "defender")}</span>
+        </div>
+        <div className="scene-atk scene-atk-bottom">
+          <span className="scene-tag" />
+          <span className="scene-num">{preOf(result, "challenger")}</span>
+        </div>
         <div className="scene-banner">
-          {!winner ? "勢均力敵" : result.kind === "deck_out" ? "最終一擊！" : `${labels[winner]}的攻擊！`}
+          {hurt.length === 0 && !winner ? "勢均力敵" : result.kind === "deck_out" ? (hurt.length > 1 ? "雙方最終一擊！" : "最終一擊！") : `${labels[winner!]}的攻擊！`}
         </div>
         <div className="scene-damage">
-          {winner ? `−${result.damage}` : "沒有傷害"}
+          {hurt.length ? hurt.map((id) => <span key={id}>{`−${taken(id)}`}</span>) : "沒有傷害"}
           {result.ignoredArmor && <small>無視防禦</small>}
         </div>
         {bar("challenger", "bottom")}

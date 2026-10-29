@@ -63,11 +63,14 @@ interface Props {
 }
 
 /** The 3 weapon capsules: `lit` is the leader's colour, which carries the total and combo pips; "all" lights all three. */
-function Capsules({ equipment, lit, sum, counted, empty }: {
+function Capsules({ equipment, lit, sum, counted, empty, add, addKey }: {
   equipment: Equipment;
   lit: CardType | "all" | null;
   sum: number;
   counted: number;
+  /** Power added to the total on this beat (floats up as +N); addKey replays it each beat. */
+  add?: number;
+  addKey?: number;
   /** Once a leader is chosen the other capsules empty out, as in the OG. */
   empty: boolean;
 }) {
@@ -83,6 +86,7 @@ function Capsules({ equipment, lit, sum, counted, empty }: {
             <>
               <CountUp value={sum} className="capsule-value" />
               <Pips count={counted} />
+              {add ? <span key={addKey} className="capsule-add">+{add}</span> : null}
             </>
           ) : empty && lit !== "all" ? null : (
             (equipment[k]?.attack ?? 0)
@@ -188,21 +192,30 @@ export function Duel(props: Props) {
 
   // Skill banners stay until the phase's HP has been paid (the attack scene ends, then the bars count).
   const [settling, setSettling] = useState(false);
-  const wasReplaying = useRef(false);
+  // Set while rendering (not in an effect), so the hand never gets a frame of room between replay and settle.
+  const [wasReplaying, setWasReplaying] = useState(false);
+  if (wasReplaying !== replaying) {
+    setWasReplaying(replaying);
+    setSettling(!replaying);
+  }
   useEffect(() => {
-    if (replaying) {
-      wasReplaying.current = true;
-      setSettling(false);
-      return;
-    }
-    if (!wasReplaying.current) return;
-    wasReplaying.current = false;
-    setSettling(true);
+    if (!settling) return;
     const timer = window.setTimeout(() => setSettling(false), HP_SETTLE_MS);
     return () => window.clearTimeout(timer);
-  }, [replaying]);
+  }, [settling]);
   const firstSkill = frames.findIndex((f) => f.skills);
   const showBursts = last && ((replaying && !play.reveal && firstSkill >= 0 && play.beat >= firstSkill) || settling);
+
+  // The hand takes no room while it is hidden (playback, banners, before the deal), so the stage keeps it.
+  const stowed = replaying || settling || !dealt;
+  // The hand card under the pointer: its colour lights the other cards of that colour.
+  const [kin, setKin] = useState<{ id: string; type: CardType } | null>(null);
+  const setKinOf = (el: HTMLElement) => {
+    const tile = el.closest(".hand-grid > .bcard");
+    const id = tile ? hand[Array.prototype.indexOf.call(tile.parentNode!.children, tile)] : undefined;
+    const card = id ? cards.get(id) : undefined;
+    setKin(card && !picked.includes(card.id) ? { id: card.id, type: card.type } : null);
+  };
 
   const leader = picked[0] && !props.children ? cards.get(picked[0])! : null;
   const counts = leader ? chargeTypes(leader, levels) : new Set<CardType>();
@@ -216,10 +229,17 @@ export function Duel(props: Props) {
     : 0;
 
   // The hand is dealt from the deck pile once the last phase has finished playing.
+  // The hand takes no room until then (see `stowed`), so the deal waits for the banners to go, and
+  // the cards are measured only once the next render has given the hand its row.
   useGSAP(
     () => {
-      if (dealt || busy || replaying) return;
-      setDealt(true);
+      if (!dealt && !busy && !replaying && !settling) setDealt(true);
+    },
+    { dependencies: [busy, replaying, settling, phase], scope: root },
+  );
+  useGSAP(
+    () => {
+      if (!dealt || reducedMotion()) return;
       const q = gsap.utils.selector(root);
       const pile = q(".my-pile")[0]!.getBoundingClientRect();
       const tl = gsap.timeline();
@@ -242,7 +262,7 @@ export function Duel(props: Props) {
         );
       });
     },
-    { dependencies: [busy, replaying, phase], scope: root },
+    { dependencies: [dealt], scope: root },
   );
 
   // A pick flies from its hand slot into the charge row (GSAP Flip).
@@ -386,6 +406,9 @@ export function Duel(props: Props) {
     last!.kind !== "deck_out" &&
     chip.state !== "leader" &&
     (settled || (chip.state === "counted" && prev?.sides[id].row.find((c) => c.card === chip.card)?.state === "counted"));
+  // Power the capsule gained on this beat (the weapon, each charge card, the leader last), shown as +N.
+  const addOf = (id: SideId) =>
+    frame && prev && frame.stage === "chain" ? Math.max(0, frame.sides[id].sum - prev.sides[id].sum) : 0;
   const chipClass = (chip: Chip) =>
     `bcard-${chip.state}${chip.drawn ? " bcard-drawn" : ""}${chip.fresh ? " bcard-fresh" : ""}${
       frame && chip.state === "counted" && last!.kind !== "deck_out" ? " bcard-merging" : ""
@@ -393,10 +416,13 @@ export function Duel(props: Props) {
   // Playback cards get their own keys and flip ids, so the next phase's picks never reuse a merged
   // element, and the same card on both sides (practice uses one collection) never shares an id.
   const slotKey = (card: string) => (frame ? `${last!.phase}-${card}` : card);
+  const hurt = last ? (["defender", "challenger"] as const).filter((id) => (last.damageTaken?.[id] ?? (last.winner && last.winner !== id ? last.damage : 0)) > 0) : [];
   const outcome = last
-    ? last.winner
-      ? `${labels[last.winner]}${last.kind === "deck_out" ? "最終一擊" : "攻擊"}，造成 ${last.damage} 傷害`
-      : "攻擊相同，沒有傷害"
+    ? last.kind === "deck_out" && hurt.length > 1
+      ? `雙方最終一擊：${hurt.map((id) => `${labels[id]}受到 ${last.damageTaken![id]} 傷害`).join("，")}`
+      : last.winner
+        ? `${labels[last.winner]}${last.kind === "deck_out" ? "最終一擊" : "攻擊"}，造成 ${last.damage} 傷害`
+        : "攻擊相同，沒有傷害"
     : null;
 
   const banner = replaying ? (
@@ -457,6 +483,7 @@ export function Duel(props: Props) {
             <span className={`capsule capsule-lit opp-total card-${sideOf("defender").leaderType ?? "heavy"}`}>
               <CountUp value={total("defender")} className="capsule-value" />
               <Pips count={frame.sides.defender.counted} />
+              {addOf("defender") ? <span key={play.beat} className="capsule-add">+{addOf("defender")}</span> : null}
             </span>
           </>
         )}
@@ -468,6 +495,8 @@ export function Duel(props: Props) {
           lit={myLit}
           sum={frame ? total("challenger") : leader ? (equipment.challenger[leader.type]?.attack ?? 0) : 0}
           counted={frame ? frame.sides.challenger.counted : 0}
+          add={addOf("challenger")}
+          addKey={play.beat}
           empty={!!leader || !!frame}
         />
         <div className="charge-line">
@@ -508,7 +537,14 @@ export function Duel(props: Props) {
       ) : (
         <>
           <div className="banner-slot">{banner}</div>
-          <div className={`hand-grid${dealt ? "" : " undealt"}`}>
+          <div
+            className={`hand-grid${stowed ? " stowed" : ""}`}
+            // Pointer events (not :hover) so a touch press lights the same-colour cards too.
+            onPointerOver={(e) => setKinOf(e.target as HTMLElement)}
+            onPointerDown={(e) => setKinOf(e.target as HTMLElement)}
+            onPointerOut={() => setKin(null)}
+            onPointerCancel={() => setKin(null)}
+          >
             {hand.map((id) => {
               const card = cards.get(id)!;
               const index = picked.indexOf(id);
@@ -518,8 +554,14 @@ export function Duel(props: Props) {
                   card={card}
                   owned={owned[id]}
                   show={leader ? "pow" : "draw"}
-                  // A picked card leaves its hand slot empty; same-colour cards glow once the leader is chosen.
-                  className={index >= 0 ? "bcard-gone" : leader && counts.has(card.type) ? "bcard-charge" : ""}
+                  // A picked card leaves its hand slot empty; with a leader, a card that cannot charge turns gray.
+                  className={
+                    index >= 0
+                      ? "bcard-gone"
+                      : `${leader ? (counts.has(card.type) ? "bcard-charge" : "bcard-blocked") : ""}${
+                          kin && kin.id !== id && kin.type === card.type ? " bcard-kin" : ""
+                        }`
+                  }
                   onClick={() => toggle(id)}
                 />
               );

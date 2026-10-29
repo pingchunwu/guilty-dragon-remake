@@ -6,3 +6,4 @@ dist/
 !.env.example
 *.log
 coverage/
+docs/og-data/card-images/og-all/

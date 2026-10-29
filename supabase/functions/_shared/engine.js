@@ -1284,6 +1284,7 @@ function resolvePhase(state, selection, cards, rules) {
   let winner = null;
   let damage = 0;
   let ignoredArmor = false;
+  const damageTaken = { challenger: 0, defender: 0 };
   const reshuffled = [];
   if (state.kind === "normal") {
     if (!selection) throw new Error("selection required");
@@ -1486,30 +1487,42 @@ function resolvePhase(state, selection, cards, rules) {
     };
     sideResults = { challenger: deckOut("challenger"), defender: deckOut("defender") };
     const out = SIDES.filter((id) => sides[id].ranOut);
-    if (out.length === 1) {
-      winner = out[0];
-      damage = sideResults[winner].attack;
-      ignoredArmor = true;
-    } else {
-      const { challenger: c, defender: d } = sideResults;
-      if (c.attack !== d.attack) {
-        winner = c.attack > d.attack ? "challenger" : "defender";
-        damage = v07 ? sideResults[winner].attack : Math.max(0, sideResults[winner].attack - sideResults[other(winner)].defense);
-        ignoredArmor = v07;
+    if (v07) {
+      for (const id of out) {
+        const target = other(id);
+        const dealt = Math.floor(sideResults[id].attack * (100 - sideResults[target].defense) / 100);
+        const guard = finalBlowGuard(sides[target], cards, dealt);
+        damageTaken[target] = dealt - guard.amount;
+        if (guard.card) sideResults[target].skill = guard.card;
       }
-    }
-    if (winner) {
-      const guard = finalBlowGuard(sides[other(winner)], cards, damage);
-      damage -= guard.amount;
-      if (guard.card) sideResults[other(winner)].skill = guard.card;
+      const dealtBy = (id) => damageTaken[other(id)];
+      winner = dealtBy("challenger") === dealtBy("defender") ? null : dealtBy("challenger") > dealtBy("defender") ? "challenger" : "defender";
+      if (winner) damage = dealtBy(winner);
+      else damage = out.length ? dealtBy(out[0]) : 0;
+    } else {
+      if (out.length === 1) {
+        winner = out[0];
+        damage = sideResults[winner].attack;
+        ignoredArmor = true;
+      } else {
+        const { challenger: c, defender: d } = sideResults;
+        if (c.attack !== d.attack) {
+          winner = c.attack > d.attack ? "challenger" : "defender";
+          damage = Math.max(0, sideResults[winner].attack - sideResults[other(winner)].defense);
+        }
+      }
+      if (winner) {
+        const guard = finalBlowGuard(sides[other(winner)], cards, damage);
+        damage -= guard.amount;
+        if (guard.card) sideResults[other(winner)].skill = guard.card;
+        damageTaken[other(winner)] = damage;
+      }
     }
     for (const id of out) sides[id] = reshuffle(sides[id], rng);
     reshuffled.push(...out);
   }
-  if (winner) {
-    const loser = other(winner);
-    sides[loser] = { ...sides[loser], hp: Math.max(0, sides[loser].hp - damage) };
-  }
+  if (state.kind === "normal" && winner) damageTaken[other(winner)] = damage;
+  for (const id of SIDES) sides[id] = { ...sides[id], hp: Math.max(0, sides[id].hp - damageTaken[id]) };
   const status = sides.defender.hp === 0 ? "challenger_won" : sides.challenger.hp === 0 ? "defender_won" : "active";
   let next = { ...state, sides, status, rng: rng.state() };
   if (status === "active") next = refill({ ...next, phase: state.phase + 1 }, rules);
@@ -1522,6 +1535,7 @@ function resolvePhase(state, selection, cards, rules) {
       winner,
       damage,
       ignoredArmor,
+      damageTaken,
       hpAfter: { challenger: sides.challenger.hp, defender: sides.defender.hp },
       reshuffled
     }
