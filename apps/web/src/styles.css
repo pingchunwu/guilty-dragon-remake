@@ -1645,16 +1645,10 @@ p.error {
   animation: bcard-sweep var(--shine-t, 6s) linear var(--shine-delay, 0s) infinite;
 }
 
-.bcard[data-rarity="R"] .bcard-shine,
+/* Only 3 stars and up shine. */
 .bcard[data-rarity="SR"] .bcard-shine,
 .bcard[data-rarity="SSR"] .bcard-shine {
   display: block;
-}
-
-.bcard[data-rarity="R"] {
-  --shine-w: 4%;
-  --shine-t: 7s;
-  --shine-c: rgb(255 255 255 / 40%);
 }
 
 .bcard[data-rarity="SR"] {
@@ -1749,6 +1743,50 @@ p.error {
   pointer-events: none;
 }
 
+/* NEW hops to draw the eye; pops once when its card flips. */
+.deck-card-badge-new {
+  animation: badge-hop 1.2s ease-in-out infinite;
+}
+
+.grev-flipped .deck-card-badge-new {
+  animation:
+    badge-pop 0.45s ease-out both,
+    badge-hop 1.2s 0.45s ease-in-out infinite;
+}
+
+@keyframes badge-hop {
+  0%,
+  60%,
+  100% {
+    transform: translateX(-50%) translateY(0) scale(1, 1);
+  }
+  72% {
+    transform: translateX(-50%) translateY(0) scale(1.12, 0.85);
+  }
+  85% {
+    transform: translateX(-50%) translateY(-4px) scale(0.94, 1.1);
+  }
+}
+
+@keyframes badge-pop {
+  0% {
+    transform: translateX(-50%) scale(0.3);
+  }
+  60% {
+    transform: translateX(-50%) scale(1.5);
+  }
+  100% {
+    transform: translateX(-50%) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .deck-card-badge-new,
+  .grev-flipped .deck-card-badge-new {
+    animation: none;
+  }
+}
+
 .deck-card-locked .bcard {
   opacity: 0.35;
   filter: grayscale(1);
@@ -1763,7 +1801,7 @@ p.error {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 16px;
+  gap: 14px;
   padding: 16px;
   cursor: pointer;
   color: #fff;
@@ -1771,23 +1809,58 @@ p.error {
 .gcut-bg {
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at 50% 40%, #fff7c2 0%, #ff9ad5 25%, #6a5cff 55%, #120a2e 100%);
+}
+.gcut-ssr .gcut-bg {
+  background: radial-gradient(circle at 50% 42%, #3a2a05 0%, #120c02 55%, #030201 100%);
+}
+.gcut-sr .gcut-bg {
+  background: radial-gradient(circle at 50% 42%, #ffffff 0%, #bfe0ff 35%, #3d6fc4 75%, #0d1a3a 100%);
+}
+.gcut-glow {
+  position: absolute;
+  left: 50%;
+  top: 42%;
+  width: 90vmin;
+  height: 90vmin;
+  margin: -45vmin 0 0 -45vmin;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 214, 90, 0.95) 0%, rgba(255, 170, 30, 0.45) 40%, transparent 70%);
+}
+.gcut-pillar {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 22vmin;
+  margin-left: -11vmin;
+  transform-origin: 50% 42%;
+  background: linear-gradient(90deg, transparent, rgba(255, 226, 122, 0.9), #fff, rgba(255, 226, 122, 0.9), transparent);
 }
 .gcut-rays {
   position: absolute;
   left: 50%;
-  top: 40%;
+  top: 42%;
   width: 250vmax;
   height: 250vmax;
   margin: -125vmax 0 0 -125vmax;
-  background: repeating-conic-gradient(rgba(255, 255, 255, 0.55) 0deg 2deg, transparent 2deg 9deg);
+  opacity: 0.7;
+  background: repeating-conic-gradient(rgba(255, 255, 255, 0.5) 0deg 2deg, transparent 2deg 9deg);
   mask-image: radial-gradient(circle, transparent 8%, #000 30%);
   -webkit-mask-image: radial-gradient(circle, transparent 8%, #000 30%);
   animation: gcut-spin 6s linear infinite;
 }
+.gcut-ssr .gcut-rays {
+  background: repeating-conic-gradient(rgba(255, 210, 80, 0.55) 0deg 1.5deg, transparent 1.5deg 7deg);
+  animation-duration: 3s;
+}
 @keyframes gcut-spin {
   to {
     transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gcut-rays {
+    animation: none;
   }
 }
 .gcut-stage {
@@ -1800,6 +1873,9 @@ p.error {
   pointer-events: none;
   filter: drop-shadow(0 0 18px rgba(255, 255, 255, 0.8));
 }
+.gcut-ssr .gcut-card {
+  filter: drop-shadow(0 0 22px rgba(255, 200, 60, 0.95));
+}
 .gcut-card .bcard {
   width: 100%;
 }
@@ -1809,6 +1885,39 @@ p.error {
   width: 40%;
   background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.9), transparent);
   transform: skewX(-20deg);
+}
+.gcut-flash {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  background: #fff;
+  pointer-events: none;
+}
+.gcut-ring {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 60%;
+  aspect-ratio: 1;
+  margin: -30% 0 0 -30%;
+  border-radius: 50%;
+  border: 4px solid #ffe27a;
+  box-shadow: 0 0 24px #ffd24a, inset 0 0 24px #ffd24a;
+  opacity: 0;
+  pointer-events: none;
+}
+.gcut-spark {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  margin: -4px 0 0 -4px;
+  border-radius: 50%;
+  background: #ffe27a;
+  box-shadow: 0 0 8px 2px #ffc72c;
+  opacity: 0;
+  pointer-events: none;
 }
 .gcut-new {
   position: absolute;
@@ -1833,16 +1942,19 @@ p.error {
   text-align: center;
   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
 }
-.gcut-rarity {
-  font-size: 1.6rem;
-  font-weight: 900;
-  letter-spacing: 0.2em;
-  background: linear-gradient(90deg, #ff5f6d, #ffd36b, #6bffb0, #6bb8ff, #c46bff);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  text-shadow: none;
+.gcut-stars {
+  display: flex;
+  gap: 4px;
+  font-size: 1.8rem;
+  line-height: 1;
   filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.7));
+}
+.gcut-star {
+  display: inline-block;
+  color: #ffd24a;
+}
+.gcut-sr .gcut-star {
+  color: #eaf3ff;
 }
 .gcut-name {
   font-size: 2rem;
@@ -1905,23 +2017,23 @@ p.error {
   background: radial-gradient(circle, rgba(190, 220, 255, 0.85), rgba(110, 160, 255, 0) 70%);
 }
 
-.gseal-sr {
-  background: radial-gradient(circle, rgba(255, 215, 90, 0.9), rgba(255, 170, 30, 0) 70%);
+.gseal-ssr {
+  background: radial-gradient(circle, rgba(255, 215, 90, 0.95), rgba(255, 170, 30, 0) 70%);
 }
 
-.gseal-ssr::before {
-  content: "";
+.gseal-crack {
+  stroke-dasharray: 1;
+  stroke-width: 2;
+  stroke-linejoin: round;
+  opacity: 0;
+}
+
+.gseal-vig {
   position: absolute;
   inset: 0;
-  border-radius: 50%;
-  background: conic-gradient(#ff5e7e, #ffd34d, #6dff9c, #4dd2ff, #b06dff, #ff5e7e);
-  animation: gseal-spin 1.2s linear infinite;
-}
-
-@keyframes gseal-spin {
-  to {
-    transform: rotate(360deg);
-  }
+  opacity: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 50%, transparent 35%, rgba(0, 0, 0, 0.85) 100%);
 }
 
 .gseal-ember {
@@ -2033,23 +2145,50 @@ p.error {
   backface-visibility: hidden;
 }
 
+/* No gold below SSR; SR gets a subtle violet tint only. */
 .grev-SR .grev-back {
-  border-color: #f2c14e;
-  box-shadow: 0 0 10px #f2c14e;
+  border-color: #a99cf0;
+  box-shadow: 0 0 8px #a99cf066;
+}
+
+.grev-prime {
+  animation: grev-shake 0.2s ease-in-out infinite;
+  z-index: 1;
+}
+
+.grev-SSR.grev-prime {
+  animation: grev-shake-hard 0.1s linear infinite;
+}
+
+@keyframes grev-shake {
+  0%,
+  100% {
+    transform: translateY(-4px) rotate(-2deg);
+  }
+  50% {
+    transform: translateY(-4px) rotate(2deg);
+  }
+}
+
+@keyframes grev-shake-hard {
+  0%,
+  100% {
+    transform: translate(-2px, -6px) rotate(-4deg) scale(1.08);
+  }
+  50% {
+    transform: translate(2px, -6px) rotate(4deg) scale(1.08);
+  }
 }
 
 .grev-SSR .grev-back {
-  border-color: transparent;
-  background:
-    linear-gradient(#14101f, #14101f) padding-box,
-    conic-gradient(#ff5e5e, #ffd35e, #5eff8a, #5ec8ff, #b45eff, #ff5e5e) border-box;
-  box-shadow: 0 0 14px #ffffffaa;
-  animation: grev-hue 2s linear infinite;
+  border-color: #ffd34d;
+  box-shadow: 0 0 16px #ffd34dcc, inset 0 0 12px #ffd34d66;
+  animation: grev-gold 1.6s ease-in-out infinite;
 }
 
-@keyframes grev-hue {
-  to {
-    filter: hue-rotate(360deg);
+@keyframes grev-gold {
+  50% {
+    box-shadow: 0 0 26px #ffd34d, inset 0 0 18px #ffd34d99;
   }
 }
 

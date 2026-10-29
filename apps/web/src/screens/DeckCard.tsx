@@ -17,7 +17,7 @@ export function DeckCard({ card, owned, selected, badge, locked, onClick }: Prop
   return (
     <div className={`deck-card${locked ? " deck-card-locked" : ""}`}>
       <BattleCard card={card} owned={owned} show="pow" className={selected ? "card-selected" : ""} onClick={onClick} />
-      {badge && <span className="deck-card-badge">{badge}</span>}
+      {badge && <span className={`deck-card-badge${badge === "NEW" ? " deck-card-badge-new" : ""}`}>{badge}</span>}
       {owned && (
         <small className="deck-card-level">
           Lv {owned.level}/{cardMaxLevel(card)}

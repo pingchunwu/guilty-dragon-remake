@@ -56,6 +56,7 @@ export function GachaReveal({ kind, results, cards, items, onClose, onAgain }: P
   const [shown, setShown] = useState<ReadonlySet<number>>(new Set());
   const [cutIn, setCutIn] = useState<number | null>(null);
   const [skipping, setSkipping] = useState(false);
+  const [prime, setPrime] = useState<number | null>(null); // card currently shaking before its flip
   const cardOf = (i: number) => (kind === "card" ? cards.get(results[i]!.id) : undefined);
   const rarities = useMemo(() => results.map((r) => (kind === "card" ? cards.get(r.id)?.rarity : undefined) ?? "N"), [results, kind, cards]);
   const omen = useMemo(() => omenOf(rarities), [rarities]);
@@ -66,20 +67,36 @@ export function GachaReveal({ kind, results, cards, items, onClose, onAgain }: P
     if (kind === "card") for (const r of results) new Image().src = `/cards/${r.id}.webp`;
   }, [kind, results]);
 
-  // Next SSR cut-in owed: flipped, not yet shown (and, when skipping, only NEW ones).
+  // Next SR/SSR cut-in owed: flipped, not yet shown (and, when skipping, only NEW SSR ones).
   const owed = results.findIndex(
-    (r, i) => stage !== "summary" && rarities[i] === "SSR" && flipped.has(i) && !shown.has(i) && (!skipping || r.isNew),
+    (r, i) =>
+      stage !== "summary" &&
+      (rarities[i] === "SSR" || rarities[i] === "SR") &&
+      flipped.has(i) &&
+      !shown.has(i) &&
+      (!skipping || (rarities[i] === "SSR" && r.isNew)),
   );
   useEffect(() => {
     if (cutIn === null && owed >= 0) setCutIn(owed);
   }, [cutIn, owed]);
 
-  // Auto-flip one by one; paused while a cut-in is showing or owed.
+  // Auto-flip one by one (~0.35s each): a short anticipation shake, then the flip.
+  // Paused while a cut-in is showing or owed.
   const busyCutIn = cutIn !== null || owed >= 0;
   useEffect(() => {
     if (stage !== "flip" || busyCutIn || skipping) return;
     const next = results.findIndex((_, i) => !flipped.has(i));
-    const t = setTimeout(() => (next >= 0 ? flipOne(next) : setStage("summary")), next >= 0 ? 150 : 700);
+    let t: ReturnType<typeof setTimeout>;
+    if (prime !== null && !flipped.has(prime)) {
+      t = setTimeout(() => {
+        flipOne(prime);
+        setPrime(null);
+      }, rarities[prime] === "SSR" ? 600 : 200);
+    } else if (next >= 0) {
+      t = setTimeout(() => setPrime(next), 150);
+    } else {
+      t = setTimeout(() => setStage("summary"), 900);
+    }
     return () => clearTimeout(t);
   });
 
@@ -100,7 +117,15 @@ export function GachaReveal({ kind, results, cards, items, onClose, onAgain }: P
   const card = cutIn !== null ? cardOf(cutIn) : undefined;
   const cutR = cutIn !== null ? results[cutIn] : undefined;
   return createPortal(
-    <div ref={rootRef} className={`grev${reduced ? " grev-fade" : ""}`} role="dialog" aria-modal="true" aria-label="抽卡結果">
+    <div
+      ref={rootRef}
+      className={`grev${reduced ? " grev-fade" : ""}`}
+      role="dialog"
+      aria-modal="true"
+      aria-label="抽卡結果"
+      // Tapping the background during the flip stage flips everything left.
+      onClick={(e) => stage === "flip" && !(e.target as Element).closest(".grev-card,.grev-skip,.gcut") && flipAll()}
+    >
       {stage !== "summary" && (
         <button type="button" className="grev-skip" onClick={skip}>
           SKIP
@@ -116,7 +141,7 @@ export function GachaReveal({ kind, results, cards, items, onClose, onAgain }: P
                 key={i}
                 role="button"
                 tabIndex={0}
-                className={`grev-card grev-${rarities[i]}${flipped.has(i) ? " grev-flipped" : ""}`}
+                className={`grev-card grev-${rarities[i]}${flipped.has(i) ? " grev-flipped" : prime === i ? " grev-prime" : ""}`}
                 aria-label={flipped.has(i) ? "已翻開" : "翻開"}
                 onClick={() => flipOne(i)}
                 onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && flipOne(i)}
