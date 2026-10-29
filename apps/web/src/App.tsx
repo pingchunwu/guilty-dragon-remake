@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { RULES_V07 } from "@gdr/engine";
 import { loadContent, type Content } from "./game/content";
@@ -16,6 +16,10 @@ import { Player } from "./screens/Player";
 import { Pvp } from "./screens/Pvp";
 import { SignIn } from "./screens/SignIn";
 
+// REVIEW-ONLY hook (remove when the 3D omen is wired into the gacha flow): ?omen3d=N|SR|SSR
+const Seal3D = lazy(() => import("./screens/GachaSeal3D").then((m) => ({ default: m.GachaSeal3D })));
+const previewOmen = new URLSearchParams(location.search).get("omen3d");
+
 type Tab = "battle" | "deck" | "gacha" | "player";
 const TABS: { id: Tab; label: string }[] = [
   { id: "battle", label: "對戰" },
@@ -25,6 +29,20 @@ const TABS: { id: Tab; label: string }[] = [
 ];
 
 export function App() {
+  if (previewOmen) {
+    const tier = previewOmen === "SR" || previewOmen === "SSR" ? previewOmen : null;
+    return (
+      <div style={{ position: "fixed", inset: 0 }}>
+        <Suspense fallback={null}>
+          <Seal3D omen={{ good: !!tier, tier, tease: false }} onDone={() => {}} />
+        </Suspense>
+      </div>
+    );
+  }
+  return <AppInner />;
+}
+
+function AppInner() {
   const [session, setSession] = useState<Session | null>(null);
   const [authReady, setAuthReady] = useState(!supabase);
   const [service, setService] = useState<GameService | null>(null);
