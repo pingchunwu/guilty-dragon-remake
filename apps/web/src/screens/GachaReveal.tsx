@@ -56,11 +56,12 @@ export function GachaReveal({ kind, results, cards, items, onClose, onAgain }: P
   const [shown, setShown] = useState<ReadonlySet<number>>(new Set());
   const [cutIn, setCutIn] = useState<number | null>(null);
   const [skipping, setSkipping] = useState(false);
-  const [prime, setPrime] = useState<number | null>(null); // card currently shaking before its flip
+  const [prime, setPrime] = useState<number | null>(null); // card currently tilting before its flip
   const cardOf = (i: number) => (kind === "card" ? cards.get(results[i]!.id) : undefined);
   const rarities = useMemo(() => results.map((r) => (kind === "card" ? cards.get(r.id)?.rarity : undefined) ?? "N"), [results, kind, cards]);
   const omen = useMemo(() => omenOf(rarities), [rarities]);
   const rootRef = useRef<HTMLDivElement>(null);
+  const settleAt = useRef(0); // time before which the next card's anticipation must not start
 
   // Preload the card art so flips never show a blank face.
   useEffect(() => {
@@ -91,9 +92,10 @@ export function GachaReveal({ kind, results, cards, items, onClose, onAgain }: P
       t = setTimeout(() => {
         flipOne(prime);
         setPrime(null);
-      }, rarities[prime] === "SSR" ? 600 : 200);
+      }, rarities[prime] === "SSR" ? 1200 : rarities[prime] === "SR" ? 600 : 200); // anticipation hold
     } else if (next >= 0) {
-      t = setTimeout(() => setPrime(next), 150);
+      // After an SR/SSR flip, let its flip + light burst land before the next anticipation.
+      t = setTimeout(() => setPrime(next), Math.max(150, settleAt.current - Date.now()));
     } else {
       t = setTimeout(() => setStage("summary"), 900);
     }
@@ -105,6 +107,8 @@ export function GachaReveal({ kind, results, cards, items, onClose, onAgain }: P
   }, [skipping, busyCutIn]);
 
   function flipOne(i: number) {
+    const settle = rarities[i] === "SSR" ? 1300 : rarities[i] === "SR" ? 1000 : 0; // flip 0.9/0.6s + 0.4s
+    if (settle) settleAt.current = Date.now() + settle;
     setFlipped((f) => new Set(f).add(i));
   }
   const flipAll = () => setFlipped(new Set(results.keys()));
@@ -131,7 +135,7 @@ export function GachaReveal({ kind, results, cards, items, onClose, onAgain }: P
           SKIP
         </button>
       )}
-      {stage === "seal" && <GachaSeal start={omen.start} best={omen.best} onDone={() => setStage("flip")} />}
+      {stage === "seal" && <GachaSeal omen={omen} onDone={() => setStage("flip")} />}
       {stage === "flip" && (
         <div className="grev-flip">
           <div className="grev-grid">

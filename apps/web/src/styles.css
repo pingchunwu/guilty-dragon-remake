@@ -2029,36 +2029,37 @@ p.error {
   overflow: visible;
   fill: none;
   stroke: currentColor;
-  stroke-width: 0.9;
+  stroke-width: 1.7;
   stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
-.gseal-back {
+.gseal-bg,
+.gseal-giant {
+  stroke-width: 1.1;
+}
+
+.gseal-bg {
   opacity: 0;
 }
 
 .gseal-bloom {
+  opacity: 0;
   mix-blend-mode: screen;
-  stroke-width: 1.6;
+  stroke-width: 2.6;
 }
 
-.gseal-draw,
-.gseal-bolt {
+.gseal-draw {
   stroke-dasharray: 1;
 }
 
-.gseal-bolt {
-  opacity: 0;
-  stroke-width: 1.4;
-}
-
 .gseal-ticks {
-  stroke-width: 5;
+  stroke-width: 4.5;
   stroke-dasharray: 0.7 3.4;
 }
 
 .gseal-dash {
-  stroke-width: 1.4;
+  stroke-width: 1.8;
   stroke-dasharray: 7 4;
 }
 
@@ -2079,92 +2080,143 @@ p.error {
 }
 
 .gseal-rune {
-  fill-opacity: 0.35;
+  fill-opacity: 0;
 }
 
-.gseal-pulse {
+.gseal-stars {
   position: absolute;
-  inset: 4%;
-  border-radius: 50%;
-  border: 2px solid currentColor;
-  box-shadow: 0 0 10px currentColor;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  fill: currentColor;
   opacity: 0;
+}
+
+.gseal-rays {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 190vmax;
+  height: 190vmax;
+  margin: -95vmax 0 0 -95vmax;
+  opacity: 0;
+  mix-blend-mode: screen;
+  background: repeating-conic-gradient(transparent 0deg, currentColor 4deg, transparent 8deg, transparent 24deg);
+  -webkit-mask-image: radial-gradient(circle closest-side, #000 6%, transparent 55%);
+  mask-image: radial-gradient(circle closest-side, #000 6%, transparent 55%);
+}
+
+.gseal-aura {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: calc(var(--s) * 1.7);
+  height: calc(var(--s) * 1.7);
+  margin: calc(var(--s) * -0.85) 0 0 calc(var(--s) * -0.85);
+  opacity: 0;
+  background: radial-gradient(circle, color-mix(in srgb, currentColor 55%, transparent) 0%, transparent 62%);
+}
+
+.gseal-crack {
+  position: absolute;
+  left: 50%;
+  top: calc(50% + var(--s) * 0.1);
+  width: 62%;
+  height: 12%;
+  opacity: 0;
+  mix-blend-mode: screen;
+  background: radial-gradient(ellipse closest-side, #fff 0%, color-mix(in srgb, currentColor 80%, #fff) 30%, transparent 100%);
 }
 
 .gseal-pillar {
   position: absolute;
   left: 50%;
-  bottom: 50%;
-  width: 34%;
-  height: 150%;
+  bottom: calc(50% - var(--s) * 0.1);
+  width: 22%;
+  height: 170%;
   opacity: 0;
   mix-blend-mode: screen;
-  background: linear-gradient(90deg, transparent, currentColor 50%, transparent);
-  -webkit-mask-image: linear-gradient(to top, #000 15%, transparent);
-  mask-image: linear-gradient(to top, #000 15%, transparent);
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, currentColor 65%, #fff) 50%, transparent);
+  -webkit-mask-image: linear-gradient(to top, #000 18%, transparent);
+  mask-image: linear-gradient(to top, #000 18%, transparent);
 }
 
-.gseal-aura {
+.gseal-halo {
   position: absolute;
-  inset: -8%;
-  border-radius: 50%;
-  opacity: 0;
-  filter: blur(18px);
-  background: radial-gradient(circle, color-mix(in srgb, currentColor 80%, transparent), transparent 70%);
-}
-
-.gseal-spark,
-.gseal-mote,
-.gseal-frag {
-  position: absolute;
-  top: 50%;
   left: 50%;
+  top: calc(50% - var(--s) * 0.55);
+  width: 48%;
+  height: 20%;
   opacity: 0;
-  pointer-events: none;
-}
-
-.gseal-spark {
-  width: 2px;
-  height: 7px;
-  border-radius: 2px;
-  background: currentColor;
-  box-shadow: 0 0 5px currentColor;
+  mix-blend-mode: screen;
+  background: radial-gradient(ellipse closest-side, transparent 52%, currentColor 76%, transparent 100%);
 }
 
 .gseal-mote {
+  position: absolute;
+  top: 50%;
+  left: 50%;
   width: 3px;
   height: 3px;
   margin: -1.5px 0 0 -1.5px;
   border-radius: 50%;
+  opacity: 0;
+  pointer-events: none;
   background: currentColor;
-  box-shadow: 0 0 5px currentColor;
+  box-shadow: 0 0 6px currentColor;
 }
 
-.gseal-frag {
-  margin: -8px 0 0 -8px;
-  font-size: 16px;
-  line-height: 1;
-  color: currentColor;
-  text-shadow: 0 0 6px currentColor;
+.gseal-feathers {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.gseal-feather {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 7px;
+  height: 18px;
+  margin: -9px 0 0 -3.5px;
+  border-radius: 100% 0 100% 0;
+  background: linear-gradient(135deg, #fff, currentColor);
+  opacity: 0.8;
+}
+
+.gseal-chord {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  opacity: 0;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  background: linear-gradient(to top, currentColor, transparent 90%);
+}
+
+.gseal-mist {
+  position: absolute;
+  left: -20%;
+  right: -20%;
+  bottom: 0;
+  height: 30%;
+  pointer-events: none;
+  opacity: 0.35;
+  background: radial-gradient(ellipse closest-side at 50% 100%, color-mix(in srgb, currentColor 40%, transparent), transparent);
+}
+
+.gseal-mist-b {
+  height: 22%;
+  opacity: 0.25;
 }
 
 .gseal-vig {
   position: absolute;
   inset: 0;
-  opacity: 0;
   pointer-events: none;
-  background: radial-gradient(circle at 50% 50%, transparent 35%, rgba(0, 0, 0, 0.85) 100%);
-}
-
-.gseal-shard {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 36px;
-  height: 52px;
-  margin: -26px 0 0 -18px;
-  background: linear-gradient(135deg, #fff, currentColor);
-  clip-path: polygon(50% 0, 100% 100%, 0 80%);
+  background: radial-gradient(circle at 50% 50%, transparent 40%, rgba(0, 0, 0, 0.8) 100%);
 }
 
 .gseal-flash {
@@ -2264,50 +2316,175 @@ p.error {
   backface-visibility: hidden;
 }
 
-/* No gold below SSR; SR gets a subtle violet tint only. */
-.grev-SR .grev-back {
-  border-color: #a99cf0;
-  box-shadow: 0 0 8px #a99cf066;
+/* SR (violet) / SSR (gold): face-down cards shine in their colour. */
+.grev-SR,
+.grev-SSR {
+  --c: #a99cf0;
+  --cg: 169, 156, 240;
+  position: relative;
+  transform-style: preserve-3d;
+  outline: 1px solid transparent; /* anti-alias tilted edges */
+  transition: transform 0.6s ease-in-out;
 }
 
-.grev-prime {
-  animation: grev-shake 0.2s ease-in-out infinite;
-  z-index: 1;
+.grev-SSR {
+  --c: #ffd34d;
+  --cg: 255, 211, 77;
+  transition-duration: 1.2s;
 }
 
-.grev-SSR.grev-prime {
-  animation: grev-shake-hard 0.1s linear infinite;
-}
-
-@keyframes grev-shake {
-  0%,
-  100% {
-    transform: translateY(-4px) rotate(-2deg);
-  }
-  50% {
-    transform: translateY(-4px) rotate(2deg);
-  }
-}
-
-@keyframes grev-shake-hard {
-  0%,
-  100% {
-    transform: translate(-2px, -6px) rotate(-4deg) scale(1.08);
-  }
-  50% {
-    transform: translate(2px, -6px) rotate(4deg) scale(1.08);
-  }
+.grev-SR .grev-back,
+.grev-SSR .grev-back {
+  border-color: var(--c);
+  box-shadow: 0 0 10px rgba(var(--cg), 0.55), 0 0 0 1px transparent;
+  overflow: hidden;
 }
 
 .grev-SSR .grev-back {
-  border-color: #ffd34d;
-  box-shadow: 0 0 16px #ffd34dcc, inset 0 0 12px #ffd34d66;
-  animation: grev-gold 1.6s ease-in-out infinite;
+  box-shadow: 0 0 16px rgba(var(--cg), 0.8), inset 0 0 12px rgba(var(--cg), 0.4), 0 0 0 1px transparent;
 }
 
-@keyframes grev-gold {
+/* slow diagonal light sweep across the back */
+.grev-SR .grev-back::after,
+.grev-SSR .grev-back::after {
+  content: "";
+  position: absolute;
+  inset: -20% 0;
+  background: linear-gradient(115deg, transparent 38%, rgba(var(--cg), 0.5) 50%, transparent 62%);
+  transform: translateX(-100%);
+  animation: grev-sweep 3.2s ease-in-out infinite;
+}
+
+@keyframes grev-sweep {
+  0% {
+    transform: translateX(-100%);
+  }
+  55%,
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* soft halo behind the card, breathing slowly */
+.grev-SR:not(.grev-flipped)::before,
+.grev-SSR:not(.grev-flipped)::before {
+  content: "";
+  position: absolute;
+  inset: -22%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(var(--cg), 0.4), transparent);
+  opacity: 0.55;
+  pointer-events: none;
+  transition: opacity 0.6s, transform 0.6s;
+  animation: grev-halo 3.6s ease-in-out infinite;
+}
+
+.grev-SSR:not(.grev-flipped)::before {
+  inset: -32%;
+  background: radial-gradient(closest-side, rgba(var(--cg), 0.6), transparent);
+}
+
+@keyframes grev-halo {
   50% {
-    box-shadow: 0 0 26px #ffd34d, inset 0 0 18px #ffd34d99;
+    opacity: 0.9;
+  }
+}
+
+/* small gold motes rising off an unopened SSR */
+.grev-SSR:not(.grev-flipped) .grev-inner::before {
+  content: "";
+  position: absolute;
+  inset: -30% 0 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle, #ffe9a0 0 1.5px, transparent 2px) 20% 90% / 22px 30px,
+    radial-gradient(circle, #ffd34d 0 1px, transparent 1.6px) 70% 60% / 18px 26px;
+  animation: grev-motes 3s linear infinite;
+  opacity: 0.8;
+}
+
+@keyframes grev-motes {
+  to {
+    background-position: 20% 0, 70% -20%;
+    opacity: 0.3;
+  }
+}
+
+/* Anticipation: lift toward the viewer and tilt in 3D, glow intensifies. */
+.grev-prime {
+  z-index: 1;
+  will-change: transform;
+}
+
+.grev-SR.grev-prime {
+  transform: perspective(600px) translateZ(24px) scale(1.1) rotateY(-12deg) rotateX(8deg);
+}
+
+.grev-SSR.grev-prime {
+  transform: perspective(600px) translateZ(40px) scale(1.18) rotateY(-22deg) rotateX(14deg);
+}
+
+.grev-SR.grev-prime::before,
+.grev-SSR.grev-prime::before {
+  opacity: 1;
+  transform: scale(1.3);
+  animation: none;
+}
+
+.grev-SR .grev-inner {
+  transition-duration: 0.6s;
+}
+
+.grev-SSR .grev-inner {
+  transition-duration: 0.9s;
+  transition-timing-function: cubic-bezier(0.3, 0, 0.2, 1);
+}
+
+/* light burst as the card turns */
+.grev-SR.grev-flipped::after,
+.grev-SSR.grev-flipped::after {
+  content: "";
+  position: absolute;
+  inset: -40%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(255, 255, 255, 0.9), rgba(var(--cg), 0.5) 45%, transparent);
+  pointer-events: none;
+  opacity: 0;
+  animation: grev-burst 0.7s ease-out 0.25s;
+}
+
+.grev-SSR.grev-flipped::after {
+  animation-duration: 0.9s;
+  animation-delay: 0.3s;
+}
+
+@keyframes grev-burst {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  35% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.4);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .grev-SR,
+  .grev-SSR,
+  .grev-SR .grev-back::after,
+  .grev-SSR .grev-back::after,
+  .grev-SR::before,
+  .grev-SSR::before,
+  .grev-SSR .grev-inner::before {
+    animation: none;
+  }
+  .grev-SR.grev-prime,
+  .grev-SSR.grev-prime {
+    transform: none;
   }
 }
 

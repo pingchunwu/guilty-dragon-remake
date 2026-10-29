@@ -2,17 +2,15 @@ import { describe, expect, it } from "vitest";
 import { omenOf } from "./gachaOmen";
 
 describe("omenOf", () => {
-  it("picks the highest rarity", () => {
-    expect(omenOf(["N", "SR", "R"], () => 0.99)).toEqual({ best: "SR", start: "SR" });
-    expect(omenOf([], () => 0)).toEqual({ best: "N", start: "N" });
+  it("N and R packs are not good", () => {
+    expect(omenOf(["N", "R"], () => 0)).toEqual({ good: false, tier: null, tease: false });
+    expect(omenOf([], () => 0)).toEqual({ good: false, tier: null, tease: false });
   });
-  it("SSR drops one tier below 0.5", () => {
-    expect(omenOf(["SSR", "N"], () => 0.49)).toEqual({ best: "SSR", start: "SR" });
-    expect(omenOf(["SSR", "N"], () => 0.5).start).toBe("SSR");
+  it("SR is good and never teases", () => {
+    expect(omenOf(["N", "SR", "R"], () => 0)).toEqual({ good: true, tier: "SR", tease: false });
   });
-  it("N, R and SR never tease", () => {
-    expect(omenOf(["N", "R"], () => 0)).toEqual({ best: "R", start: "R" });
-    expect(omenOf(["N"], () => 0).start).toBe("N");
-    expect(omenOf(["N", "SR"], () => 0)).toEqual({ best: "SR", start: "SR" });
+  it("SSR is good; tease below 0.5 only", () => {
+    expect(omenOf(["SSR", "SR", "N"], () => 0.49)).toEqual({ good: true, tier: "SSR", tease: true });
+    expect(omenOf(["SSR", "N"], () => 0.5)).toEqual({ good: true, tier: "SSR", tease: false });
   });
 });
