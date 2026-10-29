@@ -1,12 +1,14 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { CardDefinition, ItemDefinition, PullResult } from "@gdr/engine";
 import { DeckCard } from "./DeckCard";
 import { ItemTile } from "./ItemTile";
-import { GachaSeal } from "./GachaSeal";
 import { GachaCutIn } from "./GachaCutIn";
 import { omenOf } from "./gachaOmen";
 import { reducedMotion } from "./BattleParts";
+
+// Code-split: three.js only loads for the gacha (Gacha.tsx preloads the chunk on mount).
+const GachaSeal3D = lazy(() => import("./GachaSeal3D").then((m) => ({ default: m.GachaSeal3D })));
 
 type Kind = "card" | "item";
 type Stage = "seal" | "flip" | "summary";
@@ -135,7 +137,11 @@ export function GachaReveal({ kind, results, cards, items, onClose, onAgain }: P
           SKIP
         </button>
       )}
-      {stage === "seal" && <GachaSeal omen={omen} onDone={() => setStage("flip")} />}
+      {stage === "seal" && (
+        <Suspense fallback={null}>
+          <GachaSeal3D omen={omen} onDone={() => setStage("flip")} />
+        </Suspense>
+      )}
       {/* One container for flip and summary: the footer space is reserved from the start, so the grid never moves. */}
       {stage !== "seal" && (
         <div className="grev-flip">

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ITEM_MAX_LEVEL, type PullResult } from "@gdr/engine";
 import type { Content } from "../game/content";
 import { GameError, type GameService, type PlayerState } from "../game/types";
@@ -16,6 +16,7 @@ interface Props {
 }
 
 export function Gacha({ content: { cards, items }, service, state, onState }: Props) {
+  useEffect(() => void import("./GachaSeal3D"), []); // preload the 3D chunk so the seal starts instantly
   const [kind, setKind] = useState<Kind>("card");
   const [results, setResults] = useState<{ kind: Kind; list: PullResult[] } | null>(null);
   const [revealing, setRevealing] = useState(false);
