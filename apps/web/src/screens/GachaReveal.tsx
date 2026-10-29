@@ -6,6 +6,7 @@ import { ItemTile } from "./ItemTile";
 import { GachaCutIn } from "./GachaCutIn";
 import { omenOf } from "./gachaOmen";
 import { reducedMotion } from "./BattleParts";
+import { getFxQuality } from "../game/settings";
 
 // Code-split: three.js only loads for the gacha (Gacha.tsx preloads the chunk on mount).
 const GachaSeal3D = lazy(() => import("./GachaSeal3D").then((m) => ({ default: m.GachaSeal3D })));
@@ -53,7 +54,7 @@ interface Props extends GridProps {
 
 export function GachaReveal({ kind, results, cards, items, onClose, onAgain }: Props) {
   const reduced = useMemo(reducedMotion, []);
-  const [stage, setStage] = useState<Stage>(reduced ? "summary" : "seal");
+  const [stage, setStage] = useState<Stage>(reduced ? "summary" : getFxQuality() === "low" ? "flip" : "seal");
   const [flipped, setFlipped] = useState<ReadonlySet<number>>(new Set());
   const [shown, setShown] = useState<ReadonlySet<number>>(new Set());
   const [cutIn, setCutIn] = useState<number | null>(null);

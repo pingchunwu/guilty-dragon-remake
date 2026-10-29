@@ -1,10 +1,7 @@
 import { useEffect, useRef } from "react";
 import {
-  ACESFilmicToneMapping,
   AdditiveBlending,
-  CanvasTexture,
   CatmullRomCurve3,
-  Color,
   CylinderGeometry,
   DoubleSide,
   Group,
@@ -14,169 +11,22 @@ import {
   PlaneGeometry,
   Scene,
   ShaderMaterial,
-  SRGBColorSpace,
-  Vector2,
-  WebGLRenderer,
   TubeGeometry,
   Vector3,
+  Color,
+  CanvasTexture,
   type Object3D,
-  type Texture,
 } from "three";
-import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
-import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
-import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
-import { SMAAPass } from "three/examples/jsm/postprocessing/SMAAPass.js";
-import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
 import { gsap } from "gsap";
 import { reducedMotion } from "./BattleParts";
 import type { Omen } from "./gachaOmen";
+import { acquireTexture, gradientTexture, releaseTexture, ring, poly, spokes, vertexCircles, crescents, petals, script, TAU, type Ctx } from "../fx/paint";
+import { createRig, disposeScene, type Rig } from "../fx/rig";
+import { pillarMaterial, ribbonMaterial, ringMaterial } from "../fx/shaders";
 
-const TEX = 2048; // paint resolution; each layer is downsampled to its own size
-const C = TEX / 2;
-const TAU = Math.PI * 2;
 const SIZE = 8; // world size of the ground ring planes
 const ORBIT_SECONDS = 40;
 const CYAN = "#9fe8ff";
-
-/* ---------- procedural ring art (white strokes on transparent) ---------- */
-
-type Ctx = CanvasRenderingContext2D;
-let K = 1; // paint-space px per final texture px; line widths below are in final px
-const pt = (r: number, a: number): [number, number] => [C + r * C * Math.cos(a), C + r * C * Math.sin(a)];
-const lwk = (g: Ctx, lw: number) => (g.lineWidth = lw * K);
-
-function ring(g: Ctx, r: number, lw: number, dash?: [number, number]) {
-  lwk(g, lw);
-  if (dash) g.setLineDash(dash.map((d) => d * K));
-  g.beginPath();
-  g.arc(C, C, r * C, 0, TAU);
-  g.stroke();
-  g.setLineDash([]);
-}
-
-function poly(g: Ctx, r: number, n: number, skip: number, lw: number, rot = -Math.PI / 2) {
-  lwk(g, lw);
-  g.beginPath();
-  for (let i = 0; i <= n; i++) {
-    const [x, y] = pt(r, rot + ((i * skip) / n) * TAU);
-    i ? g.lineTo(x, y) : g.moveTo(x, y);
-  }
-  g.stroke();
-}
-
-function spokes(g: Ctx, r0: number, r1: number, n: number, lw: number, rot = 0) {
-  lwk(g, lw);
-  g.beginPath();
-  for (let i = 0; i < n; i++) {
-    const a = rot + (i / n) * TAU;
-    const [x0, y0] = pt(r0, a);
-    const [x1, y1] = pt(r1, a);
-    g.moveTo(x0, y0);
-    g.lineTo(x1, y1);
-  }
-  g.stroke();
-}
-
-/** Circles sitting on the vertices of an n-gon, each with an inner ring and a mini star. */
-function vertexCircles(g: Ctx, r: number, n: number, rr: number, lw: number, rot = -Math.PI / 2) {
-  for (let i = 0; i < n; i++) {
-    const a = rot + (i / n) * TAU;
-    const [x, y] = pt(r, a);
-    lwk(g, lw);
-    g.beginPath();
-    g.arc(x, y, rr * C, 0, TAU);
-    g.stroke();
-    g.beginPath();
-    g.arc(x, y, rr * C * 0.66, 0, TAU);
-    g.stroke();
-    const m = rr * C * 0.6;
-    g.beginPath();
-    for (let j = 0; j <= 6; j++) {
-      const b = a + ((j * 2) / 6) * TAU;
-      j ? g.lineTo(x + m * Math.cos(b), y + m * Math.sin(b)) : g.moveTo(x + m * Math.cos(b), y + m * Math.sin(b));
-    }
-    g.stroke();
-  }
-}
-
-function crescents(g: Ctx, r: number, n: number, s: number, lw: number, rot = 0) {
-  lwk(g, lw);
-  for (let i = 0; i < n; i++) {
-    const a = rot + (i / n) * TAU;
-    const [x, y] = pt(r, a);
-    const d = s * C;
-    g.beginPath();
-    g.arc(x, y, d, a - 2.2, a + 2.2);
-    g.arc(x + Math.cos(a) * d * 0.4, y + Math.sin(a) * d * 0.4, d * 0.82, a + 2.2, a - 2.2, true);
-    g.closePath();
-    g.stroke();
-  }
-}
-
-function petals(g: Ctx, r0: number, r1: number, n: number, lw: number, bend = 0.3) {
-  lwk(g, lw);
-  for (let i = 0; i < n; i++) {
-    const a = (i / n) * TAU;
-    const [x0, y0] = pt(r0, a);
-    const [x1, y1] = pt(r1, a);
-    const [c1x, c1y] = pt((r0 + r1) / 2, a - bend);
-    const [c2x, c2y] = pt((r0 + r1) / 2, a + bend);
-    g.beginPath();
-    g.moveTo(x0, y0);
-    g.quadraticCurveTo(c1x, c1y, x1, y1);
-    g.quadraticCurveTo(c2x, c2y, x0, y0);
-    g.stroke();
-  }
-}
-
-const rng = (seed: number) => () => {
-  seed = (seed + 0x6d2b79f5) | 0;
-  let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
-  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-};
-
-/**
- * A band of invented cursive: words of connected loops, ascenders and descenders written
- * along the circle between two bounding rings. Every letter joins the baseline, so it reads
- * as handwriting, never as specks.
- */
-function script(g: Ctx, rIn: number, rOut: number, seed: number, lw: number) {
-  ring(g, rIn, lw);
-  ring(g, rOut, lw);
-  const rand = rng(seed);
-  const band = (rOut - rIn) * C;
-  const R = rIn * C + band * 0.3;
-  const H = band * 0.3;
-  const L = TAU * R;
-  lwk(g, lw * 0.9);
-  const heights = [0.5, 0.8, 1.1, 1.6, -0.45];
-  let x = 0;
-  let inWord = 0;
-  g.beginPath();
-  while (x < L - H) {
-    if (inWord <= 0) {
-      x += H * (0.5 + rand() * 0.4); // word gap
-      inWord = 3 + Math.floor(rand() * 5);
-      g.stroke();
-      g.beginPath();
-    }
-    inWord--;
-    const w = H * (0.55 + rand() * 0.55);
-    const h = heights[Math.floor(rand() * heights.length)]! * H;
-    const k = 0.15 + rand() * 0.3;
-    const phase = rand() < 0.5 ? 0 : Math.PI;
-    for (let i = 0; i <= 16; i++) {
-      const t = i / 16;
-      const px = x + w * t + k * w * Math.sin(TAU * t + phase);
-      const py = h * Math.pow(Math.sin(Math.PI * t), 0.9);
-      const a = Math.min(px, L) / R;
-      g.lineTo(C + (R + py) * Math.cos(a), C + (R + py) * Math.sin(a));
-    }
-    x += w;
-  }
-  g.stroke();
-}
 
 type Layer = { ty?: number; size: number; tex: number; y: number; speed: number; glint: number; delay: number; paint: (g: Ctx) => void };
 
@@ -279,92 +129,6 @@ const GIANT: Layer = { size: 10, tex: 1024, y: 9.6, speed: 0.025, glint: 0.7, de
   ring(g, 0.1, 3);
 } };
 
-const big = typeof document === "undefined" ? null : document.createElement("canvas");
-
-/** Paint at 2048, then downsample to `out` px with a faint soft falloff under a crisp core. */
-function paintTexture(paint: (g: Ctx) => void, anisotropy: number, out: number) {
-  big!.width = big!.height = TEX;
-  const g = big!.getContext("2d")!;
-  g.strokeStyle = g.fillStyle = "#fff";
-  g.lineCap = g.lineJoin = "round";
-  K = TEX / out;
-  paint(g);
-  const cv = document.createElement("canvas");
-  cv.width = cv.height = out;
-  const o = cv.getContext("2d")!;
-  o.filter = `blur(${out / 450}px)`; // no-op where ctx.filter is unsupported
-  o.globalAlpha = 0.5;
-  o.drawImage(big!, 0, 0, out, out);
-  o.filter = "none";
-  o.globalAlpha = 1;
-  o.drawImage(big!, 0, 0, out, out);
-  const t = new CanvasTexture(cv);
-  t.anisotropy = anisotropy;
-  return t;
-}
-
-function gradientTexture(w: number, h: number, fill: (g: Ctx) => CanvasGradient, srgb = false) {
-  const cv = document.createElement("canvas");
-  cv.width = w;
-  cv.height = h;
-  const g = cv.getContext("2d")!;
-  g.fillStyle = fill(g);
-  g.fillRect(0, 0, w, h);
-  const t = new CanvasTexture(cv);
-  if (srgb) t.colorSpace = SRGBColorSpace;
-  return t;
-}
-
-/* ---------- ring material: alpha texture, angular write-in reveal, travelling glint ---------- */
-
-const VERT = `varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }`;
-const FRAG = `
-uniform sampler2D uMap; uniform vec3 uColor; uniform float uReveal; uniform float uAlpha;
-uniform float uGlint; uniform float uSweep;
-varying vec2 vUv;
-void main(){
-  vec2 p = vUv - .5;
-  float a = atan(p.y, p.x) / 6.2831853 + .5;
-  float front = uReveal * 1.15;
-  float m = 1. - smoothstep(front - .12, front, a);
-  float head = smoothstep(front - .25, front - .03, a) * m * (1. - step(1., uReveal));
-  float t = texture2D(uMap, vUv).a;
-  float glint = exp(-fract(uSweep - a) * 12.) * uGlint;
-  vec3 col = mix(uColor, vec3(1.), smoothstep(.7, 1., t) * .85);
-  gl_FragColor = vec4(col * (1. + 1.6 * head + 1.8 * glint), t * m * uAlpha);
-}`;
-
-/* ---------- component ---------- */
-
-/* ---------- pillar of light, ribbons, rays ---------- */
-
-const PVERT = `varying vec3 vN; varying vec3 vV; varying vec2 vUv;
-void main(){ vUv=uv; vec4 mv=modelViewMatrix*vec4(position,1.); vN=normalize(normalMatrix*normal); vV=normalize(-mv.xyz); gl_Position=projectionMatrix*mv; }`;
-const PFRAG = `
-uniform vec3 uColor; uniform float uAlpha; uniform float uTime;
-varying vec3 vN; varying vec3 vV; varying vec2 vUv;
-float h(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
-float vn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f*f*(3.-2.*f);
-  return mix(mix(h(i), h(i+vec2(1.,0.)), f.x), mix(h(i+vec2(0.,1.)), h(i+vec2(1.,1.)), f.x), f.y); }
-void main(){
-  float f = pow(abs(dot(normalize(vN), normalize(vV))), 2.2);
-  float g = smoothstep(0., .08, vUv.y) * (1. - smoothstep(.7, 1., vUv.y));
-  float a = vUv.x * 6.2831853;
-  float n = vn(vec2(cos(a) * 2.5 + vUv.y * 3. - uTime * .15, sin(a) * 2.5));
-  vec3 col = mix(uColor, vec3(1.), f * f * .5);
-  gl_FragColor = vec4(col, f * g * (.65 + .5 * n) * uAlpha);
-}`;
-
-const RVERT = `varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }`;
-const RFRAG = `
-uniform vec3 uColor; uniform float uProg;
-varying vec2 vUv;
-void main(){
-  float x = vUv.x;
-  float a = (1. - smoothstep(uProg - .02, uProg, x)) * smoothstep(0., .06, x) * (1. - smoothstep(.94, 1., x));
-  float head = exp(-max(uProg - x, 0.) * 5.) * (1. - step(1., uProg));
-  gl_FragColor = vec4(mix(uColor, vec3(1.), .5) * (.7 + 1.4 * head), a);
-}`;
 
 function rayTexture() {
   const cv = document.createElement("canvas");
@@ -408,23 +172,30 @@ export function GachaSeal3D({ omen, onDone }: { omen: Omen; onDone: () => void }
       done.current();
       return;
     }
-    let renderer: WebGLRenderer;
+    const scene = new Scene();
+    const camera = new PerspectiveCamera(40, 1, 0.1, 100);
+    let rig: Rig;
     try {
-      renderer = new WebGLRenderer({ antialias: true, alpha: false });
+      rig = createRig({
+        scene,
+        camera,
+        host: el,
+        onResize: (w, h) => {
+          camera.aspect = w / h;
+          camera.updateProjectionMatrix();
+        },
+      });
     } catch {
       done.current();
       return;
     }
+    const { renderer, bloom } = rig;
     const { good, tier, tease } = omenRef.current;
     const gold = tier === "SSR";
-    renderer.toneMapping = ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 0.9;
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     el.appendChild(renderer.domElement);
     renderer.domElement.style.cssText = "position:absolute;inset:0;width:100%;height:100%;display:block";
 
     const aniso = renderer.capabilities.getMaxAnisotropy();
-    const scene = new Scene();
     scene.background = gradientTexture(256, 256, (g) => {
       const gr = g.createRadialGradient(128, 150, 0, 128, 150, 200);
       gr.addColorStop(0, "#14233f");
@@ -432,8 +203,6 @@ export function GachaSeal3D({ omen, onDone }: { omen: Omen; onDone: () => void }
       gr.addColorStop(1, "#03060f");
       return gr;
     }, true);
-    const camera = new PerspectiveCamera(40, 1, 0.1, 100);
-
     // every colour that follows the tier; setTier is the instant version of tierTo below
     const tint: Color[] = [];
     const tierColor = new Color(CYAN);
@@ -446,22 +215,8 @@ export function GachaSeal3D({ omen, onDone }: { omen: Omen; onDone: () => void }
 
     const late: Object3D[] = []; // later-phase objects: compiled up front, hidden until their phase
 
-    const makeRing = (L: Layer) => {
-      const mat = new ShaderMaterial({
-        uniforms: {
-          uMap: { value: paintTexture(L.paint, aniso, L.tex) },
-          uColor: { value: new Color(CYAN) },
-          uReveal: { value: 0 },
-          uAlpha: { value: 0.8 },
-          uGlint: { value: L.glint },
-          uSweep: { value: 0 },
-        },
-        vertexShader: VERT,
-        fragmentShader: FRAG,
-        transparent: true,
-        depthWrite: false,
-        blending: AdditiveBlending,
-      });
+    const makeRing = (L: Layer, design: string) => {
+      const mat = ringMaterial(acquireTexture(design, L.tex, L.paint, aniso), CYAN, L.glint);
       tint.push(mat.uniforms.uColor!.value);
       const mesh = new Mesh(new PlaneGeometry(L.size, L.size), mat);
       mesh.rotation.x = -Math.PI / 2;
@@ -470,9 +225,9 @@ export function GachaSeal3D({ omen, onDone }: { omen: Omen; onDone: () => void }
       return { mesh, mat, speed: L.speed, L };
     };
     // paint everything before the timeline exists so painting never eats the reveal
-    const rings = LAYERS.map(makeRing);
-    const crown = tier === "SR" || (gold && tease) ? makeRing(CROWN) : null;
-    const giant = gold ? makeRing(GIANT) : null;
+    const rings = LAYERS.map((L, i) => makeRing(L, `gacha-${i}`));
+    const crown = tier === "SR" || (gold && tease) ? makeRing(CROWN, "gacha-crown") : null;
+    const giant = gold ? makeRing(GIANT, "gacha-giant") : null;
     const extra = [crown, giant].filter((x) => x !== null);
     extra.forEach((r) => late.push(r.mesh));
     const spinners = [...rings, ...extra];
@@ -501,15 +256,7 @@ export function GachaSeal3D({ omen, onDone }: { omen: Omen; onDone: () => void }
     // pillar of light through the centre (grows upward from the ground circle)
     const pillarGeo = new CylinderGeometry(0.7, 0.7, 1, 48, 1, true);
     pillarGeo.translate(0, 0.5, 0);
-    const pillarMat = new ShaderMaterial({
-      uniforms: { uColor: { value: new Color(CYAN) }, uAlpha: { value: 0 }, uTime: { value: 0 } },
-      vertexShader: PVERT,
-      fragmentShader: PFRAG,
-      transparent: true,
-      depthWrite: false,
-      side: DoubleSide,
-      blending: AdditiveBlending,
-    });
+    const pillarMat = pillarMaterial(CYAN);
     tint.push(pillarMat.uniforms.uColor!.value);
     const pillar = new Mesh(pillarGeo, pillarMat);
     pillar.scale.y = 0.01;
@@ -553,14 +300,7 @@ export function GachaSeal3D({ omen, onDone }: { omen: Omen; onDone: () => void }
           const r = 3.5 + 0.25 * Math.sin(u * TAU * 2 + i);
           pts.push(new Vector3(r * Math.cos(a), 0.3 + u * 9, r * Math.sin(a)));
         }
-        const mat = new ShaderMaterial({
-          uniforms: { uColor: { value: new Color(CYAN) }, uProg: { value: 0 } },
-          vertexShader: RVERT,
-          fragmentShader: RFRAG,
-          transparent: true,
-          depthWrite: false,
-          blending: AdditiveBlending,
-        });
+        const mat = ribbonMaterial(CYAN);
         tint.push(mat.uniforms.uColor!.value);
         ribbonMats.push(mat);
         ribbons.add(new Mesh(new TubeGeometry(new CatmullRomCurve3(pts), 220, 0.05, 6, false), mat));
@@ -569,32 +309,14 @@ export function GachaSeal3D({ omen, onDone }: { omen: Omen; onDone: () => void }
       late.push(ribbons);
     }
 
-    // post-processing
-    const composer = new EffectComposer(renderer);
-    composer.addPass(new RenderPass(scene, camera));
-    const bloom = new UnrealBloomPass(new Vector2(1, 1), 0.45, 0.35, 0.55);
-    composer.addPass(bloom);
-    composer.addPass(new SMAAPass());
-    composer.addPass(new OutputPass());
-
-    let bloomScale = 1;
-    const resize = () => {
-      const w = el.clientWidth || 1;
-      const h = el.clientHeight || 1;
-      renderer.setSize(w, h, false);
-      composer.setPixelRatio(renderer.getPixelRatio());
-      composer.setSize(w, h);
-      bloom.setSize(w * bloomScale, h * bloomScale);
-      camera.aspect = w / h;
-      camera.updateProjectionMatrix();
-    };
+    const resize = () => rig.resize();
     const ro = new ResizeObserver(resize);
     ro.observe(el);
     resize();
 
     // warm-up: compile every shader now (late objects visible for one frame), then hide them
     late.forEach((o) => (o.visible = true));
-    composer.render();
+    rig.render();
     late.forEach((o) => (o.visible = false));
 
     /* ---------- timeline ---------- */
@@ -684,8 +406,6 @@ export function GachaSeal3D({ omen, onDone }: { omen: Omen; onDone: () => void }
     let raf = 0;
     let last = performance.now();
     let spin = 0;
-    let frames = 0;
-    let acc = 0;
     let started = false;
     const loop = (now: number) => {
       raf = requestAnimationFrame(loop);
@@ -696,14 +416,7 @@ export function GachaSeal3D({ omen, onDone }: { omen: Omen; onDone: () => void }
         started = true;
         tl.play(0);
       }
-      if (frames < 60) {
-        acc += dt * 1000;
-        if (++frames === 60 && acc / 60 > 22) {
-          renderer.setPixelRatio(1);
-          bloomScale = 0.5;
-          resize();
-        }
-      }
+      rig.watch(dt);
       spin += dt;
       applyTier();
       pillarMat.uniforms.uTime!.value = spin;
@@ -718,7 +431,7 @@ export function GachaSeal3D({ omen, onDone }: { omen: Omen; onDone: () => void }
       const d = Math.max(9, 10.8 / camera.aspect) * cam.dist;
       camera.position.set(Math.sin(az) * Math.cos(elev) * d, Math.sin(elev) * d + cam.look - 1.2, Math.cos(az) * Math.cos(elev) * d);
       camera.lookAt(0, cam.look, 0);
-      composer.render();
+      rig.render();
     };
     raf = requestAnimationFrame(loop);
 
@@ -726,21 +439,8 @@ export function GachaSeal3D({ omen, onDone }: { omen: Omen; onDone: () => void }
       cancelAnimationFrame(raf);
       tl.kill();
       ro.disconnect();
-      const textures = new Set<Texture>();
-      if (scene.background) textures.add(scene.background as Texture);
-      scene.traverse((o) => {
-        if (!(o instanceof Mesh)) return;
-        o.geometry.dispose();
-        const m = o.material as MeshBasicMaterial | ShaderMaterial;
-        if ("map" in m && m.map) textures.add(m.map);
-        if ("uniforms" in m && m.uniforms.uMap) textures.add(m.uniforms.uMap.value);
-        m.dispose();
-      });
-      textures.forEach((t) => t.dispose());
-      composer.dispose();
-      renderer.dispose();
-      renderer.forceContextLoss();
-      renderer.domElement.remove();
+      disposeScene(scene);
+      rig.dispose();
     };
   }, []);
 

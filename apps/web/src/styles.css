@@ -2290,3 +2290,43 @@ p.error {
   content-visibility: auto;
   contain-intrinsic-size: auto 90px auto 120px;
 }
+
+/* Settings */
+.settings-row {
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* 3D light layer (src/fx): the transparent canvas idles in .fx-host over the board and moves into the
+   attack scene, behind its numbers and text, while an effect plays. Never takes input. */
+.fx-host {
+  position: absolute;
+  inset: 0;
+  z-index: 15;
+  pointer-events: none;
+}
+
+.fx-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  pointer-events: none;
+}
+
+.attack-scene .fx-canvas {
+  z-index: 1;
+}
+
+.attack-scene.has-fx .scene-banner,
+.attack-scene.has-fx .scene-damage,
+.attack-scene.has-fx .scene-head,
+.attack-scene.has-fx .scene-hp-text {
+  position: relative;
+  z-index: 2;
+}
+
+.attack-scene.has-fx .scene-atk {
+  z-index: 2;
+}

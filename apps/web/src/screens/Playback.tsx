@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
+import type { FxStage } from "../fx/FxStage";
 import {
   RULES_V07,
   SKILL_BY_ID,
@@ -385,6 +386,8 @@ interface SceneProps {
   hp: Record<SideId, number>;
   maxHp: number;
   onComplete: () => void;
+  /** 3D light effects (lazy-loaded); without it the scene plays its 2D slash and flash alone. */
+  fx?: FxStage | null;
 }
 
 /**
@@ -394,7 +397,7 @@ interface SceneProps {
  * and the damage number (the engine's, after defense) land, and a blade streak cuts the
  * loser's HP as the bar drops. A tie zeroes both with no slash. Tap to skip.
  */
-export function AttackScene({ result, labels, hp, maxHp, onComplete }: SceneProps) {
+export function AttackScene({ result, labels, hp, maxHp, onComplete, fx }: SceneProps) {
   const root = useRef<HTMLDivElement>(null);
   const tl = useRef<gsap.core.Timeline | null>(null);
   const { winner } = result;
@@ -458,7 +461,7 @@ export function AttackScene({ result, labels, hp, maxHp, onComplete }: SceneProp
         .to(normal ? top : [], { y: -28, duration: 0.17, ease: "power3.in" }, "rush")
         .to(normal ? bottom : [], { y: 28, duration: 0.17, ease: "power3.in" }, "rush")
         .addLabel("impact", ">")
-        .to(q(".scene-flash"), { autoAlpha: 0.9, duration: 0.05 }, "impact")
+        .to(q(".scene-flash"), { autoAlpha: fx ? 0.25 : 0.9, duration: 0.05 }, "impact")
         .to(q(".scene-flash"), { autoAlpha: 0, duration: 0.25 }, ">")
         .to(normal ? q(".scene-stage") : [], { keyframes: { x: [-12, 10, -7, 5, -2, 0] }, duration: 0.4, ease: "none" }, "impact")
         .to(normal ? [top, bottom] : [], { scale: 1.3, duration: 0.08, yoyo: true, repeat: 1 }, "impact")
@@ -472,7 +475,7 @@ export function AttackScene({ result, labels, hp, maxHp, onComplete }: SceneProp
         .addLabel("hit", `banner+=${defend ? STEP * (extra ? 3 : 2) : STEP}`)
         .to(normal ? (mine > theirs ? bottom : theirs > mine ? top : []) : [top, bottom], { scale: 0.6, autoAlpha: 0, duration: 0.25 }, defend ? "hit" : "shatter+=0.15")
         .from(q(".scene-banner"), { xPercent: -110, duration: 0.3 }, "banner")
-        .fromTo(q(".scene-flash"), { autoAlpha: 0.85 }, { autoAlpha: 0, duration: 0.3 }, "hit")
+        .fromTo(q(".scene-flash"), { autoAlpha: fx ? 0.25 : 0.85 }, { autoAlpha: 0, duration: 0.3, immediateRender: false }, "hit")
         .from(q(".scene-damage"), { scale: 2.6, autoAlpha: 0, duration: 0.3, ease: "back.out(2)" }, "hit");
       const tags = [topTag, botTag];
       const nums = { defender: [topNum, topTag, top], challenger: [botNum, botTag, bottom] } as const;
@@ -509,14 +512,41 @@ export function AttackScene({ result, labels, hp, maxHp, onComplete }: SceneProp
         const num = q(`.scene-side-${id} .scene-hp-n`)[0];
         const cut = q(`.scene-side-${id} .scene-cut`);
         gsap.set(cut, { rotation: -3.5, transformOrigin: "0 50%" });
+        // The 2D cut stays as the fallback; with 3D the blade arc replaces it.
+        if (!fx) tl.current!.fromTo(cut, { scaleX: 0, autoAlpha: 1 }, { scaleX: 1, duration: 0.15, ease: "power4.out" }, "hit+=0.3");
         tl.current!
-          .fromTo(cut, { scaleX: 0, autoAlpha: 1 }, { scaleX: 1, duration: 0.15, ease: "power4.out" }, "hit+=0.3")
           .fromTo(q(`.scene-side-${id} .scene-fill`), { scaleX: hp[id] / maxHp }, { scaleX: left / maxHp, duration: STEP - 0.5, ease: "power2.out" }, "hit+=0.5")
           .to(n, { v: left, duration: STEP - 0.5, ease: "power2.out", onUpdate: () => void (num!.textContent = String(Math.round(n.v))) }, "hit+=0.5")
-          .to(cut, { autoAlpha: 0, duration: 0.2 }, "hit+=0.6");
+          .to(fx ? [] : cut, { autoAlpha: 0, duration: 0.2 }, "hit+=0.6");
         if (i === 0) tl.current!.to(q(".scene-stage"), { keyframes: { x: [-12, 10, -7, 5, -2, 0] }, duration: 0.4, ease: "none" }, "hit+=0.3");
       });
       tl.current.to(root.current, { autoAlpha: 0, duration: 0.25 }, ">0.3");
+      if (!fx) return;
+      // 3D light between the scene's backdrop and its numbers; the clash timeline nests at the labels above.
+      root.current!.classList.add("has-fx");
+      fx.attach(root.current!, q(".scene-stage")[0]!);
+      const L = tl.current.labels as Record<string, number>;
+      const sideEl = (sel: string) => ({ defender: q(`.scene-side-defender ${sel}`)[0]!, challenger: q(`.scene-side-challenger ${sel}`)[0]! });
+      tl.current.add(
+        fx.attackClash(
+          result,
+          { num: { defender: topNum, challenger: botNum }, track: sideEl(".hp-track") },
+          {
+            steps: calc.map((_, i) => 0.65 + i * STEP),
+            step: STEP,
+            colour: normal && calc.length && SIDES.some((id) => S[id].advantage) ? 0.65 + (calc.length - 1) * STEP : null,
+            rush: L.rush!,
+            impact: L.impact!,
+            shatter: L.shatter!,
+            defense: L.defense!,
+            hit: L.hit!,
+            dealers,
+            hurt,
+          },
+        ),
+        0,
+      );
+      return () => fx.detach();
     },
     { scope: root },
   );

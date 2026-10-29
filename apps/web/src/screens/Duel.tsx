@@ -21,6 +21,7 @@ import { TYPE_LABEL, skillEffectText } from "../game/text";
 import { BattleCard } from "./BattleCard";
 import { CountUp, FAMILY_ICON, HpBar, SkillBursts, SkillTag, familyOf, reducedMotion, type CardMap, type SideLabels } from "./BattleParts";
 import { AttackScene, BEAT_MS, Pips, playbackFrames, type Chip } from "./Playback";
+import { useFxStage } from "./useFxStage";
 
 gsap.registerPlugin(Flip);
 
@@ -116,6 +117,8 @@ export function Duel(props: Props) {
   const { labels, cards, owned, rules, equipment, hp, drawPile, hand, phase, kind, last, animate, onDone, busy, onPlay } =
     props;
   const root = useRef<HTMLDivElement>(null);
+  const fxHost = useRef<HTMLDivElement>(null);
+  const fx = useFxStage(fxHost);
   const levels = levelsOf(owned);
 
   // Choosing: picks and the deal reset for each phase.
@@ -460,6 +463,7 @@ export function Duel(props: Props) {
 
   return (
     <div className="duel" ref={root}>
+      <div className="fx-host" ref={fxHost} aria-hidden="true" />
       <div className="duel-opp">
         <span className="mini-pile" aria-label={`${labels.defender}的牌庫 ${drawPile.defender}`}>
           {drawPile.defender}
@@ -620,7 +624,7 @@ export function Duel(props: Props) {
       )}
 
       {replaying && !play.reveal && play.beat >= end && play.scene && (
-        <AttackScene result={last!} labels={labels} hp={hp} maxHp={rules.startingHp} onComplete={() => setPlay((p) => ({ ...p, scene: false }))} />
+        <AttackScene result={last!} labels={labels} hp={hp} maxHp={rules.startingHp} onComplete={() => setPlay((p) => ({ ...p, scene: false }))} fx={fx} />
       )}
     </div>
   );
