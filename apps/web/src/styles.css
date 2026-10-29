@@ -871,7 +871,6 @@ p.error {
 
 .bcard-mini .bcard-skill,
 .bcard-mini .bcard-stars,
-.bcard-mini .bcard-pow,
 .bcard-mini .bcard-label {
   display: none;
 }
@@ -1156,16 +1155,6 @@ p.error {
 .bcard-purged {
   opacity: 0.3;
   filter: grayscale(1);
-}
-
-/* POW above the big DRAW while choosing the leader. */
-.bcard .bcard-pow {
-  right: 11%;
-  bottom: 36%;
-  font-size: 8cqw;
-  font-weight: 700;
-  line-height: 1;
-  text-shadow: 0 1px 0 #000, 0 0 4px #000;
 }
 
 .bcard-gone,
@@ -1508,6 +1497,17 @@ p.error {
   animation: kin-pulse 1s ease-in-out infinite alternate;
 }
 
+/* 50% fill in the card's colour on top, so the colour reads at a glance; clicks pass through. */
+.bcard-kin::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--type);
+  opacity: 0.5;
+  pointer-events: none;
+}
+
 @keyframes kin-pulse {
   to {
     box-shadow: 0 0 0 2px var(--type), 0 0 22px 5px var(--type);
@@ -1568,4 +1568,45 @@ p.error {
 .result-body {
   width: 100%;
   max-width: 360px;
+}
+
+/* Deck tab: battle-look cards, 4 per row, and the three weapons in one row. */
+.grid.deck-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.deck-card {
+  display: grid;
+  gap: 2px;
+}
+
+.deck-card-level {
+  text-align: center;
+  font-size: 0.65rem;
+  color: var(--muted);
+}
+
+.deck-grid .card-empty {
+  min-height: 0;
+}
+
+.weapon-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.weapon-row > .slot {
+  padding: 8px;
+  min-width: 0;
+}
+
+.weapon-row .row {
+  flex-wrap: wrap;
+}
+
+/* The open picker needs the full width, so that weapon's panel takes its own row. */
+.weapon-row > .slot-wide {
+  grid-column: 1 / -1;
 }

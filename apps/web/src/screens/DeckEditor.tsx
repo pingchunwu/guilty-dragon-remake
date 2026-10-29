@@ -1,10 +1,32 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { DECK_SLOTS, RULES_V0, validateDeck, type Deck, type DeckSlot } from "@gdr/engine";
+import {
+  DECK_SLOTS,
+  RULES_V0,
+  cardMaxLevel,
+  validateDeck,
+  type CardDefinition,
+  type Deck,
+  type DeckSlot,
+  type OwnedCard,
+} from "@gdr/engine";
 import type { Content } from "../game/content";
 import { GameError, type DeckKind, type GameService, type PlayerState } from "../game/types";
 import { SLOT_LABEL, deckErrorText, errorText } from "../game/text";
-import { CardTile } from "./CardTile";
+import { BattleCard } from "./BattleCard";
 
+/** The battle-card look with the deck editor's extras (owned level, selection outline). */
+function DeckCard({ card, owned, selected, onClick }: { card: CardDefinition; owned?: OwnedCard | undefined; selected?: boolean; onClick: () => void }) {
+  return (
+    <div className="deck-card">
+      <BattleCard card={card} owned={owned} show="pow" className={selected ? "card-selected" : ""} onClick={onClick} />
+      {owned && (
+        <small className="deck-card-level">
+          Lv {owned.level}/{cardMaxLevel(card)}
+        </small>
+      )}
+    </div>
+  );
+}
 
 const SLOT_HINT: Record<DeckSlot, string> = {
   heavy: "只能放重裝",
@@ -103,12 +125,12 @@ export function DeckEditor({ content: { cards }, service, state, onState }: Prop
                 {ids.length}/{RULES_V0.slotSize}
               </span>
             </div>
-            <div className="grid compact">
+            <div className="grid deck-grid">
               {ids.map((id, index) => {
                 const card = cards.get(id);
                 const isSelected = editing?.index === index;
                 return card ? (
-                  <CardTile
+                  <DeckCard
                     key={id}
                     card={card}
                     owned={state.cards[id]}
@@ -153,9 +175,9 @@ export function DeckEditor({ content: { cards }, service, state, onState }: Prop
                 {candidates.length === 0 ? (
                   <p className="muted small">沒有其他可放進這欄的卡。抽卡可以取得更多卡片。</p>
                 ) : (
-                  <div className="grid compact">
+                  <div className="grid deck-grid">
                     {candidates.map((c) => (
-                      <CardTile key={c.id} card={c} owned={state.cards[c.id]} onClick={() => apply(c.id)} />
+                      <DeckCard key={c.id} card={c} owned={state.cards[c.id]} onClick={() => apply(c.id)} />
                     ))}
                   </div>
                 )}

@@ -42,7 +42,7 @@ export function Equipment({ content: { items }, service, state, onState }: Props
     const current = equipped[kind];
     const owned = [...items.values()].filter((i) => i.kind === kind && state.items[i.id]);
     return (
-      <div key={kind} className={`panel stack slot${open === kind ? " slot-active" : ""}`}>
+      <div key={kind} className={`panel stack slot${open === kind ? " slot-active slot-wide" : ""}`}>
         <div className="row between">
           <strong>{ITEM_KIND_LABEL[kind]}</strong>
           <span className="muted small">擁有 {owned.length}</span>
@@ -108,7 +108,7 @@ export function Equipment({ content: { items }, service, state, onState }: Props
       {error && <p className="error">{error}</p>}
 
       <h3>武器</h3>
-      {WEAPON_KINDS.map(slot)}
+      <div className="weapon-row">{WEAPON_KINDS.map(slot)}</div>
       <h3>防具</h3>
       {ARMOR_KINDS.map(slot)}
     </section>

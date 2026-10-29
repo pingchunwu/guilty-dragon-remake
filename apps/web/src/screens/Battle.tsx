@@ -84,7 +84,7 @@ export function Battle({ content, state: player, onActive }: Props) {
           </p>
           <ul className="small rules">
             <li>雙方 HP {RULES.startingHp}，手牌 {RULES.handSize} 張；沒出的牌留在手上，每階段補回 {RULES.handSize} 張。</li>
-            <li>先選領導卡（手牌顯示 DRAW），再選 {RULES.maxSelected - 1} 張任意顏色的充能卡（顯示 POW），選滿就出牌；選滿前可以點已選的卡收回。</li>
+            <li>先選領導卡（手牌顯示 DRAW，上場後只顯示 POW），再選 {RULES.maxSelected - 1} 張任意顏色的充能卡，選滿就出牌；領導卡選了就不能收回，充能卡選滿前可以點已選的卡收回。</li>
             <li>充能卡依序結算：與領導卡同色就加入合計並空出那格；不同色就擋住那格。接著從牌庫抽領導卡的 DRAW 張，同樣規則；格子都被擋住或牌庫抽完就停。</li>
             <li>合計＝領導卡顏色的武器＋領導卡＋計入的卡；攻擊＝合計 × 相剋 × 連擊（計入張數含領導卡，最高 5 連擊 ×1.5）。</li>
             <li>重裝剋輕裝、輕裝剋魔裝、魔裝剋重裝（領導卡相剋 ×1.2）。</li>

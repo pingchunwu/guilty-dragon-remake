@@ -98,7 +98,7 @@ export function ResultScreen({ won, stats, children }: { won: boolean; stats: st
 }
 
 /** Counts up (or down) to `value`; React renders only the first value, so the tween owns the text after that. */
-export function CountUp({ value, className }: { value: number; className?: string }) {
+export function CountUp({ value, className, tint }: { value: number; className?: string; tint?: boolean }) {
   const ref = useRef<HTMLSpanElement>(null);
   const [first] = useState(value);
   const shown = useRef(value);
@@ -110,6 +110,8 @@ export function CountUp({ value, className }: { value: number; className?: strin
       count.current?.kill();
       const n = { v: shown.current };
       const motion = !reducedMotion();
+      // HP: flash green when it rises (heal) and red when it falls (HP paid, direct damage, a hit).
+      if (tint && motion) gsap.from(ref.current, { color: value > shown.current ? "#4fb878" : "#e2574c", clearProps: "color", duration: 1, ease: "power1.in" });
       count.current = gsap
         .timeline()
         .to(n, {
@@ -153,7 +155,7 @@ export function HpBar({ label, hp, equipment, rules }: HpBarProps) {
           </span>
         </span>
         <span className="nowrap">
-          <CountUp value={hp} /> / {rules.startingHp}
+          <CountUp value={hp} tint /> /{rules.startingHp}
         </span>
       </div>
       <div className="hp-track">

@@ -278,15 +278,6 @@ export function Duel(props: Props) {
     { dependencies: [picked], scope: root },
   );
 
-  // Choosing the leader turns the hand from DRAW to POW, as the OG flips its numbers.
-  useGSAP(
-    () => {
-      if (leader && !reducedMotion())
-        gsap.from(".hand-grid .bcard-num", { rotationX: 90, duration: 0.25, stagger: 0.03, ease: "power2.out" });
-    },
-    { dependencies: [leader], scope: root },
-  );
-
   // Playback, after the OG: the charge row is a queue behind the leader. A card that counts flies up
   // into the weapon capsule (which adds its POW), leaves the row, and the queue slides left; a draw
   // flies in from the deck pile at the end of the queue.
@@ -367,8 +358,8 @@ export function Duel(props: Props) {
 
   function toggle(id: string) {
     if (locked || full) return;
-    if (id === picked[0]) setPicked([]);
-    else if (picked.includes(id)) setPicked(picked.filter((x) => x !== id));
+    if (id === picked[0]) return; // the leader stays picked for the phase
+    if (picked.includes(id)) setPicked(picked.filter((x) => x !== id));
     else if (picked.length < required) {
       const tile = root.current?.querySelector<HTMLElement>(`.hand-grid > :nth-child(${hand.indexOf(id) + 1})`);
       if (tile && !reducedMotion()) {
@@ -553,7 +544,7 @@ export function Duel(props: Props) {
                   key={id}
                   card={card}
                   owned={owned[id]}
-                  show={leader ? "pow" : "draw"}
+                  show="draw"
                   // A picked card leaves its hand slot empty; with a leader, a card that cannot charge turns gray.
                   className={
                     index >= 0

@@ -3,6 +3,7 @@ import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
 import {
   RULES_V07,
+  SKILL_BY_ID,
   WEAPON_KINDS,
   type CardDefinition,
   type Equipment,
@@ -53,6 +54,63 @@ const foe = (id: SideId): SideId => (id === "challenger" ? "defender" : "challen
 export function preOf(result: PhaseResult, id: SideId) {
   const s = result.sides[id];
   return result.kind === "normal" ? s.baseAttack + (s.skillWeapon ?? s.weaponAttack) : s.attack;
+}
+
+/** What the attack scene opens on: the same total before weapon-power skills change the weapon. */
+export const startOf = (result: PhaseResult, id: SideId) =>
+  result.kind === "normal" ? result.sides[id].baseAttack + result.sides[id].weaponAttack : result.sides[id].attack;
+
+/** The leader skill's definition while it is in force (a shield-blocked skill does nothing). */
+const liveSkill = (s: SideResult) => (s.skill && !s.skill.blocked ? SKILL_BY_ID.get(s.skill.id) : undefined);
+const signed = (n: number) => (n >= 0 ? `+${n}` : `−${-n}`);
+
+export interface CalcStep {
+  tag: Record<SideId, string>;
+  to: Record<SideId, number>;
+}
+
+/**
+ * The 0.7.0 calculation before the crash, in the engine's order, one step per entry:
+ * weapon-power skills (only if one changed a weapon), × combo, then colour (相剋 / 天秤 / 凌駕 / 不調) and other skill bonuses.
+ */
+export function calcSteps(result: PhaseResult): CalcStep[] {
+  const S = result.sides;
+  const both = <T,>(f: (id: SideId) => T): Record<SideId, T> => ({ challenger: f("challenger"), defender: f("defender") });
+  const steps: CalcStep[] = [];
+  if (SIDES.some((id) => preOf(result, id) !== startOf(result, id))) {
+    steps.push({
+      to: both((id) => preOf(result, id)),
+      tag: both((id) => {
+        const change = preOf(result, id) - startOf(result, id);
+        const source = [id, foe(id)].map((o) => liveSkill(S[o])).find((k) => k && (k.effect.kind === "power" || k.effect.kind === "reckless"));
+        return change ? `${source?.name ?? "技能"} 武器 ${signed(change)}` : "";
+      }),
+    });
+  }
+  const afterCombo = both((id) => Math.floor(preOf(result, id) * S[id].combo));
+  steps.push({ to: afterCombo, tag: both((id) => `COMBO ×${+S[id].combo.toFixed(2)}`) });
+  const colour = both((id) => {
+    const k = liveSkill(S[id]);
+    const name = k?.effect.kind === "element" ? k.name : "";
+    if (S[id].advantage) return `${name || "相剋"} ×${S[id].advantageMultiplier}`;
+    if (name) return name;
+    return S[id].attack !== afterCombo[id] ? `${k?.name ?? "技能"} ${signed(S[id].attack - afterCombo[id])}` : "";
+  });
+  if (SIDES.some((id) => colour[id])) steps.push({ to: both((id) => S[id].attack), tag: colour });
+  return steps;
+}
+
+/** Damage skills after the defense %: the dealer's 追加傷害 / 增幅傷害 and the target's 防護 / final-blow guard (null = none). */
+export function afterDefense(result: PhaseResult, dealer: SideId, taken: number): { from: number; tag: string } | null {
+  const [w, l] = [result.sides[dealer], result.sides[foe(dealer)]];
+  const gap = result.kind === "normal" ? w.attack - l.attack : w.attack;
+  const from = Math.floor((gap * (100 - l.defense)) / 100);
+  if (from === taken) return null;
+  const names = [w, l]
+    .map(liveSkill)
+    .filter((k) => k && ["finalDamage", "guard", "finalBlowGuard"].includes(k.effect.kind))
+    .map((k) => k!.name);
+  return { from, tag: `${names.join("・") || "技能"} ${signed(taken - from)}` };
 }
 
 /**
@@ -372,16 +430,16 @@ export function AttackScene({ result, labels, hp, maxHp, onComplete }: SceneProp
       // Round calculation: (cards + weapon) → × combo → × colour / skills (= engine attack) → crash → × (100 − defense)%.
       const normal = result.kind === "normal";
       const S = result.sides;
-      const afterCombo = {} as Record<SideId, number>;
-      for (const id of SIDES) afterCombo[id] = Math.floor(preOf(result, id) * S[id].combo);
-      const colourStep = normal && SIDES.some((id) => S[id].advantage || S[id].attack !== afterCombo[id]);
+      const calc = normal ? calcSteps(result) : [];
       // Who deals damage: the winner, or on a final blow every side whose hit lands.
       const dealers = normal ? (winner ? [winner] : []) : SIDES.filter((id) => taken(foe(id)) > 0);
       const defend = dealers.length > 0;
-      // Every calculation step (combo, colour / skill, crash, winner, defense, HP) holds for STEP seconds.
+      const extras = dealers.map((w) => afterDefense(result, w, taken(foe(w))));
+      const extra = extras.some(Boolean);
+      // Every calculation step (weapon skill, combo, colour / skill, winner, defense, damage skill, HP) holds for STEP seconds; the crash count takes 1 s.
       const STEP = 2;
-      const rushAt = 0.65 + (normal ? STEP : 0) + (colourStep ? STEP : 0);
-      const cur = { t: preOf(result, "defender"), b: preOf(result, "challenger") };
+      const rushAt = 0.65 + calc.length * STEP;
+      const cur = { t: startOf(result, "defender"), b: startOf(result, "challenger") };
       const paint = () => {
         topNum.textContent = String(Math.round(cur.t));
         botNum.textContent = String(Math.round(cur.b));
@@ -404,14 +462,14 @@ export function AttackScene({ result, labels, hp, maxHp, onComplete }: SceneProp
         .to(q(".scene-flash"), { autoAlpha: 0, duration: 0.25 }, ">")
         .to(normal ? q(".scene-stage") : [], { keyframes: { x: [-12, 10, -7, 5, -2, 0] }, duration: 0.4, ease: "none" }, "impact")
         .to(normal ? [top, bottom] : [], { scale: 1.3, duration: 0.08, yoyo: true, repeat: 1 }, "impact")
-        .to(count, { d: smaller, duration: STEP - 0.05, ease: "power1.inOut", onUpdate: show }, "impact+=0.05")
+        .to(count, { d: smaller, duration: 1, ease: "power1.inOut", onUpdate: show }, "impact+=0.05")
         .addLabel("shatter", ">")
         // The smaller number (both on a tie) bursts apart; the remainder fades as the banner lands.
         .to(normal && mine <= theirs ? bottom : [], { scale: 1.9, rotation: 14, autoAlpha: 0, duration: 0.25 }, "shatter")
         .to(normal && theirs <= mine ? top : [], { scale: 1.9, rotation: -14, autoAlpha: 0, duration: 0.25 }, "shatter")
         .addLabel("banner", "shatter+=0.1")
         .addLabel("defense", `banner+=${STEP}`)
-        .addLabel("hit", `banner+=${defend ? STEP * 2 : STEP}`)
+        .addLabel("hit", `banner+=${defend ? STEP * (extra ? 3 : 2) : STEP}`)
         .to(normal ? (mine > theirs ? bottom : theirs > mine ? top : []) : [top, bottom], { scale: 0.6, autoAlpha: 0, duration: 0.25 }, defend ? "hit" : "shatter+=0.15")
         .from(q(".scene-banner"), { xPercent: -110, duration: 0.3 }, "banner")
         .fromTo(q(".scene-flash"), { autoAlpha: 0.85 }, { autoAlpha: 0, duration: 0.3 }, "hit")
@@ -428,26 +486,23 @@ export function AttackScene({ result, labels, hp, maxHp, onComplete }: SceneProp
           .to(cur, { t: to.defender, b: to.challenger, duration: STEP - 0.6, ease: "power2.out", onUpdate: paint }, at + 0.3)
           .fromTo([topNum, botNum], { scale: 1.25 }, { scale: 1, duration: 0.25, ease: "back.out(3)" }, at + STEP - 0.3);
       };
-      if (normal) {
-        step(0.65, { defender: `COMBO ×${+S.defender.combo.toFixed(2)}`, challenger: `COMBO ×${+S.challenger.combo.toFixed(2)}` }, afterCombo);
-        if (colourStep) {
-          const label = (id: SideId) =>
-            S[id].advantage ? `相剋 ×${S[id].advantageMultiplier}` : S[id].attack !== afterCombo[id] ? "技能" : "";
-          step(0.65 + STEP, { defender: label("defender"), challenger: label("challenger") }, { defender: theirs, challenger: mine });
-        }
-      }
-      // Defense: the dealer's remaining number (or whole hand total) × (100 − the target's 防禦)% = the damage taken.
-      for (const w of dealers) {
+      calc.forEach((c, i) => step(0.65 + i * STEP, c.tag, c.to));
+      // Defense: the dealer's remaining number (or whole hand total) × (100 − the target's 防禦)% = the damage taken,
+      // then (if a damage skill changed it) one more step for 追加傷害 / 防護 to the final damage.
+      dealers.forEach((w, k) => {
         const target = foe(w);
         const wTag = nums[w][1];
         const d = { v: normal ? Math.abs(mine - theirs) : S[w].attack };
-        tl.current
-          .add(() => void (wTag.textContent = `防禦 ${S[target].defense}%（×${100 - S[target].defense}%）`), "defense")
-          .fromTo(wTag, { autoAlpha: 0, scale: 1.6 }, { autoAlpha: 1, scale: 1, duration: 0.2 }, "defense")
-          .to(d, { v: taken(target), duration: STEP - 0.6, ease: "power2.out", onUpdate: () => void (nums[w][0].textContent = String(Math.round(d.v))) }, "defense+=0.3")
-          .fromTo(nums[w][0], { scale: 1.25 }, { scale: 1, duration: 0.25, ease: "back.out(3)" }, `defense+=${STEP - 0.3}`)
-          .to(wTag, { autoAlpha: 0, duration: 0.12 }, `defense+=${STEP - 0.12}`);
-      }
+        const defStep = (o: number, text: string, to: number) =>
+          tl.current!
+            .add(() => void (wTag.textContent = text), `defense+=${o}`)
+            .fromTo(wTag, { autoAlpha: 0, scale: 1.6 }, { autoAlpha: 1, scale: 1, duration: 0.2 }, `defense+=${o}`)
+            .to(d, { v: to, duration: STEP - 0.6, ease: "power2.out", onUpdate: () => void (nums[w][0].textContent = String(Math.round(d.v))) }, `defense+=${o + 0.3}`)
+            .fromTo(nums[w][0], { scale: 1.25 }, { scale: 1, duration: 0.25, ease: "back.out(3)" }, `defense+=${o + STEP - 0.3}`)
+            .to(wTag, { autoAlpha: 0, duration: 0.12 }, `defense+=${o + STEP - 0.12}`);
+        defStep(0, `防禦 ${S[target].defense}%（×${100 - S[target].defense}%）`, extras[k]?.from ?? taken(target));
+        if (extras[k]) defStep(STEP, extras[k].tag, taken(target));
+      });
       hurt.forEach((id, i) => {
         const left = Math.max(0, hp[id] - taken(id));
         const n = { v: hp[id] };
@@ -488,11 +543,11 @@ export function AttackScene({ result, labels, hp, maxHp, onComplete }: SceneProp
         {bar("defender", "top")}
         <div className="scene-atk scene-atk-top">
           <span className="scene-tag" />
-          <span className="scene-num">{preOf(result, "defender")}</span>
+          <span className="scene-num">{startOf(result, "defender")}</span>
         </div>
         <div className="scene-atk scene-atk-bottom">
           <span className="scene-tag" />
-          <span className="scene-num">{preOf(result, "challenger")}</span>
+          <span className="scene-num">{startOf(result, "challenger")}</span>
         </div>
         <div className="scene-banner">
           {hurt.length === 0 && !winner ? "勢均力敵" : result.kind === "deck_out" ? (hurt.length > 1 ? "雙方最終一擊！" : "最終一擊！") : `${labels[winner!]}的攻擊！`}
