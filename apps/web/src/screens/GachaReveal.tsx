@@ -159,9 +159,6 @@ export function GachaReveal({ kind, results, cards, items, onClose, onAgain }: P
               </div>
             ))}
           </div>
-          <button type="button" className="grev-all" onClick={flipAll} disabled={flipped.size === results.length}>
-            全部翻開
-          </button>
         </div>
       )}
       {stage === "summary" && (
