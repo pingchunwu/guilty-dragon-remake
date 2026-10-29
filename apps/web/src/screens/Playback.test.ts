@@ -90,13 +90,16 @@ describe("playbackFrames, rule 0.7.0-draft", () => {
   const frames = playbackFrames(v07, more, RULES_V07);
   const row = (t: number) => frames[t]!.sides.challenger.row.map((c) => `${c.card}:${c.state}${c.fresh ? "*" : ""}`);
 
-  it("plays leader, skills, charges, draws, then the leader, both sides on the same beats", () => {
+  it("plays leader, skills, charges with their draws, drawn cards added, then the leader, both sides on the same beats", () => {
     expect(frames.map((f) => f.stage)).toEqual([...Array(9).fill("chain"), "total", "damage"]);
     expect(frames.map((f) => !!f.skills)).toEqual([false, true, ...Array(9).fill(false)]);
     expect(row(0)).toEqual(["L:leader", "h1:pending", "m1:pending", "h2:pending", "m2:pending"]);
-    expect(row(3)).toEqual(["L:leader", "h1:counted", "m1:blocked", "h2:pending", "m2:pending"]);
-    expect(row(6).slice(-1)).toEqual(["d1:counted*"]);
-    expect(row(7).slice(-2)).toEqual(["d1:counted", "d2:blocked*"]);
+    // Draw k appears (pending) on the beat charge k is absorbed, then the draws are added one by one.
+    expect(row(2)).toEqual(["L:leader", "h1:counted", "m1:pending", "h2:pending", "m2:pending", "d1:pending*"]);
+    expect(row(3)).toEqual(["L:leader", "h1:counted", "m1:blocked", "h2:pending", "m2:pending", "d1:pending", "d2:pending*"]);
+    expect(row(5).slice(-2)).toEqual(["d1:pending", "d2:pending"]);
+    expect(row(6).slice(-2)).toEqual(["d1:counted", "d2:pending"]);
+    expect(row(7).slice(-2)).toEqual(["d1:counted", "d2:blocked"]);
     expect(row(8)[0]).toBe("L:leader*");
     expect(frames[10]!.sides.challenger.row.some((c) => c.fresh)).toBe(false);
   });
