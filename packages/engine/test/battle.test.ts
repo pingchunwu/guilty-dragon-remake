@@ -500,22 +500,32 @@ describe("rule 0.7.0-draft", () => {
   const handTotal = (s: SideState) => s.hand.reduce((sum, id) => sum + cards.get(id)!.attack, 0);
   const LONG07 = { ...RULES_V07, startingHp: 100_000 };
 
-  it("hits for the hand total plus all three weapons on deck-out, ignoring defense", () => {
+  it("hits for the hand total plus all three weapons on deck-out, reduced by the target's defense %", () => {
     const start = startBattle([3, 3, 3, 3], { deck, equipment: armed }, setup, LONG07);
     const out = runOut(start.sides.challenger);
     const { result } = resolvePhase({ ...start, kind: "deck_out", sides: { ...start.sides, challenger: out } }, null, cards, LONG07);
+    const defense = result.sides.defender.defense;
+    expect(defense).toBeGreaterThan(0);
     expect(result.sides.challenger.weaponAttack).toBe(600);
-    expect(result.damage).toBe(handTotal(out) + 600);
-    expect(result.ignoredArmor).toBe(true);
+    expect(result.damage).toBe(Math.floor(((handTotal(out) + 600) * (100 - defense)) / 100));
+    expect(result.damageTaken).toEqual({ challenger: 0, defender: result.damage });
+    expect(result.ignoredArmor).toBe(false);
   });
 
-  it("lets the higher total hit in full when both run out", () => {
+  it("hurts both sides when both run out, each taking the other's final blow", () => {
     const start = startBattle([9, 9, 9, 9], { deck, equipment: armed }, setup, LONG07);
     const sides = { challenger: runOut(start.sides.challenger), defender: runOut(start.sides.defender) };
-    const totals = { challenger: handTotal(sides.challenger) + 600, defender: handTotal(sides.defender) };
-    const { result } = resolvePhase({ ...start, kind: "deck_out", sides }, null, plainCards, LONG07);
-    expect(result.damage).toBe(Math.max(totals.challenger, totals.defender));
-    expect(result.ignoredArmor).toBe(true);
+    const total = { challenger: handTotal(sides.challenger) + 600, defender: handTotal(sides.defender) };
+    const { result, state } = resolvePhase({ ...start, kind: "deck_out", sides }, null, plainCards, LONG07);
+    const def = { challenger: result.sides.challenger.defense, defender: result.sides.defender.defense };
+    const toDefender = Math.floor((total.challenger * (100 - def.defender)) / 100);
+    const toChallenger = Math.floor((total.defender * (100 - def.challenger)) / 100);
+    expect(result.damageTaken).toEqual({ challenger: toChallenger, defender: toDefender });
+    expect(toChallenger).toBeGreaterThan(0);
+    expect(toDefender).toBeGreaterThan(0);
+    expect(state.sides.challenger.hp).toBe(LONG07.startingHp - toChallenger);
+    expect(state.sides.defender.hp).toBe(LONG07.startingHp - toDefender);
+    expect(result.damage).toBe(Math.max(toChallenger, toDefender));
   });
 
   it("plays whole battles to a winner, deterministically", () => {

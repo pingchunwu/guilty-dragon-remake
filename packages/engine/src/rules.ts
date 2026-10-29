@@ -42,7 +42,7 @@ export const RULES_V0: RuleConfig = {
 /**
  * Rule 0.7.0-draft (docs/development-spec.md §6a): 4 charge spaces then the
  * leader's DRAW, the weapon of the leader's colour inside the multiplied total,
- * damage = attack difference reduced by defense %, deck-out adds all 3 weapons.
+ * damage = attack difference reduced by defense %, deck-out adds all 3 weapons and every side that ran out hits the other, reduced by defense %.
  */
 export const RULES_V07: RuleConfig = { ...RULES_V0, ruleVersion: "0.7.0-draft" };
 

@@ -129,8 +129,13 @@ export interface PhaseResult {
   winner: SideId | null;
   /** Damage dealt by the winner, after defense and every skill. */
   damage: number;
-  /** Deck-out hits from one side go straight to HP. */
+  /** Deck-out hits from one side go straight to HP (0.6.0 only; 0.7.0 final blows count defense). */
   ignoredArmor: boolean;
+  /**
+   * HP each side lost to this phase's attack (after defense and every skill).
+   * Normal phases: only the loser. 0.7.0 deck-out: every side that was hit, so a double final blow hurts both.
+   */
+  damageTaken: Record<SideId, number>;
   hpAfter: Record<SideId, number>;
   reshuffled: SideId[];
 }
@@ -486,6 +491,7 @@ export function resolvePhase(
   let winner: SideId | null = null;
   let damage = 0;
   let ignoredArmor = false;
+  const damageTaken: Record<SideId, number> = { challenger: 0, defender: 0 };
   const reshuffled: SideId[] = [];
 
   if (state.kind === "normal") {
@@ -735,34 +741,48 @@ export function resolvePhase(
     };
     sideResults = { challenger: deckOut("challenger"), defender: deckOut("defender") };
     const out = SIDES.filter((id) => sides[id].ranOut);
-    if (out.length === 1) {
-      winner = out[0]!;
-      damage = sideResults[winner].attack;
-      ignoredArmor = true;
-    } else {
-      const { challenger: c, defender: d } = sideResults;
-      if (c.attack !== d.attack) {
-        winner = c.attack > d.attack ? "challenger" : "defender";
-        // Provisional (0.7.0): deck-out ignores defense, so the higher total hits in full.
-        damage = v07 ? sideResults[winner].attack : Math.max(0, sideResults[winner].attack - sideResults[other(winner)].defense);
-        ignoredArmor = v07;
+    if (v07) {
+      // 0.7.0: every side that ran out lands its final blow, reduced by the target's defense %; both can be hit.
+      // A tied double final blow with no skills deals equal damage to both, so winner is the harder hitter or null.
+      for (const id of out) {
+        const target = other(id);
+        const dealt = Math.floor((sideResults[id].attack * (100 - sideResults[target].defense)) / 100);
+        const guard = finalBlowGuard(sides[target], cards, dealt);
+        damageTaken[target] = dealt - guard.amount;
+        if (guard.card) sideResults[target].skill = guard.card;
       }
-    }
-    if (winner) {
-      // Skills don't fire on deck-out, except a final-blow guard held in the hand.
-      const guard = finalBlowGuard(sides[other(winner)], cards, damage);
-      damage -= guard.amount;
-      if (guard.card) sideResults[other(winner)].skill = guard.card;
+      // Both out and neither hits harder: no winner. Otherwise the side that dealt more.
+      const dealtBy = (id: SideId) => damageTaken[other(id)];
+      winner = dealtBy("challenger") === dealtBy("defender") ? null : dealtBy("challenger") > dealtBy("defender") ? "challenger" : "defender";
+      if (winner) damage = dealtBy(winner);
+      else damage = out.length ? dealtBy(out[0]!) : 0;
+    } else {
+      if (out.length === 1) {
+        winner = out[0]!;
+        damage = sideResults[winner].attack;
+        ignoredArmor = true;
+      } else {
+        const { challenger: c, defender: d } = sideResults;
+        if (c.attack !== d.attack) {
+          winner = c.attack > d.attack ? "challenger" : "defender";
+          damage = Math.max(0, sideResults[winner].attack - sideResults[other(winner)].defense);
+        }
+      }
+      if (winner) {
+        // Skills don't fire on deck-out, except a final-blow guard held in the hand.
+        const guard = finalBlowGuard(sides[other(winner)], cards, damage);
+        damage -= guard.amount;
+        if (guard.card) sideResults[other(winner)].skill = guard.card;
+        damageTaken[other(winner)] = damage;
+      }
     }
     // Only sides that ran out use their hand; the other side keeps it.
     for (const id of out) sides[id] = reshuffle(sides[id], rng);
     reshuffled.push(...out);
   }
 
-  if (winner) {
-    const loser = other(winner);
-    sides[loser] = { ...sides[loser], hp: Math.max(0, sides[loser].hp - damage) };
-  }
+  if (state.kind === "normal" && winner) damageTaken[other(winner)] = damage;
+  for (const id of SIDES) sides[id] = { ...sides[id], hp: Math.max(0, sides[id].hp - damageTaken[id]) };
 
   const status: BattleStatus =
     sides.defender.hp === 0 ? "challenger_won" : sides.challenger.hp === 0 ? "defender_won" : "active";
@@ -778,6 +798,7 @@ export function resolvePhase(
       winner,
       damage,
       ignoredArmor,
+      damageTaken,
       hpAfter: { challenger: sides.challenger.hp, defender: sides.defender.hp },
       reshuffled,
     },
