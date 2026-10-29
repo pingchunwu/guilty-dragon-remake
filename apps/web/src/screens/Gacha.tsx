@@ -3,7 +3,7 @@ import { ITEM_MAX_LEVEL, type PullResult } from "@gdr/engine";
 import type { Content } from "../game/content";
 import { GameError, type GameService, type PlayerState } from "../game/types";
 import { errorText } from "../game/text";
-import { GachaReveal, PullGrid } from "./GachaReveal";
+import { GachaReveal } from "./GachaReveal";
 
 type Kind = "card" | "item";
 const KIND_LABEL: Record<Kind, string> = { card: "卡片", item: "裝備" };
@@ -96,7 +96,6 @@ export function Gacha({ content: { cards, items }, service, state, onState }: Pr
           }
         />
       )}
-      {results && <PullGrid kind={results.kind} results={results.list} cards={cards} items={items} />}
     </section>
   );
 }

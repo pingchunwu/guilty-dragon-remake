@@ -5,7 +5,6 @@ import {
   PLACEHOLDER_STARTER_LOADOUT,
   ITEM_MAX_LEVEL,
   RULES_V0,
-  STARTING_TICKETS,
   cardMaxLevel,
   createRng,
   drawTen,
@@ -31,7 +30,8 @@ export function createGuestService({ cards, items }: Content): GameService {
       .map((id) => [id, { level: 1, shards: 0 }]),
   );
   let state: PlayerState = {
-    tickets: STARTING_TICKETS,
+    // shortcut: guests get 100 tickets for testing the gacha; switch back to STARTING_TICKETS before launch.
+    tickets: 100,
     cards: collection,
     decks: { attack: PLACEHOLDER_DEFAULT_DECK, defense: PLACEHOLDER_DEFAULT_DECK },
     items: Object.fromEntries(
@@ -42,7 +42,6 @@ export function createGuestService({ cards, items }: Content): GameService {
     loadout: PLACEHOLDER_STARTER_LOADOUT,
   };
   const draws = new Map<string, ReturnType<typeof drawTen>["results"]>();
-
   function draw(key: string, pool: Pool, field: "cards" | "items") {
     const replay = draws.get(key);
     if (replay) return { results: replay, state };
@@ -56,7 +55,6 @@ export function createGuestService({ cards, items }: Content): GameService {
     draws.set(key, drawn.results);
     return { results: drawn.results, state };
   }
-
   return {
     mode: "guest",
     async sync() {
