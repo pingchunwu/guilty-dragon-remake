@@ -36,7 +36,7 @@ function Face({ kind, r, cards, items }: { kind: Kind; r: PullResult } & Omit<Gr
 /** The plain results grid, shared by the reveal's summary and the page below it. */
 export function PullGrid({ kind, results, cards, items }: GridProps) {
   return (
-    <div className={kind === "card" ? "grid deck-grid" : "grid"}>
+    <div className="grev-grid">
       {results.map((r, i) => (
         <Face key={i} kind={kind} r={r} cards={cards} items={items} />
       ))}

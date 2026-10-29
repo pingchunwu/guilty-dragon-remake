@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
 import { SKILL_BY_ID, type CardDefinition } from "@gdr/engine";
@@ -28,6 +28,7 @@ export function GachaCutIn({
   const tlRef = useRef<gsap.core.Timeline | null>(null);
   const skipped = useRef(false);
   const done = useRef(false);
+  const [ready, setReady] = useState(false); // new card: end state reached, waiting for the tap
   const doneRef = useRef(onDone);
   doneRef.current = onDone;
   const finish = () => {
@@ -37,6 +38,13 @@ export function GachaCutIn({
   };
   const tap = () => {
     const tl = tlRef.current;
+    if (isNew && !ready) {
+      // reduced motion has no timeline; otherwise jump to the end state
+      skipped.current = true;
+      tl?.progress(1);
+      setReady(true);
+      return;
+    }
     if (tl && tl.progress() < 1) {
       skipped.current = true; // no auto-finish after a skip: the second tap ends the scene
       tl.progress(1);
@@ -51,6 +59,10 @@ export function GachaCutIn({
   useGSAP(
     () => {
       if (reducedMotion()) {
+        if (isNew) {
+          setReady(true);
+          return;
+        }
         const t = window.setTimeout(finish, 1500);
         return () => window.clearTimeout(t);
       }
@@ -62,7 +74,8 @@ export function GachaCutIn({
       gsap.set(q(".gcut-sweep"), { xPercent: -160 });
       const tl = gsap.timeline({
         onComplete: () => {
-          if (!skipped.current) gsap.delayedCall(0.3, finish);
+          if (isNew) setReady(true); // new cards wait for a tap
+          else if (!skipped.current) gsap.delayedCall(0.3, finish);
         },
       });
       tlRef.current = tl;
@@ -163,6 +176,7 @@ export function GachaCutIn({
         )}
       </div>
       <div className="gcut-flash" />
+      {isNew && ready && <div className="gcut-hint">點擊繼續</div>}
     </div>
   );
 }

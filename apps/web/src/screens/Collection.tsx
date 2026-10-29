@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { ITEM_KINDS, type CardType, type ItemKind } from "@gdr/engine";
 import type { Content } from "../game/content";
 import type { PlayerState } from "../game/types";
 import { ITEM_KIND_LABEL, TYPE_LABEL } from "../game/text";
 import { DeckCard } from "./DeckCard";
 import { ItemTile } from "./ItemTile";
+import { useChunk } from "./useChunk";
 
 type View = "card" | "item";
 const VIEW_LABEL: Record<View, string> = { card: "卡片", item: "裝備" };
@@ -13,8 +14,10 @@ export function Collection({ content, state }: { content: Content; state: Player
   const [view, setView] = useState<View>("card");
   const [cardFilter, setCardFilter] = useState<CardType | "all">("all");
   const [itemFilter, setItemFilter] = useState<ItemKind | "all">("all");
-  const allCards = [...content.cards.values()];
-  const allItems = ITEM_KINDS.flatMap((kind) => [...content.items.values()].filter((i) => i.kind === kind));
+  const allCards = useMemo(() => [...content.cards.values()], [content]);
+  const allItems = useMemo(() => ITEM_KINDS.flatMap((kind) => [...content.items.values()].filter((i) => i.kind === kind)), [content]);
+  const shownCards = useMemo(() => allCards.filter((c) => cardFilter === "all" || c.type === cardFilter), [allCards, cardFilter]);
+  const { limit, sentinel } = useChunk(shownCards.length, cardFilter);
   const owned = view === "card" ? allCards.filter((c) => state.cards[c.id]) : allItems.filter((i) => state.items[i.id]);
   const total = view === "card" ? allCards.length : allItems.length;
 
@@ -48,12 +51,11 @@ export function Collection({ content, state }: { content: Content; state: Player
             ))}
           </div>
           <div className="grid deck-grid">
-            {allCards
-              .filter((c) => cardFilter === "all" || c.type === cardFilter)
-              .map((c) => (
-                <DeckCard key={c.id} card={c} owned={state.cards[c.id]} locked={!state.cards[c.id]} />
-              ))}
+            {shownCards.slice(0, limit).map((c) => (
+              <DeckCard key={c.id} card={c} owned={state.cards[c.id]} locked={!state.cards[c.id]} />
+            ))}
           </div>
+          {sentinel}
         </>
       ) : (
         <>

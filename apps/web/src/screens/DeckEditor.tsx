@@ -4,12 +4,14 @@ import {
   RULES_V0,
   validateDeck,
   type Deck,
+  type CardDefinition,
   type DeckSlot,
 } from "@gdr/engine";
 import type { Content } from "../game/content";
 import { GameError, type DeckKind, type GameService, type PlayerState } from "../game/types";
 import { SLOT_LABEL, deckErrorText, errorText } from "../game/text";
 import { DeckCard } from "./DeckCard";
+import { useChunk } from "./useChunk";
 
 const SLOT_HINT: Record<DeckSlot, string> = {
   heavy: "只能放重裝",
@@ -158,11 +160,7 @@ export function DeckEditor({ content: { cards }, service, state, onState }: Prop
                 {candidates.length === 0 ? (
                   <p className="muted small">沒有其他可放進這欄的卡。抽卡可以取得更多卡片。</p>
                 ) : (
-                  <div className="grid deck-grid">
-                    {candidates.map((c) => (
-                      <DeckCard key={c.id} card={c} owned={state.cards[c.id]} onClick={() => apply(c.id)} />
-                    ))}
-                  </div>
+                  <Candidates key={slot} cards={candidates} owned={state.cards} onPick={apply} />
                 )}
               </div>
             )}
@@ -197,5 +195,20 @@ export function DeckEditor({ content: { cards }, service, state, onState }: Prop
         </div>
       </div>
     </section>
+  );
+}
+
+/** The picker grid, rendered in chunks since a big collection means hundreds of cards. */
+function Candidates({ cards, owned, onPick }: { cards: CardDefinition[]; owned: PlayerState["cards"]; onPick: (id: string) => void }) {
+  const { limit, sentinel } = useChunk(cards.length, 0);
+  return (
+    <>
+      <div className="grid deck-grid">
+        {cards.slice(0, limit).map((c) => (
+          <DeckCard key={c.id} card={c} owned={owned[c.id]} onClick={() => onPick(c.id)} />
+        ))}
+      </div>
+      {sentinel}
+    </>
   );
 }

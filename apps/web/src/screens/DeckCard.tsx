@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { cardMaxLevel, type CardDefinition, type OwnedCard } from "@gdr/engine";
 import { BattleCard } from "./BattleCard";
 
@@ -13,7 +14,7 @@ interface Props {
 }
 
 /** The battle-card look with the owned level caption, selection outline and optional badge. */
-export function DeckCard({ card, owned, selected, badge, locked, onClick }: Props) {
+export const DeckCard = memo(function DeckCard({ card, owned, selected, badge, locked, onClick }: Props) {
   return (
     <div className={`deck-card${locked ? " deck-card-locked" : ""}`}>
       <BattleCard card={card} owned={owned} show="pow" className={selected ? "card-selected" : ""} onClick={onClick} />
@@ -25,4 +26,4 @@ export function DeckCard({ card, owned, selected, badge, locked, onClick }: Prop
       )}
     </div>
   );
-}
+});

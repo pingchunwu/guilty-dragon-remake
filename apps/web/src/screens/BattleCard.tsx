@@ -270,6 +270,7 @@ export function BattleCard({ card, owned, show, className, onClick }: Props) {
           className="bcard-frame-img"
           src={`/frames/${frameKey}.webp`}
           alt=""
+          loading="lazy"
           decoding="async"
           onError={() => setFrameFailed(frameKey)}
         />
