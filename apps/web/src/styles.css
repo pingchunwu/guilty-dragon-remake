@@ -1973,9 +1973,28 @@ p.error {
 .gcut-skill strong {
   color: #ffe27a;
 }
+.gcut-hint {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 28px;
+  text-align: center;
+  font-size: 0.95rem;
+  letter-spacing: 0.15em;
+  color: rgba(255, 255, 255, 0.85);
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.8);
+  pointer-events: none;
+  animation: gcut-hint 1.4s ease-in-out infinite;
+}
+@keyframes gcut-hint {
+  50% {
+    opacity: 0.25;
+  }
+}
 
 /* Gacha seal */
 .gseal-root {
+  --s: min(92vw, 60vh);
   position: absolute;
   inset: 0;
   overflow: hidden;
@@ -1983,49 +2002,150 @@ p.error {
   touch-action: manipulation;
 }
 
-.gseal-svg {
+.gseal-world {
+  position: absolute;
+  inset: 0;
+}
+
+.gseal-stage {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: min(86vw, 420px);
-  height: min(86vw, 420px);
-  margin: calc(min(86vw, 420px) / -2) 0 0 calc(min(86vw, 420px) / -2);
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.5;
-  stroke-linecap: round;
-  filter: drop-shadow(0 0 6px currentColor);
+  width: var(--s);
+  height: var(--s);
+  margin: calc(var(--s) / -2) 0 0 calc(var(--s) / -2);
 }
 
-.gseal-ring {
+.gseal-ground {
+  position: absolute;
+  inset: 0;
+}
+
+.gseal-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 0.9;
+  stroke-linecap: round;
+}
+
+.gseal-back {
+  opacity: 0;
+}
+
+.gseal-bloom {
+  mix-blend-mode: screen;
+  stroke-width: 1.6;
+}
+
+.gseal-draw,
+.gseal-bolt {
   stroke-dasharray: 1;
+}
+
+.gseal-bolt {
+  opacity: 0;
+  stroke-width: 1.4;
+}
+
+.gseal-ticks {
+  stroke-width: 5;
+  stroke-dasharray: 0.7 3.4;
+}
+
+.gseal-dash {
+  stroke-width: 1.4;
+  stroke-dasharray: 7 4;
+}
+
+.gseal-node {
+  fill: currentColor;
+  stroke: none;
+}
+
+.gseal-txt {
+  fill: currentColor;
+  stroke: none;
+  font-size: 11px;
+  font-family: "Noto Sans Runic", "Segoe UI Historic", "Segoe UI Symbol", serif;
+}
+
+.gseal-txt-s {
+  font-size: 8px;
+}
+
+.gseal-rune {
+  fill-opacity: 0.35;
+}
+
+.gseal-pulse {
+  position: absolute;
+  inset: 4%;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  box-shadow: 0 0 10px currentColor;
+  opacity: 0;
+}
+
+.gseal-pillar {
+  position: absolute;
+  left: 50%;
+  bottom: 50%;
+  width: 34%;
+  height: 150%;
+  opacity: 0;
+  mix-blend-mode: screen;
+  background: linear-gradient(90deg, transparent, currentColor 50%, transparent);
+  -webkit-mask-image: linear-gradient(to top, #000 15%, transparent);
+  mask-image: linear-gradient(to top, #000 15%, transparent);
 }
 
 .gseal-aura {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  width: min(80vw, 380px);
-  height: min(80vw, 380px);
-  margin: calc(min(80vw, 380px) / -2) 0 0 calc(min(80vw, 380px) / -2);
+  inset: -8%;
   border-radius: 50%;
   opacity: 0;
   filter: blur(18px);
+  background: radial-gradient(circle, color-mix(in srgb, currentColor 80%, transparent), transparent 70%);
 }
 
-.gseal-n {
-  background: radial-gradient(circle, rgba(190, 220, 255, 0.85), rgba(110, 160, 255, 0) 70%);
-}
-
-.gseal-ssr {
-  background: radial-gradient(circle, rgba(255, 215, 90, 0.95), rgba(255, 170, 30, 0) 70%);
-}
-
-.gseal-crack {
-  stroke-dasharray: 1;
-  stroke-width: 2;
-  stroke-linejoin: round;
+.gseal-spark,
+.gseal-mote,
+.gseal-frag {
+  position: absolute;
+  top: 50%;
+  left: 50%;
   opacity: 0;
+  pointer-events: none;
+}
+
+.gseal-spark {
+  width: 2px;
+  height: 7px;
+  border-radius: 2px;
+  background: currentColor;
+  box-shadow: 0 0 5px currentColor;
+}
+
+.gseal-mote {
+  width: 3px;
+  height: 3px;
+  margin: -1.5px 0 0 -1.5px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 5px currentColor;
+}
+
+.gseal-frag {
+  margin: -8px 0 0 -8px;
+  font-size: 16px;
+  line-height: 1;
+  color: currentColor;
+  text-shadow: 0 0 6px currentColor;
 }
 
 .gseal-vig {
@@ -2036,15 +2156,6 @@ p.error {
   background: radial-gradient(circle at 50% 50%, transparent 35%, rgba(0, 0, 0, 0.85) 100%);
 }
 
-.gseal-ember {
-  position: absolute;
-  bottom: 8%;
-  border-radius: 50%;
-  background: #ffb35c;
-  box-shadow: 0 0 6px #ff8a2a;
-  opacity: 0;
-}
-
 .gseal-shard {
   position: absolute;
   top: 50%;
@@ -2052,7 +2163,7 @@ p.error {
   width: 36px;
   height: 52px;
   margin: -26px 0 0 -18px;
-  background: linear-gradient(135deg, #fff, #9bb7ff);
+  background: linear-gradient(135deg, #fff, currentColor);
   clip-path: polygon(50% 0, 100% 100%, 0 80%);
 }
 
@@ -2103,14 +2214,22 @@ p.error {
   min-width: 0;
 }
 
+/* Shared by the flip stage and the summary: 4 per row, last row centered. */
 .grev-grid {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 4px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+}
+
+.grev-grid > * {
+  box-sizing: border-box;
+  flex: 0 0 auto;
+  width: min(calc((100% - 18px) / 4), 10.6vh);
+  min-width: 0;
 }
 
 .grev-card {
-  all: unset;
   display: block;
   min-width: 0;
   cursor: pointer;
@@ -2194,4 +2313,10 @@ p.error {
 
 .grev-all {
   align-self: center;
+}
+
+/* Card list performance */
+.deck-card {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 90px auto 120px;
 }
