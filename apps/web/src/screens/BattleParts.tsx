@@ -186,7 +186,7 @@ const signed = (n: number) => (n >= 0 ? `+${n}` : `−${-n}`);
 
 type Family = "attack" | "debuff" | "guard" | "heal" | "damage" | "cards" | "element";
 
-function familyOf(e: SkillEffect): Family {
+export function familyOf(e: SkillEffect): Family {
   switch (e.kind) {
     case "combo":
     case "power":
@@ -215,7 +215,7 @@ function familyOf(e: SkillEffect): Family {
   }
 }
 
-const FAMILY_ICON: Record<Family, string> = {
+export const FAMILY_ICON: Record<Family, string> = {
   attack: "⚔",
   debuff: "▼",
   guard: "◆",

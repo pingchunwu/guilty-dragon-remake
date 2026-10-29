@@ -2,31 +2,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   DECK_SLOTS,
   RULES_V0,
-  cardMaxLevel,
   validateDeck,
-  type CardDefinition,
   type Deck,
   type DeckSlot,
-  type OwnedCard,
 } from "@gdr/engine";
 import type { Content } from "../game/content";
 import { GameError, type DeckKind, type GameService, type PlayerState } from "../game/types";
 import { SLOT_LABEL, deckErrorText, errorText } from "../game/text";
-import { BattleCard } from "./BattleCard";
-
-/** The battle-card look with the deck editor's extras (owned level, selection outline). */
-function DeckCard({ card, owned, selected, onClick }: { card: CardDefinition; owned?: OwnedCard | undefined; selected?: boolean; onClick: () => void }) {
-  return (
-    <div className="deck-card">
-      <BattleCard card={card} owned={owned} show="pow" className={selected ? "card-selected" : ""} onClick={onClick} />
-      {owned && (
-        <small className="deck-card-level">
-          Lv {owned.level}/{cardMaxLevel(card)}
-        </small>
-      )}
-    </div>
-  );
-}
+import { DeckCard } from "./DeckCard";
 
 const SLOT_HINT: Record<DeckSlot, string> = {
   heavy: "只能放重裝",

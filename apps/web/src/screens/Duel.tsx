@@ -19,7 +19,7 @@ import {
 } from "@gdr/engine";
 import { TYPE_LABEL, skillEffectText } from "../game/text";
 import { BattleCard } from "./BattleCard";
-import { CountUp, HpBar, SkillBursts, SkillTag, reducedMotion, type CardMap, type SideLabels } from "./BattleParts";
+import { CountUp, FAMILY_ICON, HpBar, SkillBursts, SkillTag, familyOf, reducedMotion, type CardMap, type SideLabels } from "./BattleParts";
 import { AttackScene, BEAT_MS, Pips, playbackFrames, type Chip } from "./Playback";
 
 gsap.registerPlugin(Flip);
@@ -434,6 +434,14 @@ export function Duel(props: Props) {
   ) : null;
 
   const leaderSkill = leader ? cardSkill(leader, levels) : null;
+  // Picking the leader previews its skill like the playback banner (own side only, no engine effect).
+  const [preview, setPreview] = useState(false);
+  useEffect(() => {
+    if (!picked[0]) return setPreview(false);
+    setPreview(true);
+    const timer = window.setTimeout(() => setPreview(false), REVEAL_MS);
+    return () => window.clearTimeout(timer);
+  }, [picked[0]]);
   const info = props.notice ? (
     <span className="error">{props.notice}</span>
   ) : leaderSkill ? (
@@ -514,6 +522,23 @@ export function Duel(props: Props) {
             {drawPile.challenger}
           </span>
         </div>
+        {preview && leaderSkill && !replaying && !settling && (
+          <div className="board-overlay board-preview">
+            <div className="skill-bursts">
+              <div className={`skill-burst burst-${familyOf(leaderSkill.skill.effect)} burst-challenger`}>
+                <span className="burst-icon" aria-hidden="true">
+                  {FAMILY_ICON[familyOf(leaderSkill.skill.effect)]}
+                </span>
+                <span className="stack">
+                  <span className="burst-title">
+                    {labels.challenger}・{leaderSkill.skill.name} Lv {leaderSkill.level}
+                  </span>
+                  <span className="burst-text">{skillEffectText(leaderSkill.skill, leaderSkill.level)}</span>
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
         {showBursts && (
           <div className="board-overlay">
             <SkillBursts result={last!} labels={labels} v07 />

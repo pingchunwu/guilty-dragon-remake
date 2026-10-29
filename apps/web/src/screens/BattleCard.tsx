@@ -1,4 +1,4 @@
-import { useId, useState } from "react";
+import { useId, useState, type CSSProperties } from "react";
 import { RARITIES, SKILL_BY_ID, type CardDefinition, type OwnedCard, type SkillDefinition } from "@gdr/engine";
 import { useCardInfoPress } from "./CardTile";
 
@@ -220,6 +220,9 @@ function Stars({ n, uid }: { n: number; uid: string }) {
   );
 }
 
+/** Stable per-card number so a grid of cards doesn't shine in sync. */
+const hashId = (id: string) => [...id].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7);
+
 /**
  * The OG's square battle card, laid out like docs/art-samples/og-sample.html: art under a
  * frame image (which carries the gem), skill badge, chrome number + label, rarity stars.
@@ -238,6 +241,8 @@ export function BattleCard({ card, owned, show, className, onClick }: Props) {
     <button
       type="button"
       className={`bcard card-${card.type}${className ? ` ${className}` : ""}`}
+      data-rarity={card.rarity}
+      style={{ "--shine-delay": `${-(hashId(card.id) % 900) / 100}s` } as CSSProperties}
       aria-label={`${card.name} ${show === "draw" ? "DRAW" : "POW"} ${value}`}
       onClick={onClick}
       {...press}
@@ -269,6 +274,7 @@ export function BattleCard({ card, owned, show, className, onClick }: Props) {
           onError={() => setFrameFailed(frameKey)}
         />
       )}
+      <span className="bcard-shine" aria-hidden="true" />
       {skill && (
         <span className="bcard-skill">
           <Badge glyph={glyphOf(skill)} letter={skill.name.slice(0, 1)} uid={`${uid}b`} />

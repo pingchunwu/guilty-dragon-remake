@@ -3,7 +3,7 @@ import { ITEM_KINDS, type CardType, type ItemKind } from "@gdr/engine";
 import type { Content } from "../game/content";
 import type { PlayerState } from "../game/types";
 import { ITEM_KIND_LABEL, TYPE_LABEL } from "../game/text";
-import { CardTile } from "./CardTile";
+import { DeckCard } from "./DeckCard";
 import { ItemTile } from "./ItemTile";
 
 type View = "card" | "item";
@@ -47,11 +47,11 @@ export function Collection({ content, state }: { content: Content; state: Player
               </button>
             ))}
           </div>
-          <div className="grid">
+          <div className="grid deck-grid">
             {allCards
               .filter((c) => cardFilter === "all" || c.type === cardFilter)
               .map((c) => (
-                <CardTile key={c.id} card={c} owned={state.cards[c.id]} />
+                <DeckCard key={c.id} card={c} owned={state.cards[c.id]} locked={!state.cards[c.id]} />
               ))}
           </div>
         </>

@@ -1578,6 +1578,8 @@ p.error {
 
 .deck-card {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
   gap: 2px;
 }
 
@@ -1609,4 +1611,145 @@ p.error {
 /* The open picker needs the full width, so that weapon's panel takes its own row. */
 .weapon-row > .slot-wide {
   grid-column: 1 / -1;
+}
+
+/*
+ * BattleCard rarity shine: a diagonal sweep over art+frame (under badge/number/stars),
+ * bigger and more frequent as rarity rises. transform/opacity only; --shine-delay staggers cards.
+ */
+.bcard-shine {
+  inset: 2.6%;
+  border-radius: 4px;
+  overflow: hidden;
+  pointer-events: none;
+  display: none;
+}
+
+.bcard-shine::before,
+.bcard-shine::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* Card-sized layer parked off the left; its gradient is a band --shine-w wide that sweeps across. */
+.bcard-shine::before {
+  left: -100%;
+  background: linear-gradient(
+    100deg,
+    transparent calc(50% - var(--shine-w, 9%)),
+    var(--shine-c, rgb(255 255 255 / 55%)) 50%,
+    transparent calc(50% + var(--shine-w, 9%))
+  );
+  animation: bcard-sweep var(--shine-t, 6s) linear var(--shine-delay, 0s) infinite;
+}
+
+.bcard[data-rarity="R"] .bcard-shine,
+.bcard[data-rarity="SR"] .bcard-shine,
+.bcard[data-rarity="SSR"] .bcard-shine {
+  display: block;
+}
+
+.bcard[data-rarity="R"] {
+  --shine-w: 4%;
+  --shine-t: 7s;
+  --shine-c: rgb(255 255 255 / 40%);
+}
+
+.bcard[data-rarity="SR"] {
+  --shine-w: 11%;
+  --shine-t: 5s;
+  --shine-c: rgb(255 244 200 / 65%);
+}
+
+.bcard[data-rarity="SSR"] {
+  --shine-w: 20%;
+  --shine-t: 3.4s;
+  --shine-c: rgb(255 255 255 / 70%);
+}
+
+/* Edge glow (SR steady-ish, SSR pulsing with a holo tint). */
+.bcard[data-rarity="SR"] .bcard-shine::after {
+  box-shadow: inset 0 0 10px 1px rgb(255 214 90 / 55%);
+  animation: bcard-glow 3.6s ease-in-out var(--shine-delay, 0s) infinite;
+}
+
+.bcard[data-rarity="SSR"] .bcard-shine::after {
+  box-shadow: inset 0 0 14px 2px rgb(120 220 255 / 60%), inset 0 0 26px 2px rgb(255 120 220 / 35%);
+  animation: bcard-glow 2s ease-in-out var(--shine-delay, 0s) infinite;
+}
+
+.bcard[data-rarity="SSR"] .bcard-shine::before {
+  background: linear-gradient(
+    100deg,
+    transparent calc(50% - var(--shine-w)),
+    rgb(255 120 200 / 45%) calc(50% - var(--shine-w) / 2),
+    rgb(255 255 255 / 75%) 50%,
+    rgb(110 220 255 / 45%) calc(50% + var(--shine-w) / 2),
+    transparent calc(50% + var(--shine-w))
+  );
+  mix-blend-mode: screen;
+}
+
+.bcard-mini .bcard-shine {
+  display: none !important;
+}
+
+/* Band crosses the card in the first ~35% of the cycle, then rests. */
+@keyframes bcard-sweep {
+  0% {
+    transform: translateX(0);
+  }
+  35%,
+  100% {
+    transform: translateX(200%);
+  }
+}
+
+@keyframes bcard-glow {
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bcard-shine {
+    display: none !important;
+  }
+}
+
+/* Your own leader's skill, previewed when it is picked; never blocks the hand. */
+.board-preview {
+  pointer-events: none;
+}
+
+/* Gacha/collection: DeckCard badge overlay and locked (unowned) cards. */
+.deck-card {
+  position: relative;
+}
+
+.deck-card-badge {
+  position: absolute;
+  top: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 100%;
+  padding: 0 4px;
+  border-radius: 4px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.6rem;
+  font-weight: 700;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.deck-card-locked .bcard {
+  opacity: 0.35;
+  filter: grayscale(1);
 }

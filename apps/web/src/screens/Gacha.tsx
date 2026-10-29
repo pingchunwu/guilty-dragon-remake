@@ -3,7 +3,7 @@ import { ITEM_MAX_LEVEL, type PullResult } from "@gdr/engine";
 import type { Content } from "../game/content";
 import { GameError, type GameService, type PlayerState } from "../game/types";
 import { errorText } from "../game/text";
-import { CardTile } from "./CardTile";
+import { DeckCard } from "./DeckCard";
 import { ItemTile } from "./ItemTile";
 
 type Kind = "card" | "item";
@@ -84,12 +84,12 @@ export function Gacha({ content: { cards, items }, service, state, onState }: Pr
         {error && <p className="error">{error}</p>}
       </div>
       {results && (
-        <div className="grid">
+        <div className={results.kind === "card" ? "grid deck-grid" : "grid"}>
           {results.list.map((r, i) => {
             const owned = { level: r.level, shards: r.shards };
             if (results.kind === "card") {
               const card = cards.get(r.id);
-              return card ? <CardTile key={i} card={card} owned={owned} badge={badge(r)} /> : null;
+              return card ? <DeckCard key={i} card={card} owned={owned} badge={badge(r)} /> : null;
             }
             const item = items.get(r.id);
             return item ? <ItemTile key={i} item={item} owned={owned} badge={badge(r)} /> : null;
