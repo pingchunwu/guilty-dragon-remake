@@ -1919,18 +1919,11 @@ p.error {
   opacity: 0;
   pointer-events: none;
 }
-.gcut-new {
-  position: absolute;
-  right: -14px;
-  top: -14px;
-  padding: 2px 12px;
-  border: 3px solid #fff;
-  border-radius: 6px;
-  background: #e5243b;
-  font-size: 1.4rem;
-  font-weight: 900;
-  letter-spacing: 0.08em;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+.gcut-card .deck-card-badge {
+  top: 8px;
+  padding: 0 12px;
+  border-radius: 10px;
+  font-size: 1.5rem;
 }
 .gcut-info {
   position: relative;
@@ -2049,46 +2042,35 @@ p.error {
   stroke-width: 2.6;
 }
 
-.gseal-draw {
-  stroke-dasharray: 1;
+.gseal-draw,
+.gseal-cdraw,
+.gseal-gdraw {
+  stroke-linecap: butt;
 }
 
-.gseal-ticks {
-  stroke-width: 4.5;
-  stroke-dasharray: 0.7 3.4;
+.gseal-sig {
+  stroke-width: 1.5;
 }
 
-.gseal-dash {
-  stroke-width: 1.8;
-  stroke-dasharray: 7 4;
+.gseal-orbit,
+.gseal-rib {
+  stroke: #fff;
+  stroke-width: 2.4;
+  opacity: 0;
 }
 
-.gseal-node {
-  fill: currentColor;
+.gseal-rib {
+  stroke: currentColor;
+  stroke-width: 1.6;
+}
+
+.gseal-guide {
   stroke: none;
 }
 
-.gseal-txt {
-  fill: currentColor;
-  stroke: none;
-  font-size: 11px;
-  font-family: "Noto Sans Runic", "Segoe UI Historic", "Segoe UI Symbol", serif;
-}
-
-.gseal-txt-s {
-  font-size: 8px;
-}
-
-.gseal-rune {
-  fill-opacity: 0;
-}
-
-.gseal-stars {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  fill: currentColor;
+.gseal-streak {
+  stroke: url(#gseal-tail);
+  stroke-width: 2.2;
   opacity: 0;
 }
 
@@ -2150,39 +2132,6 @@ p.error {
   opacity: 0;
   mix-blend-mode: screen;
   background: radial-gradient(ellipse closest-side, transparent 52%, currentColor 76%, transparent 100%);
-}
-
-.gseal-mote {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 3px;
-  height: 3px;
-  margin: -1.5px 0 0 -1.5px;
-  border-radius: 50%;
-  opacity: 0;
-  pointer-events: none;
-  background: currentColor;
-  box-shadow: 0 0 6px currentColor;
-}
-
-.gseal-feathers {
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  pointer-events: none;
-}
-
-.gseal-feather {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 7px;
-  height: 18px;
-  margin: -9px 0 0 -3.5px;
-  border-radius: 100% 0 100% 0;
-  background: linear-gradient(135deg, #fff, currentColor);
-  opacity: 0.8;
 }
 
 .gseal-chord {
@@ -2258,8 +2207,7 @@ p.error {
   z-index: 2;
 }
 
-.grev-flip,
-.grev-summary {
+.grev-flip {
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -2310,17 +2258,44 @@ p.error {
   position: absolute;
   inset: 0;
   border-radius: 6px;
-  background: linear-gradient(160deg, #2a2540, #14101f);
-  border: 2px solid #8a93b8;
-  box-shadow: 0 0 6px #8a93b866;
+  background: linear-gradient(160deg, #3a3f55, #1c1f2e);
+  border: 2px solid #5b6280;
+  box-shadow: 0 0 6px #5b628066;
   backface-visibility: hidden;
+  overflow: hidden;
 }
 
-/* SR (violet) / SSR (gold): face-down cards shine in their colour. */
+/* Footer space is reserved during the flip; the buttons only fade in. */
+.grev-foot {
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity 0.4s;
+}
+
+.grev-foot-on {
+  visibility: visible;
+  opacity: 1;
+}
+
+/* Face-down backs are filled with the rarity colour: N slate, R silver-blue, SR gold, SSR prismatic. */
+.grev-R .grev-back {
+  background: linear-gradient(160deg, #e6efff, #9db4d6 45%, #5f7ca6);
+  border-color: #cfdcf2;
+  box-shadow: 0 0 8px #9db4d699;
+}
+
+.grev-SR .grev-back,
+.grev-SSR .grev-back {
+  /* embossed sigil in the centre */
+  background:
+    radial-gradient(circle at 50% 50%, transparent 0 14%, rgba(120, 78, 0, 0.45) 15% 17%, transparent 18% 28%, rgba(255, 255, 255, 0.35) 29% 30%, transparent 31%),
+    linear-gradient(160deg, #fff3b0, #ffd34d 45%, #b8860b);
+}
+
 .grev-SR,
 .grev-SSR {
-  --c: #a99cf0;
-  --cg: 169, 156, 240;
+  --c: #ffd34d;
+  --cg: 255, 211, 77;
   position: relative;
   transform-style: preserve-3d;
   outline: 1px solid transparent; /* anti-alias tilted edges */
@@ -2328,8 +2303,6 @@ p.error {
 }
 
 .grev-SSR {
-  --c: #ffd34d;
-  --cg: 255, 211, 77;
   transition-duration: 1.2s;
 }
 
@@ -2337,11 +2310,21 @@ p.error {
 .grev-SSR .grev-back {
   border-color: var(--c);
   box-shadow: 0 0 10px rgba(var(--cg), 0.55), 0 0 0 1px transparent;
-  overflow: hidden;
 }
 
 .grev-SSR .grev-back {
-  box-shadow: 0 0 16px rgba(var(--cg), 0.8), inset 0 0 12px rgba(var(--cg), 0.4), 0 0 0 1px transparent;
+  background:
+    radial-gradient(circle at 50% 50%, transparent 0 14%, rgba(255, 255, 255, 0.55) 15% 17%, transparent 18% 28%, rgba(255, 255, 255, 0.4) 29% 30%, transparent 31%),
+    linear-gradient(135deg, #ff9ec7, #ffe27a, #8dffb5, #7fd4ff, #c59bff, #ff9ec7);
+  background-size: 100% 100%, 300% 300%;
+  animation: grev-prism 6s linear infinite;
+  box-shadow: 0 0 16px rgba(var(--cg), 0.8), inset 0 0 0 2px rgba(255, 211, 77, 0.9), 0 0 0 1px transparent;
+}
+
+@keyframes grev-prism {
+  to {
+    background-position: 0 0, 300% 300%;
+  }
 }
 
 /* slow diagonal light sweep across the back */
@@ -2479,7 +2462,8 @@ p.error {
   .grev-SSR .grev-back::after,
   .grev-SR::before,
   .grev-SSR::before,
-  .grev-SSR .grev-inner::before {
+  .grev-SSR .grev-inner::before,
+  .grev-SSR .grev-back {
     animation: none;
   }
   .grev-SR.grev-prime,

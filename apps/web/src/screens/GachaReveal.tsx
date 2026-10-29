@@ -136,35 +136,35 @@ export function GachaReveal({ kind, results, cards, items, onClose, onAgain }: P
         </button>
       )}
       {stage === "seal" && <GachaSeal omen={omen} onDone={() => setStage("flip")} />}
-      {stage === "flip" && (
+      {/* One container for flip and summary: the footer space is reserved from the start, so the grid never moves. */}
+      {stage !== "seal" && (
         <div className="grev-flip">
-          <div className="grev-grid">
-            {results.map((r, i) => (
-              // A div, not a button: the card front (BattleCard) is itself a button.
-              <div
-                key={i}
-                role="button"
-                tabIndex={0}
-                className={`grev-card grev-${rarities[i]}${flipped.has(i) ? " grev-flipped" : prime === i ? " grev-prime" : ""}`}
-                aria-label={flipped.has(i) ? "已翻開" : "翻開"}
-                onClick={() => flipOne(i)}
-                onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && flipOne(i)}
-              >
-                <span className="grev-inner">
-                  <span className="grev-back" />
-                  <span className="grev-front">
-                    <Face kind={kind} r={r} cards={cards} items={items} />
+          {stage === "flip" ? (
+            <div className="grev-grid">
+              {results.map((r, i) => (
+                // A div, not a button: the card front (BattleCard) is itself a button.
+                <div
+                  key={i}
+                  role="button"
+                  tabIndex={0}
+                  className={`grev-card grev-${rarities[i]}${flipped.has(i) ? " grev-flipped" : prime === i ? " grev-prime" : ""}`}
+                  aria-label={flipped.has(i) ? "已翻開" : "翻開"}
+                  onClick={() => flipOne(i)}
+                  onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && flipOne(i)}
+                >
+                  <span className="grev-inner">
+                    <span className="grev-back" />
+                    <span className="grev-front">
+                      <Face kind={kind} r={r} cards={cards} items={items} />
+                    </span>
                   </span>
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-      {stage === "summary" && (
-        <div className="grev-summary">
-          <PullGrid kind={kind} results={results} cards={cards} items={items} />
-          <div className="row">
+                </div>
+              ))}
+            </div>
+          ) : (
+            <PullGrid kind={kind} results={results} cards={cards} items={items} />
+          )}
+          <div className={`row grev-foot${stage === "summary" ? " grev-foot-on" : ""}`} aria-hidden={stage !== "summary"}>
             {onAgain && (
               <button type="button" className="primary grow" onClick={onAgain}>
                 再抽一次
