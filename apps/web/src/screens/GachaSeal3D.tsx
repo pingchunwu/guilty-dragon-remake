@@ -4,8 +4,6 @@ import {
   AdditiveBlending,
   CanvasTexture,
   Color,
-  CylinderGeometry,
-  DoubleSide,
   Mesh,
   MeshBasicMaterial,
   PerspectiveCamera,
@@ -26,159 +24,247 @@ import { gsap } from "gsap";
 import { reducedMotion } from "./BattleParts";
 import type { Omen } from "./gachaOmen";
 
-const TEX = 2048;
+const TEX = 2048; // paint resolution; each layer is downsampled to its own size
 const C = TEX / 2;
-const SIZE = 8; // world size of every ring plane
+const TAU = Math.PI * 2;
+const SIZE = 8; // world size of the ground ring planes
 const ORBIT_SECONDS = 40;
-const BLUE_WHITE = "#d6ebff";
+const CYAN = "#9fe8ff";
 
 /* ---------- procedural ring art (white strokes on transparent) ---------- */
 
 type Ctx = CanvasRenderingContext2D;
+let K = 1; // paint-space px per final texture px; line widths below are in final px
 const pt = (r: number, a: number): [number, number] => [C + r * C * Math.cos(a), C + r * C * Math.sin(a)];
+const lwk = (g: Ctx, lw: number) => (g.lineWidth = lw * K);
 
-function ring(g: Ctx, r: number, lw: number) {
-  g.lineWidth = lw;
+function ring(g: Ctx, r: number, lw: number, dash?: [number, number]) {
+  lwk(g, lw);
+  if (dash) g.setLineDash(dash.map((d) => d * K));
   g.beginPath();
-  g.arc(C, C, r * C, 0, Math.PI * 2);
+  g.arc(C, C, r * C, 0, TAU);
   g.stroke();
+  g.setLineDash([]);
 }
 
-/** Long arc whose thickness swells in the middle: a calligraphic brush stroke. */
-function brushArc(g: Ctx, r: number, a0: number, a1: number, thick: number, wave = 0, waves = 0) {
-  const n = 120;
-  const outer: [number, number][] = [];
-  const inner: [number, number][] = [];
+function poly(g: Ctx, r: number, n: number, skip: number, lw: number, rot = -Math.PI / 2) {
+  lwk(g, lw);
+  g.beginPath();
   for (let i = 0; i <= n; i++) {
-    const u = i / n;
-    const a = a0 + (a1 - a0) * u;
-    const rr = r + wave * Math.sin(a * waves);
-    const half = (thick * Math.pow(Math.sin(Math.PI * u), 0.8) + 3) / 2 / C;
-    outer.push(pt(rr + half, a));
-    inner.push(pt(rr - half, a));
-  }
-  g.beginPath();
-  outer.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
-  inner.reverse().forEach(([x, y]) => g.lineTo(x, y));
-  g.closePath();
-  g.fill();
-}
-
-function star(g: Ctx, r: number, points: number, skip: number, lw: number) {
-  g.lineWidth = lw;
-  g.lineJoin = "miter";
-  g.beginPath();
-  for (let i = 0; i <= points; i++) {
-    const [x, y] = pt(r, ((i * skip) / points) * Math.PI * 2 - Math.PI / 2);
+    const [x, y] = pt(r, rot + ((i * skip) / n) * TAU);
     i ? g.lineTo(x, y) : g.moveTo(x, y);
   }
   g.stroke();
 }
 
-function polygon(g: Ctx, r: number, n: number, lw: number, rot: number) {
-  g.lineWidth = lw;
+function spokes(g: Ctx, r0: number, r1: number, n: number, lw: number, rot = 0) {
+  lwk(g, lw);
   g.beginPath();
-  for (let i = 0; i <= n; i++) {
-    const [x, y] = pt(r, rot + (i / n) * Math.PI * 2);
-    i ? g.lineTo(x, y) : g.moveTo(x, y);
+  for (let i = 0; i < n; i++) {
+    const a = rot + (i / n) * TAU;
+    const [x0, y0] = pt(r0, a);
+    const [x1, y1] = pt(r1, a);
+    g.moveTo(x0, y0);
+    g.lineTo(x1, y1);
   }
   g.stroke();
 }
 
-const TAU = Math.PI * 2;
-const LAYERS: { speed: number; paint: (g: Ctx) => void }[] = [
-  {
-    speed: 0.02,
-    paint: (g) => {
-      ring(g, 0.97, 12);
-      ring(g, 0.93, 5);
-      for (let i = 0; i < 12; i++) brushArc(g, 0.885, (i / 12) * TAU + 0.05, ((i + 1) / 12) * TAU - 0.12, i % 2 ? 22 : 34);
-      ring(g, 0.84, 9);
-    },
-  },
-  {
-    speed: -0.035,
-    paint: (g) => {
-      for (const [r, th] of [[0.79, 26], [0.745, 18], [0.70, 12]] as const)
-        for (let k = 0; k < 3; k++) brushArc(g, r, (k / 3) * TAU + r * 4, (k / 3) * TAU + r * 4 + 1.6, th, 0.012, 9);
-      ring(g, 0.76, 5);
-    },
-  },
-  {
-    speed: 0.05,
-    paint: (g) => {
-      ring(g, 0.68, 8);
-      polygon(g, 0.68, 3, 9, -Math.PI / 2);
-      polygon(g, 0.68, 3, 9, Math.PI / 2);
-      ring(g, 0.34, 7);
-    },
-  },
-  {
-    speed: -0.07,
-    paint: (g) => {
-      ring(g, 0.62, 7);
-      star(g, 0.62, 7, 2, 8);
-      ring(g, 0.3, 6);
-    },
-  },
-  {
-    speed: 0.09,
-    paint: (g) => {
-      ring(g, 0.56, 11);
-      ring(g, 0.45, 11);
-      for (let i = 0; i < 14; i++) {
-        const a = (i / 14) * TAU;
-        brushArc(g, 0.505, a, a + 0.3, 46);
-      }
-    },
-  },
-  {
-    speed: -0.12,
-    paint: (g) => {
-      g.lineWidth = 8;
-      g.lineJoin = "round";
-      for (let i = 0; i < 8; i++) {
-        const a = (i / 8) * TAU;
-        const [x0, y0] = pt(0.12, a);
-        const [x1, y1] = pt(0.4, a);
-        const [c1x, c1y] = pt(0.3, a - 0.34);
-        const [c2x, c2y] = pt(0.3, a + 0.34);
-        g.beginPath();
-        g.moveTo(x0, y0);
-        g.quadraticCurveTo(c1x, c1y, x1, y1);
-        g.quadraticCurveTo(c2x, c2y, x0, y0);
-        g.stroke();
-      }
-      ring(g, 0.42, 6);
-    },
-  },
-  {
-    speed: 0.16,
-    paint: (g) => {
-      ring(g, 0.17, 9);
-      ring(g, 0.1, 6);
-      polygon(g, 0.17, 6, 6, 0);
-    },
-  },
+/** Circles sitting on the vertices of an n-gon, each with an inner ring and a mini star. */
+function vertexCircles(g: Ctx, r: number, n: number, rr: number, lw: number, rot = -Math.PI / 2) {
+  for (let i = 0; i < n; i++) {
+    const a = rot + (i / n) * TAU;
+    const [x, y] = pt(r, a);
+    lwk(g, lw);
+    g.beginPath();
+    g.arc(x, y, rr * C, 0, TAU);
+    g.stroke();
+    g.beginPath();
+    g.arc(x, y, rr * C * 0.66, 0, TAU);
+    g.stroke();
+    const m = rr * C * 0.6;
+    g.beginPath();
+    for (let j = 0; j <= 6; j++) {
+      const b = a + ((j * 2) / 6) * TAU;
+      j ? g.lineTo(x + m * Math.cos(b), y + m * Math.sin(b)) : g.moveTo(x + m * Math.cos(b), y + m * Math.sin(b));
+    }
+    g.stroke();
+  }
+}
+
+function crescents(g: Ctx, r: number, n: number, s: number, lw: number, rot = 0) {
+  lwk(g, lw);
+  for (let i = 0; i < n; i++) {
+    const a = rot + (i / n) * TAU;
+    const [x, y] = pt(r, a);
+    const d = s * C;
+    g.beginPath();
+    g.arc(x, y, d, a - 2.2, a + 2.2);
+    g.arc(x + Math.cos(a) * d * 0.4, y + Math.sin(a) * d * 0.4, d * 0.82, a + 2.2, a - 2.2, true);
+    g.closePath();
+    g.stroke();
+  }
+}
+
+function petals(g: Ctx, r0: number, r1: number, n: number, lw: number, bend = 0.3) {
+  lwk(g, lw);
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * TAU;
+    const [x0, y0] = pt(r0, a);
+    const [x1, y1] = pt(r1, a);
+    const [c1x, c1y] = pt((r0 + r1) / 2, a - bend);
+    const [c2x, c2y] = pt((r0 + r1) / 2, a + bend);
+    g.beginPath();
+    g.moveTo(x0, y0);
+    g.quadraticCurveTo(c1x, c1y, x1, y1);
+    g.quadraticCurveTo(c2x, c2y, x0, y0);
+    g.stroke();
+  }
+}
+
+const rng = (seed: number) => () => {
+  seed = (seed + 0x6d2b79f5) | 0;
+  let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+};
+
+/**
+ * A band of invented cursive: words of connected loops, ascenders and descenders written
+ * along the circle between two bounding rings. Every letter joins the baseline, so it reads
+ * as handwriting, never as specks.
+ */
+function script(g: Ctx, rIn: number, rOut: number, seed: number, lw: number) {
+  ring(g, rIn, lw);
+  ring(g, rOut, lw);
+  const rand = rng(seed);
+  const band = (rOut - rIn) * C;
+  const R = rIn * C + band * 0.3;
+  const H = band * 0.3;
+  const L = TAU * R;
+  lwk(g, lw * 0.9);
+  const heights = [0.5, 0.8, 1.1, 1.6, -0.45];
+  let x = 0;
+  let inWord = 0;
+  g.beginPath();
+  while (x < L - H) {
+    if (inWord <= 0) {
+      x += H * (0.5 + rand() * 0.4); // word gap
+      inWord = 3 + Math.floor(rand() * 5);
+      g.stroke();
+      g.beginPath();
+    }
+    inWord--;
+    const w = H * (0.55 + rand() * 0.55);
+    const h = heights[Math.floor(rand() * heights.length)]! * H;
+    const k = 0.15 + rand() * 0.3;
+    const phase = rand() < 0.5 ? 0 : Math.PI;
+    for (let i = 0; i <= 16; i++) {
+      const t = i / 16;
+      const px = x + w * t + k * w * Math.sin(TAU * t + phase);
+      const py = h * Math.pow(Math.sin(Math.PI * t), 0.9);
+      const a = Math.min(px, L) / R;
+      g.lineTo(C + (R + py) * Math.cos(a), C + (R + py) * Math.sin(a));
+    }
+    x += w;
+  }
+  g.stroke();
+}
+
+type Layer = { size: number; tex: number; y: number; speed: number; glint: number; delay: number; paint: (g: Ctx) => void };
+
+/** Layers 0-4 form the ground circle; 5-7 are the floating casts above it. Order = reveal order. */
+const LAYERS: Layer[] = [
+  { size: SIZE, tex: 2048, y: 0, speed: -0.012, glint: 0.35, delay: 0, paint: (g) => {
+    ring(g, 0.985, 4);
+    ring(g, 0.97, 2);
+    script(g, 0.87, 0.955, 1, 4);
+    ring(g, 0.85, 3);
+    ring(g, 0.825, 7, [110, 40]);
+    ring(g, 0.8, 3);
+  } },
+  { size: SIZE, tex: 1024, y: 0.012, speed: 0.022, glint: 0.5, delay: 0.5, paint: (g) => {
+    script(g, 0.69, 0.78, 2, 3);
+    ring(g, 0.665, 3);
+    crescents(g, 0.62, 12, 0.032, 3, 0.1);
+    ring(g, 0.58, 3);
+  } },
+  { size: SIZE, tex: 1024, y: 0.024, speed: -0.032, glint: 0.4, delay: 1.0, paint: (g) => {
+    ring(g, 0.56, 3);
+    script(g, 0.46, 0.55, 3, 3);
+    ring(g, 0.44, 3);
+    poly(g, 0.44, 8, 1, 3);
+    spokes(g, 0.38, 0.44, 48, 2.5);
+  } },
+  { size: SIZE, tex: 1024, y: 0.036, speed: 0.05, glint: 0, delay: 1.5, paint: (g) => {
+    poly(g, 0.42, 4, 1, 3, 0);
+    poly(g, 0.42, 4, 1, 3, Math.PI / 4);
+    poly(g, 0.42, 8, 3, 2.5);
+    vertexCircles(g, 0.42, 8, 0.07, 2.5, 0);
+    ring(g, 0.32, 3);
+    poly(g, 0.32, 6, 2, 3);
+    crescents(g, 0.25, 6, 0.04, 2.5, 0.3);
+    ring(g, 0.2, 3);
+  } },
+  { size: 3.6, tex: 512, y: 0.048, speed: -0.09, glint: 0, delay: 2.0, paint: (g) => {
+    ring(g, 0.96, 2.5);
+    ring(g, 0.78, 2.5);
+    petals(g, 0.1, 0.76, 8, 2.5, 0.28);
+    poly(g, 0.55, 6, 2, 2.5);
+    ring(g, 0.55, 2);
+    ring(g, 0.3, 2.5);
+    poly(g, 0.3, 8, 3, 2);
+    ring(g, 0.1, 3);
+  } },
+  { size: 6.2, tex: 1024, y: 1.5, speed: 0.06, glint: 0.6, delay: 2.4, paint: (g) => {
+    ring(g, 0.98, 4);
+    script(g, 0.84, 0.95, 5, 3);
+    ring(g, 0.8, 3);
+    poly(g, 0.78, 6, 2, 3);
+    vertexCircles(g, 0.78, 6, 0.1, 2.5);
+    ring(g, 0.5, 3);
+    poly(g, 0.5, 6, 1, 3, 0);
+    spokes(g, 0.2, 0.5, 12, 2.5);
+    ring(g, 0.2, 3);
+  } },
+  { size: 4.4, tex: 512, y: 2.6, speed: -0.09, glint: 0.7, delay: 3.1, paint: (g) => {
+    ring(g, 0.97, 3);
+    script(g, 0.8, 0.94, 6, 2.5);
+    ring(g, 0.76, 2.5);
+    poly(g, 0.74, 5, 2, 2.5);
+    vertexCircles(g, 0.74, 5, 0.12, 2);
+    ring(g, 0.36, 2.5);
+    poly(g, 0.36, 5, 1, 2.5);
+  } },
+  { size: 3, tex: 512, y: 3.6, speed: 0.12, glint: 0.8, delay: 3.8, paint: (g) => {
+    ring(g, 0.96, 3);
+    ring(g, 0.86, 2.5);
+    poly(g, 0.82, 7, 3, 2.5);
+    crescents(g, 0.52, 7, 0.1, 2, 0.2);
+    ring(g, 0.34, 2.5);
+    poly(g, 0.34, 6, 1, 2.5, 0);
+  } },
 ];
 
-/** Paint at 2048, then downsample to `out` px with a soft blurred falloff under a crisp core. */
+const big = typeof document === "undefined" ? null : document.createElement("canvas");
+
+/** Paint at 2048, then downsample to `out` px with a faint soft falloff under a crisp core. */
 function paintTexture(paint: (g: Ctx) => void, anisotropy: number, out: number) {
-  const big = document.createElement("canvas");
-  big.width = big.height = TEX;
-  const g = big.getContext("2d")!;
+  big!.width = big!.height = TEX;
+  const g = big!.getContext("2d")!;
   g.strokeStyle = g.fillStyle = "#fff";
-  g.lineCap = "round";
+  g.lineCap = g.lineJoin = "round";
+  K = TEX / out;
   paint(g);
   const cv = document.createElement("canvas");
   cv.width = cv.height = out;
   const o = cv.getContext("2d")!;
-  o.filter = `blur(${out / 160}px)`; // no-op where ctx.filter is unsupported
-  o.globalAlpha = 0.55;
-  o.drawImage(big, 0, 0, out, out);
+  o.filter = `blur(${out / 450}px)`; // no-op where ctx.filter is unsupported
+  o.globalAlpha = 0.5;
+  o.drawImage(big!, 0, 0, out, out);
   o.filter = "none";
   o.globalAlpha = 1;
-  o.drawImage(big, 0, 0, out, out);
+  o.drawImage(big!, 0, 0, out, out);
   const t = new CanvasTexture(cv);
   t.anisotropy = anisotropy;
   return t;
@@ -196,11 +282,12 @@ function gradientTexture(w: number, h: number, fill: (g: Ctx) => CanvasGradient,
   return t;
 }
 
-/* ---------- ring material: alpha texture + sweeping angular reveal ---------- */
+/* ---------- ring material: alpha texture, angular write-in reveal, travelling glint ---------- */
 
 const VERT = `varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }`;
 const FRAG = `
 uniform sampler2D uMap; uniform vec3 uColor; uniform float uReveal; uniform float uAlpha;
+uniform float uGlint; uniform float uSweep;
 varying vec2 vUv;
 void main(){
   vec2 p = vUv - .5;
@@ -209,7 +296,9 @@ void main(){
   float m = 1. - smoothstep(front - .12, front, a);
   float head = smoothstep(front - .25, front - .03, a) * m * (1. - step(1., uReveal));
   float t = texture2D(uMap, vUv).a;
-  gl_FragColor = vec4(uColor * (1. + 1.6 * head), t * m * uAlpha);
+  float glint = exp(-fract(uSweep - a) * 12.) * uGlint;
+  vec3 col = mix(uColor, vec3(1.), smoothstep(.7, 1., t) * .85);
+  gl_FragColor = vec4(col * (1. + 1.6 * head + 1.8 * glint), t * m * uAlpha);
 }`;
 
 /* ---------- component ---------- */
@@ -251,15 +340,17 @@ export function GachaSeal3D({ omen: _omen, onDone }: { omen: Omen; onDone: () =>
     const camera = new PerspectiveCamera(40, 1, 0.1, 100);
 
     const tint: Color[] = []; // every colour that setTier recolours
-    const rings: { mesh: Mesh; mat: ShaderMaterial; speed: number }[] = [];
+    const rings: { mesh: Mesh; mat: ShaderMaterial; speed: number; y: number; delay: number }[] = [];
 
-    LAYERS.forEach((L, i) => {
+    LAYERS.forEach((L) => {
       const mat = new ShaderMaterial({
         uniforms: {
-          uMap: { value: paintTexture(L.paint, aniso, i === 0 ? 2048 : 1024) },
-          uColor: { value: new Color(BLUE_WHITE) },
+          uMap: { value: paintTexture(L.paint, aniso, L.tex) },
+          uColor: { value: new Color(CYAN) },
           uReveal: { value: 0 },
-          uAlpha: { value: 0.65 },
+          uAlpha: { value: 0.8 },
+          uGlint: { value: L.glint },
+          uSweep: { value: 0 },
         },
         vertexShader: VERT,
         fragmentShader: FRAG,
@@ -268,11 +359,11 @@ export function GachaSeal3D({ omen: _omen, onDone }: { omen: Omen; onDone: () =>
         blending: AdditiveBlending,
       });
       tint.push(mat.uniforms.uColor!.value);
-      const mesh = new Mesh(new PlaneGeometry(SIZE, SIZE), mat);
+      const mesh = new Mesh(new PlaneGeometry(L.size, L.size), mat);
       mesh.rotation.x = -Math.PI / 2;
-      mesh.position.y = 0.012 * i;
+      mesh.position.y = L.y;
       scene.add(mesh);
-      rings.push({ mesh, mat, speed: L.speed });
+      rings.push({ mesh, mat, speed: L.speed, y: L.y, delay: L.delay });
     });
 
     // soft glow disc under the circle
@@ -284,7 +375,7 @@ export function GachaSeal3D({ omen: _omen, onDone }: { omen: Omen; onDone: () =>
         gr.addColorStop(1, "rgba(255,255,255,0)");
         return gr;
       }),
-      color: BLUE_WHITE,
+      color: CYAN,
       transparent: true,
       opacity: 0,
       depthWrite: false,
@@ -295,26 +386,7 @@ export function GachaSeal3D({ omen: _omen, onDone }: { omen: Omen; onDone: () =>
     glow.position.y = -0.03;
     scene.add(glow);
 
-    // faint upward haze
-    const hazeMat = new MeshBasicMaterial({
-      map: gradientTexture(4, 256, (g) => {
-        const gr = g.createLinearGradient(0, 256, 0, 0);
-        gr.addColorStop(0, "rgba(255,255,255,.55)");
-        gr.addColorStop(0.5, "rgba(255,255,255,.12)");
-        gr.addColorStop(1, "rgba(255,255,255,0)");
-        return gr;
-      }),
-      color: BLUE_WHITE,
-      transparent: true,
-      opacity: 0,
-      depthWrite: false,
-      side: DoubleSide,
-      blending: AdditiveBlending,
-    });
-    const haze = new Mesh(new CylinderGeometry(3, 3.4, 5, 48, 1, true), hazeMat);
-    haze.position.y = 2.5;
-    scene.add(haze);
-    tint.push(glowMat.color, hazeMat.color);
+    tint.push(glowMat.color);
 
     /** Recolour the whole scene (later phases pass the SR / SSR colour). */
     const setTier = (hex: string) => tint.forEach((c) => c.set(hex));
@@ -347,14 +419,13 @@ export function GachaSeal3D({ omen: _omen, onDone }: { omen: Omen; onDone: () =>
 
     // seal reveal: outer ring first, each sweeping around its angle
     const tl = gsap.timeline();
-    const n = rings.length;
-    rings.forEach((r, i) => {
-      const at = (i / n) * 1.0;
-      tl.to(r.mat.uniforms.uReveal!, { value: 1, duration: 0.8, ease: "power2.out" }, at);
-      tl.from(r.mesh.scale, { x: 0.9, y: 0.9, duration: 0.8, ease: "power2.out" }, at);
+    rings.forEach((r) => {
+      const dur = r.y > 0.5 ? 1.2 : 1.0;
+      tl.to(r.mat.uniforms.uReveal!, { value: 1, duration: dur, ease: "power2.out" }, r.delay);
+      tl.from(r.mesh.scale, { x: 0.92, y: 0.92, duration: dur, ease: "power2.out" }, r.delay);
+      if (r.y > 0.5) tl.from(r.mesh.position, { y: r.y - 0.7, duration: dur, ease: "power2.out" }, r.delay);
     });
     tl.to(glowMat, { opacity: 0.15, duration: 1.8, ease: "sine.out" }, 0);
-    tl.to(hazeMat, { opacity: 0.05, duration: 1.8, ease: "sine.out" }, 0.3);
 
     // single render loop
     let raf = 0;
@@ -376,12 +447,15 @@ export function GachaSeal3D({ omen: _omen, onDone }: { omen: Omen; onDone: () =>
         }
       }
       spin += dt;
-      for (const r of rings) r.mesh.rotation.z += r.speed * dt;
+      rings.forEach((r, i) => {
+        r.mesh.rotation.z += r.speed * dt;
+        r.mat.uniforms.uSweep!.value = spin * (0.12 + 0.03 * i) * (i % 2 ? -1 : 1);
+      });
       const az = (spin / ORBIT_SECONDS) * Math.PI * 2;
       const el35 = (35 * Math.PI) / 180;
       const d = Math.max(9, 10.8 / camera.aspect);
       camera.position.set(Math.sin(az) * Math.cos(el35) * d, Math.sin(el35) * d, Math.cos(az) * Math.cos(el35) * d);
-      camera.lookAt(0, 0.3, 0);
+      camera.lookAt(0, 1.2, 0);
       composer.render();
     };
     raf = requestAnimationFrame(loop);
