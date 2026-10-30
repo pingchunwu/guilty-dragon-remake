@@ -70,14 +70,14 @@ export function GachaReveal({ kind, results, cards, items, onClose, onAgain }: P
     if (kind === "card") for (const r of results) new Image().src = `/cards/${r.id}.webp`;
   }, [kind, results]);
 
-  // Next SR/SSR cut-in owed: flipped, not yet shown (and, when skipping, only NEW SSR ones).
+  // Next SR/SSR/UR cut-in owed: flipped, not yet shown (and, when skipping, only NEW SSR ones).
   const owed = results.findIndex(
     (r, i) =>
       stage !== "summary" &&
-      (rarities[i] === "SSR" || rarities[i] === "SR") &&
+      (rarities[i] === "UR" || rarities[i] === "SSR" || rarities[i] === "SR") &&
       flipped.has(i) &&
       !shown.has(i) &&
-      (!skipping || (rarities[i] === "SSR" && r.isNew)),
+      (!skipping || ((rarities[i] === "SSR" || rarities[i] === "UR") && r.isNew)),
   );
   useEffect(() => {
     if (cutIn === null && owed >= 0) setCutIn(owed);
@@ -94,7 +94,7 @@ export function GachaReveal({ kind, results, cards, items, onClose, onAgain }: P
       t = setTimeout(() => {
         flipOne(prime);
         setPrime(null);
-      }, rarities[prime] === "SSR" ? 1200 : rarities[prime] === "SR" ? 600 : 200); // anticipation hold
+      }, rarities[prime] === "UR" ? 1800 : rarities[prime] === "SSR" ? 1200 : rarities[prime] === "SR" ? 600 : 200); // anticipation hold
     } else if (next >= 0) {
       // After an SR/SSR flip, let its flip + light burst land before the next anticipation.
       t = setTimeout(() => setPrime(next), Math.max(150, settleAt.current - Date.now()));
@@ -109,7 +109,7 @@ export function GachaReveal({ kind, results, cards, items, onClose, onAgain }: P
   }, [skipping, busyCutIn]);
 
   function flipOne(i: number) {
-    const settle = rarities[i] === "SSR" ? 1300 : rarities[i] === "SR" ? 1000 : 0; // flip 0.9/0.6s + 0.4s
+    const settle = rarities[i] === "UR" ? 2000 : rarities[i] === "SSR" ? 1300 : rarities[i] === "SR" ? 1000 : 0; // flip 0.9/0.6s + 0.4s
     if (settle) settleAt.current = Date.now() + settle;
     setFlipped((f) => new Set(f).add(i));
   }

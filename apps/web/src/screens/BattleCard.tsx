@@ -238,7 +238,7 @@ export function BattleCard({ card, owned, show, className, onClick }: Props) {
   const [frameFailed, setFrameFailed] = useState<string>();
   const skill = card.skill ? SKILL_BY_ID.get(card.skill) : undefined;
   const value = show === "draw" ? card.draw : card.attack;
-  const frameKey = `${card.type}-${card.rarity}`;
+  const frameKey = `${card.type}-${card.rarity === "UR" ? "SSR" : card.rarity}`; // no UR frame art; CSS adds the prismatic edge
   return (
     <button
       type="button"

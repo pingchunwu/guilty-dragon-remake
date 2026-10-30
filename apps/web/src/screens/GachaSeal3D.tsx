@@ -279,6 +279,9 @@ const GIANT: Layer = { size: 10, tex: 1024, y: 9.6, speed: 0.025, glint: 0.7, de
   ring(g, 0.1, 3);
 } };
 
+/** UR: a second, larger giant that descends against the gold one. */
+const GIANT2: Layer = { ...GIANT, size: 13, y: 17, speed: -0.045 };
+
 const big = typeof document === "undefined" ? null : document.createElement("canvas");
 
 /** Paint at 2048, then downsample to `out` px with a faint soft falloff under a crisp core. */
@@ -318,10 +321,13 @@ function gradientTexture(w: number, h: number, fill: (g: Ctx) => CanvasGradient,
 /* ---------- ring material: alpha texture, angular write-in reveal, travelling glint ---------- */
 
 const VERT = `varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }`;
+// UR: hue wheel for the prismatic break
+const HUE = `vec3 rainbow(float h){ return clamp(abs(mod(h * 6. + vec3(0., 4., 2.), 6.) - 3.) - 1., 0., 1.); }`;
 const FRAG = `
 uniform sampler2D uMap; uniform vec3 uColor; uniform float uReveal; uniform float uAlpha;
-uniform float uGlint; uniform float uSweep;
+uniform float uGlint; uniform float uSweep; uniform float uPrism; uniform float uHue;
 varying vec2 vUv;
+${HUE}
 void main(){
   vec2 p = vUv - .5;
   float a = atan(p.y, p.x) / 6.2831853 + .5;
@@ -330,7 +336,8 @@ void main(){
   float head = smoothstep(front - .25, front - .03, a) * m * (1. - step(1., uReveal));
   float t = texture2D(uMap, vUv).a;
   float glint = exp(-fract(uSweep - a) * 12.) * uGlint;
-  vec3 col = mix(uColor, vec3(1.), smoothstep(.7, 1., t) * .85);
+  vec3 col = mix(uColor, rainbow(a + length(p) * .9 + uHue), uPrism);
+  col = mix(col, vec3(1.), smoothstep(.7, 1., t) * .85);
   gl_FragColor = vec4(col * (1. + 1.6 * head + 1.8 * glint), t * m * uAlpha);
 }`;
 
@@ -341,8 +348,9 @@ void main(){
 const PVERT = `varying vec3 vN; varying vec3 vV; varying vec2 vUv;
 void main(){ vUv=uv; vec4 mv=modelViewMatrix*vec4(position,1.); vN=normalize(normalMatrix*normal); vV=normalize(-mv.xyz); gl_Position=projectionMatrix*mv; }`;
 const PFRAG = `
-uniform vec3 uColor; uniform float uAlpha; uniform float uTime;
+uniform vec3 uColor; uniform float uAlpha; uniform float uTime; uniform float uPrism; uniform float uHue;
 varying vec3 vN; varying vec3 vV; varying vec2 vUv;
+${HUE}
 float h(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 float vn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f*f*(3.-2.*f);
   return mix(mix(h(i), h(i+vec2(1.,0.)), f.x), mix(h(i+vec2(0.,1.)), h(i+vec2(1.,1.)), f.x), f.y); }
@@ -351,19 +359,20 @@ void main(){
   float g = smoothstep(0., .08, vUv.y) * (1. - smoothstep(.7, 1., vUv.y));
   float a = vUv.x * 6.2831853;
   float n = vn(vec2(cos(a) * 2.5 + vUv.y * 3. - uTime * .15, sin(a) * 2.5));
-  vec3 col = mix(uColor, vec3(1.), f * f * .5);
+  vec3 col = mix(uColor, rainbow(vUv.x + vUv.y * .7 + uHue), uPrism);
+  col = mix(col, vec3(1.), f * f * .5);
   gl_FragColor = vec4(col, f * g * (.65 + .5 * n) * uAlpha);
 }`;
 
 const RVERT = `varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }`;
 const RFRAG = `
-uniform vec3 uColor; uniform float uProg;
+uniform vec3 uColor; uniform float uProg; uniform float uFade;
 varying vec2 vUv;
 void main(){
   float x = vUv.x;
   float a = (1. - smoothstep(uProg - .02, uProg, x)) * smoothstep(0., .06, x) * (1. - smoothstep(.94, 1., x));
   float head = exp(-max(uProg - x, 0.) * 5.) * (1. - step(1., uProg));
-  gl_FragColor = vec4(mix(uColor, vec3(1.), .5) * (.7 + 1.4 * head), a);
+  gl_FragColor = vec4(mix(uColor, vec3(1.), .5) * (.7 + 1.4 * head), a * uFade);
 }`;
 
 function rayTexture() {
@@ -391,7 +400,7 @@ const GOLD = "#ffd34d";
 const LABEL_TOL = 0.05;
 
 /**
- * Gacha omen in 3D. Phases (seconds): seal 0-2.4; if good, breakthrough 2.4-3.8 then
+ * Gacha omen in 3D (UR: SSR gold, a stalled beat, then a prismatic break ~10s). Phases (seconds): seal 0-2.4; if good, breakthrough 2.4-3.8 then
  * SR 3.8-5.0 / SSR 3.8-7.0; final swell 1s (at 3.0 when nothing good). Tap skips to the next
  * phase; tapping in the final phase ends it. Reduced motion or no WebGL ends immediately.
  */
@@ -416,7 +425,8 @@ export function GachaSeal3D({ omen, onDone }: { omen: Omen; onDone: () => void }
       return;
     }
     const { good, tier, tease } = omenRef.current;
-    const gold = tier === "SSR";
+    const ur = tier === "UR";
+    const gold = tier === "SSR" || ur; // UR first plays the full gold look
     renderer.toneMapping = ACESFilmicToneMapping;
     renderer.toneMappingExposure = 0.9;
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
@@ -432,7 +442,7 @@ export function GachaSeal3D({ omen, onDone }: { omen: Omen; onDone: () => void }
       gr.addColorStop(1, "#03060f");
       return gr;
     }, true);
-    const camera = new PerspectiveCamera(40, 1, 0.1, 100);
+    const camera = new PerspectiveCamera(40, 1, 0.1, 200);
 
     // every colour that follows the tier; setTier is the instant version of tierTo below
     const tint: Color[] = [];
@@ -444,6 +454,8 @@ export function GachaSeal3D({ omen, onDone }: { omen: Omen; onDone: () => void }
     };
     void setTier;
 
+    const prism = { value: 0 }; // UR: shared by every material that shifts to the spectrum
+    const hue = { value: 0 };
     const late: Object3D[] = []; // later-phase objects: compiled up front, hidden until their phase
 
     const makeRing = (L: Layer) => {
@@ -455,6 +467,8 @@ export function GachaSeal3D({ omen, onDone }: { omen: Omen; onDone: () => void }
           uAlpha: { value: 0.8 },
           uGlint: { value: L.glint },
           uSweep: { value: 0 },
+          uPrism: prism,
+          uHue: hue,
         },
         vertexShader: VERT,
         fragmentShader: FRAG,
@@ -471,9 +485,10 @@ export function GachaSeal3D({ omen, onDone }: { omen: Omen; onDone: () => void }
     };
     // paint everything before the timeline exists so painting never eats the reveal
     const rings = LAYERS.map(makeRing);
-    const crown = tier === "SR" || (gold && tease) ? makeRing(CROWN) : null;
+    const crown = tier === "SR" || (tier === "SSR" && tease) ? makeRing(CROWN) : null;
     const giant = gold ? makeRing(GIANT) : null;
-    const extra = [crown, giant].filter((x) => x !== null);
+    const giant2 = ur ? makeRing(GIANT2) : null;
+    const extra = [crown, giant, giant2].filter((x) => x !== null);
     extra.forEach((r) => late.push(r.mesh));
     const spinners = [...rings, ...extra];
 
@@ -502,7 +517,7 @@ export function GachaSeal3D({ omen, onDone }: { omen: Omen; onDone: () => void }
     const pillarGeo = new CylinderGeometry(0.7, 0.7, 1, 48, 1, true);
     pillarGeo.translate(0, 0.5, 0);
     const pillarMat = new ShaderMaterial({
-      uniforms: { uColor: { value: new Color(CYAN) }, uAlpha: { value: 0 }, uTime: { value: 0 } },
+      uniforms: { uColor: { value: new Color(CYAN) }, uAlpha: { value: 0 }, uTime: { value: 0 }, uPrism: prism, uHue: hue },
       vertexShader: PVERT,
       fragmentShader: PFRAG,
       transparent: true,
@@ -529,6 +544,27 @@ export function GachaSeal3D({ omen, onDone }: { omen: Omen; onDone: () => void }
     });
     const ribbons = new Group();
     const ribbonMats: ShaderMaterial[] = [];
+    // spiral tube around the tower; returns its colour so the caller can tint it
+    const addRibbon = (into: Group, i: number, n: number, r0: number, h: number, w: number, dir = 1) => {
+      const pts: Vector3[] = [];
+      for (let j = 0; j <= 40; j++) {
+        const u = j / 40;
+        const a = dir * ((i / n) * TAU + u * TAU * 1.6);
+        const r = r0 + 0.25 * Math.sin(u * TAU * 2 + i);
+        pts.push(new Vector3(r * Math.cos(a), 0.3 + u * h, r * Math.sin(a)));
+      }
+      const mat = new ShaderMaterial({
+        uniforms: { uColor: { value: new Color(CYAN) }, uProg: { value: 0 }, uFade: { value: 1 } },
+        vertexShader: RVERT,
+        fragmentShader: RFRAG,
+        transparent: true,
+        depthWrite: false,
+        blending: AdditiveBlending,
+      });
+      ribbonMats.push(mat);
+      into.add(new Mesh(new TubeGeometry(new CatmullRomCurve3(pts), 220, w, 6, false), mat));
+      return mat.uniforms.uColor!.value as Color;
+    };
     if (gold) {
       tint.push(rayMat.color);
       for (let i = 0; i < 5; i++) {
@@ -545,28 +581,48 @@ export function GachaSeal3D({ omen, onDone }: { omen: Omen; onDone: () => void }
       rays.position.y = GIANT.y;
       scene.add(rays);
       late.push(rays);
-      for (let i = 0; i < 4; i++) {
-        const pts: Vector3[] = [];
-        for (let j = 0; j <= 40; j++) {
-          const u = j / 40;
-          const a = (i / 4) * TAU + u * TAU * 1.6;
-          const r = 3.5 + 0.25 * Math.sin(u * TAU * 2 + i);
-          pts.push(new Vector3(r * Math.cos(a), 0.3 + u * 9, r * Math.sin(a)));
-        }
-        const mat = new ShaderMaterial({
-          uniforms: { uColor: { value: new Color(CYAN) }, uProg: { value: 0 } },
-          vertexShader: RVERT,
-          fragmentShader: RFRAG,
-          transparent: true,
-          depthWrite: false,
-          blending: AdditiveBlending,
-        });
-        tint.push(mat.uniforms.uColor!.value);
-        ribbonMats.push(mat);
-        ribbons.add(new Mesh(new TubeGeometry(new CatmullRomCurve3(pts), 220, 0.05, 6, false), mat));
-      }
+      for (let i = 0; i < 4; i++) tint.push(addRibbon(ribbons, i, 4, 3.5, 9, 0.05));
       scene.add(ribbons);
       late.push(ribbons);
+    }
+
+    // UR: seven spectrum ribbons spiralling the other way, and the ring of light along the ground
+    const prismRibbons = new Group();
+    const prismMats: ShaderMaterial[] = [];
+    const wave = new Mesh(
+      new PlaneGeometry(120, 120),
+      new ShaderMaterial({
+        uniforms: { uR: { value: 0 }, uHue: hue },
+        vertexShader: RVERT,
+        fragmentShader: `uniform float uR; uniform float uHue; varying vec2 vUv;
+${HUE}
+void main(){
+  vec2 p = (vUv - .5) * 120.;
+  float r = length(p);
+  float d = r - uR * 60.;
+  float line = exp(-d * d / .25) + .35 * exp(-d * d / 6.) * step(d, 0.);
+  float fade = 1. - smoothstep(.55, 1., uR);
+  vec3 col = mix(rainbow(atan(p.y, p.x) / 6.2831853 + uHue), vec3(1.), exp(-d * d / .25) * .6);
+  gl_FragColor = vec4(col * line * fade * 1.4, 1.);
+}`,
+        transparent: true,
+        depthWrite: false,
+        blending: AdditiveBlending,
+      }),
+    );
+    if (ur) {
+      for (let i = 0; i < 7; i++) {
+        const c = addRibbon(prismRibbons, i, 7, 4.3, 17, 0.045, -1);
+        c.setHSL(i / 7, 1, 0.55);
+        const pm = ribbonMats.pop()!;
+        pm.uniforms.uFade!.value = 0.55; // keep the seven colours readable instead of blowing out to white
+        prismMats.push(pm);
+      }
+      scene.add(prismRibbons);
+      wave.rotation.x = -Math.PI / 2;
+      wave.position.y = 0.06;
+      scene.add(wave);
+      late.push(prismRibbons, wave);
     }
 
     // post-processing
@@ -598,6 +654,7 @@ export function GachaSeal3D({ omen, onDone }: { omen: Omen; onDone: () => void }
     late.forEach((o) => (o.visible = false));
 
     /* ---------- timeline ---------- */
+    const slow = { v: 1 }; // global time scale for the UR held breath
     const cam = { look: 1.2, dist: 1, elev: 35 };
     let finished = false;
     const finish = () => {
@@ -609,7 +666,9 @@ export function GachaSeal3D({ omen, onDone }: { omen: Omen; onDone: () => void }
     const SEAL = 2.4;
     const BREAK = SEAL;
     const GOOD = BREAK + 1.4;
-    const FINAL = !good ? SEAL + 0.6 : gold ? GOOD + 3.2 : GOOD + 1.2;
+    const GOLD_END = GOOD + 2.0; // UR: gold look, then held breath, then the spectrum
+    const URBREAK = GOLD_END + 0.9;
+    const FINAL = !good ? SEAL + 0.6 : ur ? URBREAK + 2.8 : gold ? GOOD + 3.2 : GOOD + 1.2;
     tl.addLabel("seal", 0).addLabel("final", FINAL);
     const marks = [FINAL];
     const show = (o: Object3D, at: number) => tl.set(o, { visible: true }, at);
@@ -649,11 +708,11 @@ export function GachaSeal3D({ omen, onDone }: { omen: Omen; onDone: () => void }
         tl.to(cam, { look: 4.2, dist: 1.3, duration: 1.2, ease: "sine.inOut" }, GOOD);
       }
       if (gold && giant) {
-        const t0 = GOOD + (tease ? 1.0 : 0);
+        const t0 = GOOD + (tease && !ur ? 1.0 : 0);
         tierTo(GOLD, 1.0, t0);
         tl.to(pillar.scale, { y: 11.5, duration: 2.0, ease: "sine.inOut" }, t0);
         tl.to(pillarMat.uniforms.uAlpha!, { value: 0.5, duration: 1.5, ease: "sine.out" }, t0);
-        tl.to(cam, { look: 5.2, dist: 1.7, elev: 30, duration: 2.2, ease: "sine.inOut" }, t0);
+        tl.to(cam, { look: 5.2, dist: 1.7, elev: 30, duration: ur ? 2.0 : 2.2, ease: "sine.inOut" }, t0);
         show(giant.mesh, t0);
         tl.fromTo(giant.mesh.position, { y: 26 }, { y: GIANT.y, duration: 2.0, ease: "power2.out" }, t0);
         tl.fromTo(giant.mat.uniforms.uReveal!, { value: 0 }, { value: 1, duration: 2.0, ease: "power1.inOut" }, t0);
@@ -664,6 +723,38 @@ export function GachaSeal3D({ omen, onDone }: { omen: Omen; onDone: () => void }
           tl.fromTo(m.uniforms.uProg!, { value: 0 }, { value: 1, duration: 1.2, ease: "sine.inOut" }, t0 + 0.3 + i * 0.12),
         );
       }
+    }
+
+    if (ur && giant && giant2) {
+      tl.addLabel("stall", GOLD_END).addLabel("prism", URBREAK);
+      marks.push(GOLD_END, URBREAK);
+      // held breath: everything slows and the light drains away except the pillar core
+      tl.to(slow, { v: 0.1, duration: 0.5, ease: "sine.out" }, GOLD_END);
+      rings.concat(extra).forEach((r) => tl.to(r.mat.uniforms.uAlpha!, { value: 0.1, duration: 0.6, ease: "sine.out" }, GOLD_END));
+      tl.to(glowMat, { opacity: 0, duration: 0.6, ease: "sine.out" }, GOLD_END);
+      tl.to(rayMat, { opacity: 0, duration: 0.6, ease: "sine.out" }, GOLD_END);
+      ribbonMats.forEach((m) => tl.to(m.uniforms.uFade!, { value: 0, duration: 0.6, ease: "sine.out" }, GOLD_END));
+      tl.to(pillarMat.uniforms.uAlpha!, { value: 0.38, duration: 0.6, ease: "sine.out" }, GOLD_END);
+      // shatter: gold becomes a drifting spectrum, the tower climbs and the camera lifts away
+      tl.to(slow, { v: 1, duration: 0.8, ease: "sine.inOut" }, URBREAK);
+      tl.to(prism, { value: 1, duration: 0.9, ease: "sine.inOut" }, URBREAK);
+      rings.concat(extra).forEach((r) => tl.to(r.mat.uniforms.uAlpha!, { value: 0.85, duration: 1.0, ease: "sine.out" }, URBREAK));
+      tl.to(glowMat, { opacity: 0.2, duration: 1.2, ease: "sine.out" }, URBREAK);
+      rings.forEach((r) => {
+        if (r.L.ty) tl.to(r.mesh.position, { y: r.L.ty * 1.6, duration: 2.2, ease: "sine.inOut" }, URBREAK);
+      });
+      tl.to(giant.mesh.position, { y: 13, duration: 2.2, ease: "sine.inOut" }, URBREAK);
+      show(giant2.mesh, URBREAK);
+      tl.fromTo(giant2.mesh.position, { y: 40 }, { y: GIANT2.y, duration: 2.2, ease: "power2.out" }, URBREAK);
+      tl.fromTo(giant2.mat.uniforms.uReveal!, { value: 0 }, { value: 1, duration: 2.0, ease: "power1.inOut" }, URBREAK);
+      tl.to(pillar.scale, { x: 2.2, z: 2.2, y: 19, duration: 2.2, ease: "sine.inOut" }, URBREAK);
+      tl.to(pillarMat.uniforms.uAlpha!, { value: 0.55, duration: 1.4, ease: "sine.out" }, URBREAK);
+      tl.to(cam, { look: 10, dist: 2.7, elev: 36, duration: 2.6, ease: "sine.inOut" }, URBREAK);
+      tl.to(bloom, { strength: 0.6, duration: 1.8, ease: "sine.inOut" }, URBREAK);
+      show(prismRibbons, URBREAK);
+      prismMats.forEach((m, i) => tl.fromTo(m.uniforms.uProg!, { value: 0 }, { value: 1, duration: 1.4, ease: "sine.inOut" }, URBREAK + 0.5 + i * 0.1));
+      show(wave, URBREAK + 1.2);
+      tl.fromTo(wave.material.uniforms.uR!, { value: 0 }, { value: 1, duration: 1.4, ease: "power2.out" }, URBREAK + 1.2);
     }
 
     // 4. final: bloom and exposure swell to white, then the canvas fades out
@@ -704,15 +795,18 @@ export function GachaSeal3D({ omen, onDone }: { omen: Omen; onDone: () => void }
           resize();
         }
       }
-      spin += dt;
+      const sdt = dt * slow.v;
+      spin += sdt;
+      hue.value = spin * 0.08;
       applyTier();
       pillarMat.uniforms.uTime!.value = spin;
       spinners.forEach((r, i) => {
-        r.mesh.rotation.z += r.speed * dt;
+        r.mesh.rotation.z += r.speed * sdt;
         r.mat.uniforms.uSweep!.value = spin * (0.12 + 0.03 * i) * (i % 2 ? -1 : 1);
       });
-      rays.rotation.y += 0.05 * dt;
-      ribbons.rotation.y += 0.08 * dt;
+      rays.rotation.y += 0.05 * sdt;
+      ribbons.rotation.y += 0.08 * sdt;
+      prismRibbons.rotation.y -= 0.1 * sdt;
       const az = (spin / ORBIT_SECONDS) * TAU;
       const elev = (cam.elev * Math.PI) / 180;
       const d = Math.max(9, 10.8 / camera.aspect) * cam.dist;
