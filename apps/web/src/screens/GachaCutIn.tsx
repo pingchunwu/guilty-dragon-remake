@@ -6,11 +6,11 @@ import { skillEffectText } from "../game/text";
 import { BattleCard } from "./BattleCard";
 import { reducedMotion } from "./BattleParts";
 
-const STARS: Record<string, number> = { N: 1, R: 2, SR: 3, SSR: 4 };
+const STARS: Record<string, number> = { N: 1, R: 2, SR: 3, SSR: 4, UR: 5 };
 const PARTICLES = Array.from({ length: 22 }, (_, i) => i);
 
 /**
- * Full-screen individual reveal for a high-rarity card (SSR ~4.5s, SR ~2.2s). Fill a fixed parent.
+ * Full-screen individual reveal for a high-rarity card (UR ~6s, SSR ~4.5s, SR ~2.2s). Fill a fixed parent.
  * First tap jumps to the fully revealed end state; second tap calls onDone (once).
  */
 export function GachaCutIn({
@@ -53,7 +53,9 @@ export function GachaCutIn({
     finish();
   };
   const skill = card.skill ? SKILL_BY_ID.get(card.skill) : undefined;
+  const ur = card.rarity === "UR";
   const ssr = card.rarity === "SSR";
+  const hi = ssr || ur; // gets the light show: glow, ring, sparks
   const stars = STARS[card.rarity] ?? 3;
 
   useGSAP(
@@ -86,7 +88,7 @@ export function GachaCutIn({
           .to(q(".gcut-skill"), { opacity: 1, y: 0, duration: 0.35, ease: "power2.out" }, at + 0.2)
           .to(q(".gcut-card"), { x: 3, y: -3, duration: 0.05, yoyo: true, repeat: 3 }, at + 0.7);
 
-      if (!ssr) {
+      if (!hi) {
         // SR: soft backdrop, slide in, single flash + sweep
         gsap.set(q(".gcut-card"), { xPercent: 120, scale: 1.4, rotate: 8, opacity: 0 });
         gsap.set(q(".gcut-flash"), { opacity: 0 });
@@ -97,6 +99,50 @@ export function GachaCutIn({
         starsIn(0.9, 0.18);
         textIn(1.2);
         tl.to({}, { duration: 0.01 }, 2.19);
+        return;
+      }
+
+      if (ur) {
+        // UR: dark + silent beat, a prismatic crack splits the screen, the silhouette ignites.
+        gsap.set(q(".gcut-card"), { opacity: 0, scale: 0.88 });
+        gsap.set(q(".gcut-fx"), { filter: "brightness(0)" });
+        gsap.set(q(".gcut-bg"), { opacity: 0 });
+        gsap.set(q(".gcut-crack"), { opacity: 0, scaleX: 0.02, scaleY: 0 });
+        gsap.set(q(".gcut-glow"), { opacity: 0, scale: 0.1 });
+        gsap.set(q(".gcut-rays"), { opacity: 0 });
+        gsap.set(q(".gcut-flash"), { opacity: 0 });
+        gsap.set(q(".gcut-ring"), { opacity: 0, scale: 0.2 });
+        gsap.set(q(".gcut-spark"), { opacity: 0 });
+        tl.to(q(".gcut-crack"), { opacity: 1, scaleY: 1, duration: 0.12, ease: "power4.out" }, 0.9)
+          .to(q(".gcut-flash"), { opacity: 0.5, duration: 0.05, yoyo: true, repeat: 1 }, 0.9)
+          .to(q(".gcut-crack"), { scaleX: 1, duration: 1.1, ease: "power3.in" }, 1.1)
+          .to(q(".gcut-bg"), { opacity: 1, duration: 1.2, ease: "power2.in" }, 1.1)
+          .to(q(".gcut-glow"), { opacity: 1, scale: 1.7, duration: 1.4, ease: "power2.in" }, 1.1)
+          .to(q(".gcut-card"), { opacity: 1, scale: 1, duration: 1, ease: "power2.out" }, 1.5)
+          .to(q(".gcut-stage"), { scale: 1.06, duration: 5, ease: "none" }, 0.9)
+          // ignite at 2.7
+          .to(q(".gcut-flash"), { opacity: 1, duration: 0.08, ease: "power2.out" }, 2.7)
+          .set(q(".gcut-fx"), { filter: "brightness(1)" }, 2.76)
+          .to(q(".gcut-flash"), { opacity: 0, duration: 0.8, ease: "power2.in" }, 2.8)
+          .to(q(".gcut-crack"), { opacity: 0, duration: 0.5 }, 2.8)
+          .to(q(".gcut-glow"), { opacity: 0.6, duration: 0.6 }, 2.8)
+          .to(q(".gcut-rays"), { opacity: 0.9, duration: 0.4 }, 2.75)
+          .to(q(".gcut-ring"), { opacity: 1, duration: 0.05 }, 2.72)
+          .to(q(".gcut-ring"), { scale: 6, opacity: 0, duration: 1, ease: "power2.out" }, 2.77)
+          .to(q(".gcut-sweep"), { xPercent: 160, duration: 0.6, ease: "power2.inOut" }, 2.9);
+        q(".gcut-spark").forEach((el) => {
+          const a = gsap.utils.random(0, Math.PI * 2);
+          const d = gsap.utils.random(130, 300);
+          tl.fromTo(
+            el,
+            { x: 0, y: 0, opacity: 1, scale: gsap.utils.random(0.6, 1.6) },
+            { x: Math.cos(a) * d, y: Math.sin(a) * d, opacity: 0, duration: gsap.utils.random(0.8, 1.4), ease: "power3.out" },
+            2.74,
+          );
+        });
+        starsIn(3.5, 0.38);
+        textIn(5.2);
+        tl.to({}, { duration: 0.01 }, 5.99);
         return;
       }
 
@@ -141,13 +187,14 @@ export function GachaCutIn({
   );
 
   return (
-    <div ref={root} className={`gcut ${ssr ? "gcut-ssr" : "gcut-sr"}`} onClick={tap} role="presentation">
+    <div ref={root} className={`gcut ${ur ? "gcut-ur" : ssr ? "gcut-ssr" : "gcut-sr"}`} onClick={tap} role="presentation">
       <div className="gcut-bg" />
-      {ssr && <div className="gcut-glow" />}
+      {hi && <div className="gcut-glow" />}
       {ssr && <div className="gcut-pillar" />}
+      {ur && <div className="gcut-crack" />}
       <div className="gcut-rays" />
       <div className="gcut-stage">
-        {ssr && <div className="gcut-ring" />}
+        {hi && <div className="gcut-ring" />}
         <div className="gcut-card">
           <div className="gcut-fx">
             <BattleCard card={card} show="pow" />
@@ -155,7 +202,7 @@ export function GachaCutIn({
           <div className="gcut-sweep" />
           {isNew && <span className="deck-card-badge deck-card-badge-new">NEW</span>}
         </div>
-        {ssr && PARTICLES.map((i) => <i key={i} className="gcut-spark" />)}
+        {hi && PARTICLES.map((i) => <i key={i} className="gcut-spark" />)}
       </div>
       <div className="gcut-info">
         <div className="gcut-stars" aria-label={`${card.rarity} ${stars} stars`}>

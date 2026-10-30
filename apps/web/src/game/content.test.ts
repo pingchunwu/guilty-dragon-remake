@@ -38,9 +38,13 @@ describe("parseContent", () => {
   it("rejects malformed rows", () => {
     expect(() => parseContent([{ ...card, type: "fire" }], [item])).toThrow("CONTENT_INVALID");
     expect(() => parseContent([{ ...card, attack: "50" }], [item])).toThrow("CONTENT_INVALID");
-    expect(() => parseContent([{ ...card, rarity: "UR" }], [item])).toThrow("CONTENT_INVALID");
+    expect(() => parseContent([{ ...card, rarity: "XR" }], [item])).toThrow("CONTENT_INVALID");
     expect(() => parseContent([{ ...card, skill_id: "no-such-skill" }], [item])).toThrow("CONTENT_INVALID");
     expect(() => parseContent([card], [{ ...item, defense: null }])).toThrow("CONTENT_INVALID");
+  });
+
+  it("accepts UR", () => {
+    expect(parseContent([{ ...card, rarity: "UR" }], [item]).cards.get("c1")?.rarity).toBe("UR");
   });
 
   it("rejects empty tables", () => {

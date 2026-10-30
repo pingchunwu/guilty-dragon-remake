@@ -1647,7 +1647,8 @@ p.error {
 
 /* Only 3 stars and up shine. */
 .bcard[data-rarity="SR"] .bcard-shine,
-.bcard[data-rarity="SSR"] .bcard-shine {
+.bcard[data-rarity="SSR"] .bcard-shine,
+.bcard[data-rarity="UR"] .bcard-shine {
   display: block;
 }
 
@@ -1661,6 +1662,11 @@ p.error {
   --shine-w: 20%;
   --shine-t: 3.4s;
   --shine-c: rgb(255 255 255 / 70%);
+}
+
+.bcard[data-rarity="UR"] {
+  --shine-w: 30%;
+  --shine-t: 2.2s;
 }
 
 /* Edge glow (SR steady-ish, SSR pulsing with a holo tint). */
@@ -1684,6 +1690,37 @@ p.error {
     transparent calc(50% + var(--shine-w))
   );
   mix-blend-mode: screen;
+}
+
+/* UR: wide fast prismatic sweep + a thin iridescent edge whose hue drifts slowly. */
+.bcard[data-rarity="UR"] .bcard-shine::before {
+  background: linear-gradient(
+    100deg,
+    transparent calc(50% - var(--shine-w)),
+    rgb(255 90 190 / 55%) calc(50% - var(--shine-w) * 0.65),
+    rgb(255 235 120 / 60%) calc(50% - var(--shine-w) * 0.3),
+    rgb(255 255 255 / 90%) 50%,
+    rgb(110 255 190 / 55%) calc(50% + var(--shine-w) * 0.3),
+    rgb(90 190 255 / 60%) calc(50% + var(--shine-w) * 0.65),
+    transparent calc(50% + var(--shine-w))
+  );
+  mix-blend-mode: screen;
+}
+
+.bcard[data-rarity="UR"] .bcard-shine::after {
+  border-radius: inherit;
+  padding: 2px;
+  background: conic-gradient(from 0deg, #ff6ec7, #ffe27a, #6effb5, #6ed4ff, #b48cff, #ff6ec7);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  animation: bcard-hue 5s linear infinite;
+}
+
+@keyframes bcard-hue {
+  to {
+    filter: hue-rotate(360deg);
+  }
 }
 
 .bcard-mini .bcard-shine {
@@ -1813,6 +1850,9 @@ p.error {
 .gcut-ssr .gcut-bg {
   background: radial-gradient(circle at 50% 42%, #3a2a05 0%, #120c02 55%, #030201 100%);
 }
+.gcut-ur .gcut-bg {
+  background: radial-gradient(circle at 50% 42%, #2a1450 0%, #0b0618 55%, #000 100%);
+}
 .gcut-sr .gcut-bg {
   background: radial-gradient(circle at 50% 42%, #ffffff 0%, #bfe0ff 35%, #3d6fc4 75%, #0d1a3a 100%);
 }
@@ -1862,6 +1902,44 @@ p.error {
   .gcut-rays {
     animation: none;
   }
+}
+.gcut-ur .gcut-rays {
+  background: repeating-conic-gradient(from 0deg, rgba(255, 110, 199, 0.5) 0deg 1.5deg, rgba(110, 212, 255, 0.5) 1.5deg 3deg, rgba(255, 226, 122, 0.5) 3deg 4.5deg, transparent 4.5deg 8deg);
+  animation-duration: 2.5s;
+}
+/* the crack: a bright vertical slit that widens into the beam */
+.gcut-crack {
+  position: absolute;
+  left: 50%;
+  top: -5%;
+  bottom: -5%;
+  width: 14vmin;
+  margin-left: -7vmin;
+  background: linear-gradient(90deg, transparent, #ff6ec7 25%, #fff 50%, #6ed4ff 75%, transparent);
+  box-shadow: 0 0 40px 10px rgba(197, 155, 255, 0.8);
+}
+.gcut-ur .gcut-glow {
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.9) 0%, rgba(197, 155, 255, 0.6) 35%, rgba(255, 110, 199, 0.25) 55%, transparent 72%);
+}
+.gcut-ur .gcut-card {
+  filter: drop-shadow(0 0 24px rgba(197, 155, 255, 0.95));
+}
+.gcut-ur .gcut-ring {
+  border-color: #fff;
+  box-shadow: 0 0 28px #ff6ec7, inset 0 0 28px #6ed4ff;
+}
+.gcut-ur .gcut-spark {
+  background: #fff;
+  box-shadow: 0 0 8px 2px #b48cff;
+}
+.gcut-ur .gcut-star {
+  background: linear-gradient(135deg, #ff6ec7, #ffe27a, #6effb5, #6ed4ff, #b48cff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.gcut-ur .gcut-skill strong {
+  color: #d9c2ff;
 }
 .gcut-stage {
   position: relative;
@@ -2102,7 +2180,8 @@ p.error {
 }
 
 .grev-SR,
-.grev-SSR {
+.grev-SSR,
+.grev-UR {
   --c: #ffd34d;
   --cg: 255, 211, 77;
   position: relative;
@@ -2113,6 +2192,12 @@ p.error {
 
 .grev-SSR {
   transition-duration: 1.2s;
+}
+
+.grev-UR {
+  --c: #c59bff;
+  --cg: 197, 155, 255;
+  transition-duration: 1.8s;
 }
 
 .grev-SR .grev-back,
@@ -2130,6 +2215,30 @@ p.error {
   box-shadow: 0 0 16px rgba(var(--cg), 0.8), inset 0 0 0 2px rgba(255, 211, 77, 0.9), 0 0 0 1px transparent;
 }
 
+/* UR: black-violet back, prismatic sigil, slowly turning holographic sheen. */
+.grev-UR .grev-back {
+  background:
+    radial-gradient(circle at 50% 50%, transparent 0 12%, rgba(255, 255, 255, 0.85) 13% 15%, transparent 16% 26%, rgba(255, 140, 230, 0.8) 27% 29%, transparent 30% 40%, rgba(110, 212, 255, 0.7) 41% 42%, transparent 43%),
+    radial-gradient(circle at 50% 50%, #2a1450, #0b0618 70%);
+  border-color: transparent;
+  box-shadow: 0 0 18px rgba(var(--cg), 0.85), inset 0 0 14px rgba(var(--cg), 0.55);
+}
+
+.grev-UR .grev-back::before {
+  content: "";
+  position: absolute;
+  inset: -50%;
+  background: conic-gradient(from 0deg, rgba(255, 110, 199, 0.45), rgba(255, 226, 122, 0.4), rgba(110, 255, 181, 0.4), rgba(110, 212, 255, 0.45), rgba(180, 140, 255, 0.45), rgba(255, 110, 199, 0.45));
+  mix-blend-mode: screen;
+  animation: grev-spin 7s linear infinite;
+}
+
+@keyframes grev-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 @keyframes grev-prism {
   to {
     background-position: 0 0, 300% 300%;
@@ -2138,7 +2247,8 @@ p.error {
 
 /* slow diagonal light sweep across the back */
 .grev-SR .grev-back::after,
-.grev-SSR .grev-back::after {
+.grev-SSR .grev-back::after,
+.grev-UR .grev-back::after {
   content: "";
   position: absolute;
   inset: -20% 0;
@@ -2159,7 +2269,8 @@ p.error {
 
 /* soft halo behind the card, breathing slowly */
 .grev-SR:not(.grev-flipped)::before,
-.grev-SSR:not(.grev-flipped)::before {
+.grev-SSR:not(.grev-flipped)::before,
+.grev-UR:not(.grev-flipped)::before {
   content: "";
   position: absolute;
   inset: -22%;
@@ -2174,6 +2285,13 @@ p.error {
 .grev-SSR:not(.grev-flipped)::before {
   inset: -32%;
   background: radial-gradient(closest-side, rgba(var(--cg), 0.6), transparent);
+}
+
+.grev-UR:not(.grev-flipped)::before {
+  inset: -40%;
+  background: radial-gradient(closest-side, rgba(var(--cg), 0.7), rgba(255, 110, 199, 0.25) 60%, transparent);
+  opacity: 0.8;
+  animation: none; /* steady halo, no pulsing */
 }
 
 @keyframes grev-halo {
@@ -2216,8 +2334,13 @@ p.error {
   transform: perspective(600px) translateZ(40px) scale(1.18) rotateY(-22deg) rotateX(14deg);
 }
 
+.grev-UR.grev-prime {
+  transform: perspective(600px) translateZ(64px) scale(1.28) rotateY(-30deg) rotateX(20deg);
+}
+
 .grev-SR.grev-prime::before,
-.grev-SSR.grev-prime::before {
+.grev-SSR.grev-prime::before,
+.grev-UR.grev-prime::before {
   opacity: 1;
   transform: scale(1.3);
   animation: none;
@@ -2232,9 +2355,15 @@ p.error {
   transition-timing-function: cubic-bezier(0.3, 0, 0.2, 1);
 }
 
+.grev-UR .grev-inner {
+  transition-duration: 1.2s;
+  transition-timing-function: cubic-bezier(0.3, 0, 0.2, 1);
+}
+
 /* light burst as the card turns */
 .grev-SR.grev-flipped::after,
-.grev-SSR.grev-flipped::after {
+.grev-SSR.grev-flipped::after,
+.grev-UR.grev-flipped::after {
   content: "";
   position: absolute;
   inset: -40%;
@@ -2248,6 +2377,13 @@ p.error {
 .grev-SSR.grev-flipped::after {
   animation-duration: 0.9s;
   animation-delay: 0.3s;
+}
+
+.grev-UR.grev-flipped::after {
+  inset: -80%;
+  background: radial-gradient(closest-side, rgba(255, 255, 255, 0.95), rgba(255, 110, 199, 0.5) 30%, rgba(110, 212, 255, 0.45) 55%, transparent);
+  animation-duration: 1.3s;
+  animation-delay: 0.45s;
 }
 
 @keyframes grev-burst {
@@ -2267,16 +2403,21 @@ p.error {
 @media (prefers-reduced-motion: reduce) {
   .grev-SR,
   .grev-SSR,
+  .grev-UR,
   .grev-SR .grev-back::after,
   .grev-SSR .grev-back::after,
+  .grev-UR .grev-back::before,
+  .grev-UR .grev-back::after,
   .grev-SR::before,
   .grev-SSR::before,
+  .grev-UR::before,
   .grev-SSR .grev-inner::before,
   .grev-SSR .grev-back {
     animation: none;
   }
   .grev-SR.grev-prime,
-  .grev-SSR.grev-prime {
+  .grev-SSR.grev-prime,
+  .grev-UR.grev-prime {
     transform: none;
   }
 }

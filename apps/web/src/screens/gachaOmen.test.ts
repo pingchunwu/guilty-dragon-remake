@@ -13,4 +13,7 @@ describe("omenOf", () => {
     expect(omenOf(["SSR", "SR", "N"], () => 0.49)).toEqual({ good: true, tier: "SSR", tease: true });
     expect(omenOf(["SSR", "N"], () => 0.5)).toEqual({ good: true, tier: "SSR", tease: false });
   });
+  it("UR beats SSR and always teases (gold first)", () => {
+    expect(omenOf(["SSR", "UR", "N"], () => 0.99)).toEqual({ good: true, tier: "UR", tease: true });
+  });
 });

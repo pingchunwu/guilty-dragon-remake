@@ -5,7 +5,7 @@ var WEAPON_KINDS = ["heavy", "light", "magic"];
 var ARMOR_KINDS = ["head", "body", "legs", "back"];
 var ITEM_KINDS = [...WEAPON_KINDS, ...ARMOR_KINDS];
 
-var RARITIES = ["N", "R", "SR", "SSR"];
+var RARITIES = ["N", "R", "SR", "SSR", "UR"];
 var ALL_TYPES = ["heavy", "light", "magic"];
 var s = (id, name, original, maxLevel, timing, effect, value, perLevel = maxLevel > 1) => ({ id, name, original, maxLevel, timing, effect, value, perLevel });
 var tiers = (id, name, original, values, timing, effect, maxLevels = values.map(() => 10)) => values.map(
@@ -944,7 +944,7 @@ var PLACEHOLDER_DEFAULT_DECK = {
   magic: ofType("magic").slice(0, 8),
   free: [...ofType("heavy").slice(8, 11), ...ofType("light").slice(8, 11), ...ofType("magic").slice(8, 10)]
 };
-var RARITY_WEIGHT = { N: 12, R: 5, SR: 2, SSR: 1 };
+var RARITY_WEIGHT = { N: 12, R: 5, SR: 2, SSR: 1, UR: 1 };
 var PLACEHOLDER_POOL = {
   id: "pool-v2",
   entries: PLACEHOLDER_CARDS.map((c) => ({ id: c.id, weight: RARITY_WEIGHT[c.rarity] }))
