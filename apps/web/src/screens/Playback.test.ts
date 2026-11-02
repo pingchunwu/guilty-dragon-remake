@@ -201,12 +201,12 @@ describe("AttackScene inputs, rule 0.7.0-draft", () => {
     return resolvePhase({ ...start, kind: "deck_out", sides }, null, content, LONG).result;
   };
 
-  it("a double final blow deducts from both sides and says 雙方最終一擊！", () => {
+  it("a double final blow deducts from both sides and says 雙方最終一擊", () => {
     const r = doubleOut();
     expect(r.damageTaken.challenger).toBeGreaterThan(0);
     expect(r.damageTaken.defender).toBeGreaterThan(0);
     const out = html(r);
-    expect(out).toContain("雙方最終一擊！");
+    expect(out).toContain("雙方最終一擊");
     expect(out).toMatch(new RegExp(`<span[^>]*>−${r.damageTaken.challenger}</span><span[^>]*>−${r.damageTaken.defender}</span>`));
     expect(out.match(/scene-cut/g)).toHaveLength(2);
   });
@@ -215,7 +215,7 @@ describe("AttackScene inputs, rule 0.7.0-draft", () => {
     const old = { ...doubleOut(), kind: "normal", winner: "challenger", damage: 77, damageTaken: undefined } as unknown as PhaseResult;
     const out = html(old);
     expect(out).toContain("−77");
-    expect(out).toContain("我的攻擊！");
+    expect(out).toContain("我的攻擊");
     expect(out.match(/scene-cut/g)).toHaveLength(1);
   });
 });

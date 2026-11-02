@@ -14,6 +14,7 @@ import { Equipment } from "./screens/Equipment";
 import { Gacha } from "./screens/Gacha";
 import { Player } from "./screens/Player";
 import { Pvp } from "./screens/Pvp";
+import { SealRing } from "./screens/SealRing";
 import { SignIn } from "./screens/SignIn";
 
 type Tab = "battle" | "deck" | "gacha" | "player";
@@ -102,8 +103,10 @@ export function App() {
   return (
     <div className={inBattle ? "shell in-battle" : "shell"}>
       <header hidden={inBattle}>
-        <h1>Guilty Dragon Remake</h1>
-        {!service && <p className="muted small">開發版 · 規則 {RULES_V07.ruleVersion} · 卡片為佔位內容</p>}
+        <h1 className="brand">
+          <SealRing />
+          Guilty Dragon Remake
+        </h1>
       </header>
 
       {contentError && (
@@ -119,6 +122,7 @@ export function App() {
       {authReady && content && !service && !userId && (
         <SignIn client={supabase} onGuest={() => setService(createGuestService(content))} />
       )}
+      {!service && <p className="dev-note">開發版 · 規則 {RULES_V07.ruleVersion} · 卡片為佔位內容</p>}
 
       {service && content && (
         <>

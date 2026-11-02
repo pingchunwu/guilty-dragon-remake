@@ -550,7 +550,7 @@ export function AttackScene({ result, labels, hp, maxHp, onComplete }: SceneProp
           <span className="scene-num">{startOf(result, "challenger")}</span>
         </div>
         <div className="scene-banner">
-          {hurt.length === 0 && !winner ? "勢均力敵" : result.kind === "deck_out" ? (hurt.length > 1 ? "雙方最終一擊！" : "最終一擊！") : `${labels[winner!]}的攻擊！`}
+          {hurt.length === 0 && !winner ? "勢均力敵" : result.kind === "deck_out" ? (hurt.length > 1 ? "雙方最終一擊" : "最終一擊") : `${labels[winner!]}的攻擊`}
         </div>
         <div className="scene-damage">
           {hurt.length ? hurt.map((id) => <span key={id}>{`−${taken(id)}`}</span>) : "沒有傷害"}
@@ -609,7 +609,7 @@ export function PhaseBoard({ result, cards, labels, rules, equipment, animate, o
   }
   const frame = frames[beat]!;
   const outcome = result.winner
-    ? `${labels[result.winner]}${v07 ? "攻擊！" : ""}造成 ${result.damage} 傷害${
+    ? `${labels[result.winner]}${v07 ? "攻擊" : ""}造成 ${result.damage} 傷害${
         result.ignoredArmor ? (v07 ? "（無視防禦）" : "（無視防具）") : ""
       }`
     : "攻擊相同，沒有傷害";

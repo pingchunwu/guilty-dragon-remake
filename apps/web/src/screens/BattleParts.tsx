@@ -87,7 +87,7 @@ export function ResultScreen({ won, stats, children }: { won: boolean; stats: st
   );
   return createPortal(
     <div ref={root} className={`result-screen ${won ? "result-win" : "result-lose"}`} role="dialog" aria-modal="true" aria-label={won ? "勝利" : "落敗"}>
-      <strong className="result-title">{won ? "勝利！" : "落敗"}</strong>
+      <strong className="result-title">{won ? "勝利" : "落敗"}</strong>
       <div className="result-body stack">
         <p className="small">{stats}</p>
         <div className="row">{children}</div>
@@ -215,14 +215,59 @@ export function familyOf(e: SkillEffect): Family {
   }
 }
 
-export const FAMILY_ICON: Record<Family, string> = {
-  attack: "⚔",
-  debuff: "▼",
-  guard: "◆",
-  heal: "✚",
-  damage: "✦",
-  cards: "⇄",
-  element: "◐",
+const Icon = ({ children }: { children: ReactNode }) => (
+  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    {children}
+  </svg>
+);
+
+/** Lucide-style line icons (sword, trending-down, shield, heart-plus, zap, shuffle, circle-half). */
+export const FAMILY_ICON: Record<Family, ReactNode> = {
+  attack: (
+    <Icon>
+      <path d="m14.5 17.5 6-6V3h-8.5l-6 6" />
+      <path d="m3 21 9-9" />
+      <path d="m3 16 5 5" />
+    </Icon>
+  ),
+  debuff: (
+    <Icon>
+      <path d="M16 17h6v-6" />
+      <path d="m22 17-8.5-8.5-5 5L2 7" />
+    </Icon>
+  ),
+  guard: (
+    <Icon>
+      <path d="M20 13c0 5-3.5 7.5-7.7 8.9a1 1 0 0 1-.6 0C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.2-2.7a1.2 1.2 0 0 1 1.6 0C14.5 3.8 17 5 19 5a1 1 0 0 1 1 1z" />
+    </Icon>
+  ),
+  heal: (
+    <Icon>
+      <path d="M19 14c1.5-1.5 3-3.2 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.8 0-3 .5-4.5 2-1.5-1.5-2.7-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4 3 5.5l7 7z" />
+      <path d="M12 8v6" />
+      <path d="M9 11h6" />
+    </Icon>
+  ),
+  damage: (
+    <Icon>
+      <path d="M4 14a1 1 0 0 1-.8-1.6l9.9-10.2a.5.5 0 0 1 .9.5l-1.9 6a1 1 0 0 0 1 1.3H20a1 1 0 0 1 .8 1.6l-9.9 10.2a.5.5 0 0 1-.9-.5l1.9-6A1 1 0 0 0 11 14z" />
+    </Icon>
+  ),
+  cards: (
+    <Icon>
+      <path d="m18 14 4 4-4 4" />
+      <path d="m18 2 4 4-4 4" />
+      <path d="M2 18h1.97a4 4 0 0 0 3.26-1.7l5.54-7.6A4 4 0 0 1 16.03 7H22" />
+      <path d="M2 6h1.97a4 4 0 0 1 3.26 1.7l.7 1" />
+      <path d="M22 18h-5.97a4 4 0 0 1-3.26-1.7l-.7-1" />
+    </Icon>
+  ),
+  element: (
+    <Icon>
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 2a10 10 0 0 1 0 20z" fill="currentColor" />
+    </Icon>
+  ),
 };
 
 /** What the skill actually did this phase, as short lines; results stored before 2026-10-27 lack the hand fields. */
@@ -273,7 +318,7 @@ export function SkillBursts({ result, labels, v07 }: { result: PhaseResult; labe
         <span className="stack">
           <span className="burst-title">
             {labels[id]}・{name}
-            {use.blocked ? " 被護盾無效" : " 發動！"}
+            {use.blocked ? " 被護盾無效" : " 發動"}
           </span>
           <span className="burst-text">{skillEffectText(skill, use.level)}</span>
           {!use.blocked && (
@@ -313,7 +358,7 @@ export function DeckOutPanel({ hand, cards, owned, ranOut, rules, busy, onResolv
   return (
     <div className="panel stack">
       <p className="small">
-        <strong>牌庫耗盡！</strong>
+        <strong>牌庫耗盡</strong>
         <span className="muted">
           {v07
             ? ranOut.challenger && ranOut.defender

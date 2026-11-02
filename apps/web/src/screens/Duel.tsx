@@ -426,7 +426,7 @@ export function Duel(props: Props) {
       </button>
     </div>
   ) : kind === "deck_out" ? (
-    <div className="prompt-banner prompt-final">牌庫耗盡！最終一擊</div>
+    <div className="prompt-banner prompt-final">牌庫耗盡，最終一擊</div>
   ) : dealt && !full && !busy ? (
     <div key={leader ? "charge" : "leader"} className="prompt-banner">
       {!leader ? "請選擇領導卡" : `請選擇充能卡（再 ${required - picked.length} 張）· 合計 ${sum}`}

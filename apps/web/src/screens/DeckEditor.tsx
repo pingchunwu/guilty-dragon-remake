@@ -75,7 +75,7 @@ export function DeckEditor({ content: { cards }, service, state, onState }: Prop
       const result = await service.saveDeck(kind, draft);
       if (result.ok) {
         onState({ ...state, decks: { ...state.decks, [kind]: draft } });
-        setMessage("已儲存。");
+        setMessage("已儲存");
       } else {
         setMessage(result.errors.map((e) => deckErrorText(e, cardName)).join(" "));
       }
@@ -87,9 +87,9 @@ export function DeckEditor({ content: { cards }, service, state, onState }: Prop
   }
 
   return (
-    <section className="stack">
+    <section className="stack deck-page">
       <h2>牌組</h2>
-      <p className="muted small">點一張卡可替換或移除；點「＋」空位可加入卡片。</p>
+      <p className="muted small">點一張卡可替換或移除，點空位可加入卡片</p>
 
       {DECK_SLOTS.map((slot) => {
         const ids = draft[slot];
@@ -106,7 +106,7 @@ export function DeckEditor({ content: { cards }, service, state, onState }: Prop
               <strong>
                 {SLOT_LABEL[slot]}欄 <span className="muted small">{SLOT_HINT[slot]}</span>
               </strong>
-              <span className={ids.length === RULES_V0.slotSize ? "muted" : "error"}>
+              <span className={`slot-count${ids.length === RULES_V0.slotSize ? "" : " error"}`}>
                 {ids.length}/{RULES_V0.slotSize}
               </span>
             </div>
@@ -134,7 +134,7 @@ export function DeckEditor({ content: { cards }, service, state, onState }: Prop
                     onClick={() => toggle(slot, index)}
                     aria-label={`加入${SLOT_LABEL[slot]}欄`}
                   >
-                    ＋
+                    +
                   </button>
                 );
               })}
@@ -158,7 +158,7 @@ export function DeckEditor({ content: { cards }, service, state, onState }: Prop
                   </div>
                 </div>
                 {candidates.length === 0 ? (
-                  <p className="muted small">沒有其他可放進這欄的卡。抽卡可以取得更多卡片。</p>
+                  <p className="muted small">沒有其他可放進這欄的卡，抽卡可取得更多卡片</p>
                 ) : (
                   <Candidates key={slot} cards={candidates} owned={state.cards} onPick={apply} />
                 )}
