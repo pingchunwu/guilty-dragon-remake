@@ -291,6 +291,8 @@ export function skillOutcome(effect: SkillEffect, mine: SideResult, theirs: Side
   if (effect.kind === "draws") limit(effect.target === "self" ? mine : theirs, effect.target === "self" ? "" : "對手");
   const purged = mine.chain.filter((c) => c.purged).length;
   if (purged) lines.push(`肅清 ${purged} 張阻擋卡`);
+  else if (effect.kind === "purge") lines.push("沒有阻擋卡要移除");
+  if (effect.kind === "elitism" && !mine.handChange?.returned) lines.push("沒有異色牌可換");
   const own = mine.skillAttack - (mine.enemySkillAttack ?? 0);
   if (own !== 0) lines.push(`攻擊 ${signed(own)}`);
   if (theirs.enemySkillAttack) lines.push(`對手攻擊 ${signed(theirs.enemySkillAttack)}`);
@@ -362,10 +364,10 @@ export function DeckOutPanel({ hand, cards, owned, ranOut, rules, busy, onResolv
         <span className="muted">
           {v07
             ? ranOut.challenger && ranOut.defender
-              ? "比較雙方「手牌總和＋三把武器」，較高者直接打給對方（無視防禦），之後洗牌重置。"
+              ? "雙方「手牌總和＋三把武器」互扣，差值扣掉敗方防禦%後打給敗方，之後洗牌重置。"
               : ranOut.challenger
-                ? "你的手牌總和＋三把武器直接打給對手（無視防禦），之後洗牌重置。"
-                : "對手的手牌總和＋三把武器直接打給你（無視防禦），你的手牌保留。"
+                ? "你的手牌總和＋三把武器扣掉對手防禦%後打給對手，之後洗牌重置。"
+                : "對手的手牌總和＋三把武器扣掉你的防禦%後打給你，你的手牌保留。"
             : ranOut.challenger && ranOut.defender
               ? "比較雙方手牌總和，較高者造成「總和－防具」傷害，之後洗牌重置。"
               : ranOut.challenger

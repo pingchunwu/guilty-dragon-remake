@@ -94,12 +94,12 @@ describe("playbackFrames, rule 0.7.0-draft", () => {
     expect(frames.map((f) => f.stage)).toEqual([...Array(9).fill("chain"), "total", "damage"]);
     expect(frames.map((f) => !!f.skills)).toEqual([false, true, ...Array(9).fill(false)]);
     expect(row(0)).toEqual(["L:leader", "h1:pending", "m1:pending", "h2:pending", "m2:pending"]);
-    // Draw k appears (pending) on the beat charge k is absorbed, then the draws are added one by one.
-    expect(row(2)).toEqual(["L:leader", "h1:counted", "m1:pending", "h2:pending", "m2:pending", "d1:pending*"]);
-    expect(row(3)).toEqual(["L:leader", "h1:counted", "m1:blocked", "h2:pending", "m2:pending", "d1:pending", "d2:pending*"]);
-    expect(row(5).slice(-2)).toEqual(["d1:pending", "d2:pending"]);
-    expect(row(6).slice(-2)).toEqual(["d1:counted", "d2:pending"]);
-    expect(row(7).slice(-2)).toEqual(["d1:counted", "d2:blocked"]);
+    // Charges resolve with nothing drawn yet; then each draw drops in and resolves on its own beat.
+    expect(row(2)).toEqual(["L:leader", "h1:counted", "m1:pending", "h2:pending", "m2:pending"]);
+    expect(row(3)).toEqual(["L:leader", "h1:counted", "m1:blocked", "h2:pending", "m2:pending"]);
+    expect(row(5)).toEqual(["L:leader", "h1:counted", "m1:blocked", "h2:counted", "m2:blocked"]);
+    expect(row(6).slice(-1)).toEqual(["d1:counted*"]);
+    expect(row(7).slice(-2)).toEqual(["d1:counted", "d2:blocked*"]);
     expect(row(8)[0]).toBe("L:leader*");
     expect(frames[10]!.sides.challenger.row.some((c) => c.fresh)).toBe(false);
   });
@@ -201,14 +201,13 @@ describe("AttackScene inputs, rule 0.7.0-draft", () => {
     return resolvePhase({ ...start, kind: "deck_out", sides }, null, content, LONG).result;
   };
 
-  it("a double final blow deducts from both sides and says 雙方最終一擊", () => {
+  it("a double final blow shows one loser's damage, not 雙方最終一擊", () => {
     const r = doubleOut();
-    expect(r.damageTaken.challenger).toBeGreaterThan(0);
-    expect(r.damageTaken.defender).toBeGreaterThan(0);
     const out = html(r);
-    expect(out).toContain("雙方最終一擊");
-    expect(out).toMatch(new RegExp(`<span[^>]*>−${r.damageTaken.challenger}</span><span[^>]*>−${r.damageTaken.defender}</span>`));
-    expect(out.match(/scene-cut/g)).toHaveLength(2);
+    expect(out).not.toContain("雙方最終一擊");
+    expect(out).toContain("最終一擊");
+    expect(out).toContain(`−${r.damage}`);
+    expect(out.match(/scene-cut/g)).toHaveLength(1);
   });
 
   it("falls back to winner and damage when damageTaken is missing", () => {

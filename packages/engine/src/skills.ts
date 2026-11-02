@@ -46,7 +46,7 @@ export type SkillEffect =
   | { kind: "element"; mode: "balance" | "surpass" | "slump" }
   /** Discard value cards from the rest of the hand (other colours first), drawing replacements if redraw. */
   | { kind: "discard"; redraw: boolean }
-  /** Return value other-colour cards from the rest of the hand to the deck, shuffle, draw as many. */
+  /** Return value other-colour cards (charge picks first, then the rest of the hand) to the deck, shuffle, draw as many. */
   | { kind: "elitism" }
   /** Self: +value chain draws. Enemy: −value chain draws. */
   | { kind: "draws"; target: Side }
@@ -54,7 +54,7 @@ export type SkillEffect =
   | { kind: "board"; colour: "same" | "other" }
   /** Shuffle the rest of the hand (or hand, discard and deck) back and redraw the same number. */
   | { kind: "shuffle"; target: Side | "both"; scope: "hand" | "all" }
-  /** When all spaces are blocked, discard up to value blockers so the chain can draw into them (once). */
+  /** When a blocker would end the drawing, remove up to value blockers so it carries on (once). */
   | { kind: "purge" }
   /** These colours also merge into the attack. */
   | { kind: "charge"; types: readonly CardType[] }

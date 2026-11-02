@@ -28,6 +28,13 @@ const side = (over: Partial<SideResult> = {}): SideResult => ({
 });
 
 describe("skillOutcome", () => {
+  it("says what 選民主義 and 肅清 did, or that they had nothing to do", () => {
+    const swapped = { discarded: 0, returned: 1, drawn: 1, shuffled: true };
+    expect(skillOutcome(skillOf("elitism-1").effect, side({ handChange: swapped }), side())).toEqual(["手牌 1 張洗回牌庫", "補抽 1 張"]);
+    expect(skillOutcome(skillOf("elitism-1").effect, side(), side())).toEqual(["沒有異色牌可換"]);
+    expect(skillOutcome(skillOf("purge-1").effect, side(), side())).toEqual(["沒有阻擋卡要移除"]);
+  });
+
   it("credits each leader only with its own attack change", () => {
     // I lost 670 to the enemy's 武裝封咒 while my own 力之封印 cut theirs by 3.
     const mine = side({ skillAttack: -670, enemySkillAttack: -670 });

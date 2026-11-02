@@ -132,8 +132,8 @@ export interface PhaseResult {
   /** Deck-out hits from one side go straight to HP (0.6.0 only; 0.7.0 final blows count defense). */
   ignoredArmor: boolean;
   /**
-   * HP each side lost to this phase's attack (after defense and every skill).
-   * Normal phases: only the loser. 0.7.0 deck-out: every side that was hit, so a double final blow hurts both.
+   * HP each side lost to this phase's attack (after defense and every skill): only the loser.
+   * Results stored between 2026-10-29 and 2026-11-03 can show both sides hurt by a double final blow.
    */
   damageTaken: Record<SideId, number>;
   hpAfter: Record<SideId, number>;
@@ -363,11 +363,12 @@ function runChain(side: SideState, picks: readonly string[], cards: Cards, rules
 
 /**
  * Rule 0.7.0-draft: the picks after the leader are charge cards in the
- * maxSelected − 1 spaces, resolved in order; then the deck draws `drawLimit`
+ * maxSelected − 1 spaces, resolved in order; then the deck draws up to `drawLimit`
  * cards one at a time into free spaces. A counted card adds its POW and frees
- * its space; any other card blocks it. Drawing stops when the count is used,
- * every space is blocked, or the pile is empty. 肅清 fires once when every
- * space is blocked, removing the earliest blockers.
+ * its space; any other card blocks it. A new card is drawn only after a card
+ * joined: a blocked draw ends the drawing, as does an empty pile or every space
+ * blocked. 肅清 fires once at the point drawing would end on a blocker, removing
+ * the earliest blockers so the drawing carries on.
  */
 function runCharge(side: SideState, picks: readonly string[], cards: Cards, rules: RuleConfig, options: ChainOptions) {
   const drawPile = [...side.drawPile];
@@ -375,21 +376,23 @@ function runCharge(side: SideState, picks: readonly string[], cards: Cards, rule
   const spaces = rules.maxSelected - 1;
   let blocks = 0;
   let purge = options.purge;
-  const place = (card: string, from: ChainStep["from"]) => {
+  /** Whether the next draw is earned: this card joined, or 肅清 cleared the way. */
+  const place = (card: string, from: ChainStep["from"]): boolean => {
     const counted = options.counts.has(cardOf(cards, card).type);
     chain.push({ card, from, counted });
-    if (counted) return;
+    if (counted) return true;
     blocks++;
-    if (blocks === spaces && purge > 0) {
-      for (const blocker of chain.filter((s) => !s.counted && !s.purged).slice(0, purge)) {
-        blocker.purged = true;
-        blocks--;
-      }
-      purge = 0;
+    if (purge === 0 || (from === "pick" && blocks < spaces)) return false;
+    for (const blocker of chain.filter((s) => !s.counted && !s.purged).slice(0, purge)) {
+      blocker.purged = true;
+      blocks--;
     }
+    purge = 0;
+    return true;
   };
   for (const card of picks.slice(1)) place(card, "pick");
-  for (let left = options.drawLimit; left > 0 && blocks < spaces && drawPile.length > 0; left--) place(drawPile.shift()!, "draw");
+  let earned = true;
+  for (let left = options.drawLimit; left > 0 && earned && blocks < spaces && drawPile.length > 0; left--) earned = place(drawPile.shift()!, "draw");
   return {
     chain,
     blocks,
@@ -535,9 +538,22 @@ export function resolvePhase(
         changes[id].discarded += out.length;
         changes[id].drawn += drawn.length;
       } else if (effect.kind === "elitism") {
-        const back = sides[id].hand.filter((c) => cardOf(cards, c).type !== leaderType).slice(0, value);
-        sides[id] = returnAndRedraw(sides[id], back, rng);
-        if (back.length > 0) recordRedraw(id, back.length);
+        // The original fires at leader selection, before the charge picks, so off-colour picks count as held:
+        // they go first, and their replacements take the same spaces.
+        const offColour = (c: string) => cardOf(cards, c).type !== leaderType;
+        const back = [...(v07 ? picks[id].slice(1).filter(offColour) : []), ...sides[id].hand.filter(offColour)].slice(0, value);
+        if (back.length > 0) {
+          const pile = shuffle([...sides[id].drawPile, ...back], rng);
+          const fresh = pile.slice(0, back.length);
+          let n = 0;
+          picks[id] = picks[id].map((c) => (back.includes(c) ? fresh[n++]! : c));
+          sides[id] = {
+            ...sides[id],
+            hand: [...sides[id].hand.filter((c) => !back.includes(c)), ...fresh.slice(n)],
+            drawPile: pile.slice(back.length),
+          };
+          recordRedraw(id, back.length);
+        }
       } else if (effect.kind === "shuffle") {
         const targets = effect.target === "both" ? SIDES : [effect.target === "self" ? id : other(id)];
         for (const t of targets) {
@@ -741,40 +757,28 @@ export function resolvePhase(
     };
     sideResults = { challenger: deckOut("challenger"), defender: deckOut("defender") };
     const out = SIDES.filter((id) => sides[id].ranOut);
-    if (v07) {
-      // 0.7.0: every side that ran out lands its final blow, reduced by the target's defense %; both can be hit.
-      // A tied double final blow with no skills deals equal damage to both, so winner is the harder hitter or null.
-      for (const id of out) {
-        const target = other(id);
-        const dealt = Math.floor((sideResults[id].attack * (100 - sideResults[target].defense)) / 100);
-        const guard = finalBlowGuard(sides[target], cards, dealt);
-        damageTaken[target] = dealt - guard.amount;
-        if (guard.card) sideResults[target].skill = guard.card;
-      }
-      // Both out and neither hits harder: no winner. Otherwise the side that dealt more.
-      const dealtBy = (id: SideId) => damageTaken[other(id)];
-      winner = dealtBy("challenger") === dealtBy("defender") ? null : dealtBy("challenger") > dealtBy("defender") ? "challenger" : "defender";
-      if (winner) damage = dealtBy(winner);
-      else damage = out.length ? dealtBy(out[0]!) : 0;
+    // 0.7.0: the defense % applies to whatever is left of the attack, like a normal phase.
+    const afterDefense = (attack: number, target: SideId) =>
+      v07 ? Math.floor((attack * (100 - sideResults[target].defense)) / 100) : Math.max(0, attack - sideResults[target].defense);
+    if (out.length === 1) {
+      winner = out[0]!;
+      damage = v07 ? afterDefense(sideResults[winner].attack, other(winner)) : sideResults[winner].attack;
+      ignoredArmor = !v07;
     } else {
-      if (out.length === 1) {
-        winner = out[0]!;
-        damage = sideResults[winner].attack;
-        ignoredArmor = true;
-      } else {
-        const { challenger: c, defender: d } = sideResults;
-        if (c.attack !== d.attack) {
-          winner = c.attack > d.attack ? "challenger" : "defender";
-          damage = Math.max(0, sideResults[winner].attack - sideResults[other(winner)].defense);
-        }
+      // A double final blow is one fight: the totals deduct against each other, so there is one winner (or a tie).
+      const { challenger: c, defender: d } = sideResults;
+      if (c.attack !== d.attack) {
+        winner = c.attack > d.attack ? "challenger" : "defender";
+        const loserAttack = sideResults[other(winner)].attack;
+        damage = afterDefense(v07 ? sideResults[winner].attack - loserAttack : sideResults[winner].attack, other(winner));
       }
-      if (winner) {
-        // Skills don't fire on deck-out, except a final-blow guard held in the hand.
-        const guard = finalBlowGuard(sides[other(winner)], cards, damage);
-        damage -= guard.amount;
-        if (guard.card) sideResults[other(winner)].skill = guard.card;
-        damageTaken[other(winner)] = damage;
-      }
+    }
+    if (winner) {
+      // Skills don't fire on deck-out, except a final-blow guard held in the hand.
+      const guard = finalBlowGuard(sides[other(winner)], cards, damage);
+      damage -= guard.amount;
+      if (guard.card) sideResults[other(winner)].skill = guard.card;
+      damageTaken[other(winner)] = damage;
     }
     // Only sides that ran out use their hand; the other side keeps it.
     for (const id of out) sides[id] = reshuffle(sides[id], rng);
