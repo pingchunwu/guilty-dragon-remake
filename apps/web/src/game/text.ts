@@ -56,7 +56,7 @@ export function skillEffectText(skill: SkillDefinition, level: number): string {
     case "discard":
       return `其餘手牌丟掉 ${v} 張（異色優先）${e.redraw ? "並補抽" : ""}`;
     case "elitism":
-      return `${v} 張異色手牌洗回牌庫並重抽`;
+      return `${v} 張異色牌（充能卡優先）洗回牌庫並重抽`;
     case "draws":
       return `${WHO[e.target]}連鎖抽牌上限 ${e.target === "self" ? "+" : "−"}${v}`;
     case "board":
@@ -66,7 +66,7 @@ export function skillEffectText(skill: SkillDefinition, level: number): string {
       return e.scope === "hand" ? `${who}其餘手牌洗回牌庫並重抽` : `${who}手牌、棄牌和牌庫全部洗牌並重抽`;
     }
     case "purge":
-      return `格子全被擋住時移除 ${v} 張阻擋卡，繼續抽牌`;
+      return `抽牌將被擋下時移除 ${v} 張阻擋卡，繼續抽牌`;
     case "charge":
       return e.types.length === 3 ? "所有顏色都能併入攻擊" : `${e.types.map((t) => TYPE_LABEL[t]).join("、")}也能併入攻擊`;
     case "shield":

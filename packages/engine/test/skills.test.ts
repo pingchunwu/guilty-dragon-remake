@@ -259,7 +259,7 @@ describe("counter skills", () => {
 });
 
 describe("chain and hand skills", () => {
-  it("肅清 removes blockers when the field is full so the chain draws on", () => {
+  it("肅清 (0.6.0 chain) removes blockers when the field is full so the chain draws on", () => {
     const run = phase([["L", "heavy", 50, "purge-2"]], { hand: ["L", ...ids("m", 4)], pile: ids("p", 10), levels: { L: 2 } });
     const c = run.result.sides.challenger;
     expect(c.chain.filter((s) => s.purged).map((s) => s.card)).toEqual(["m1", "m2"]);

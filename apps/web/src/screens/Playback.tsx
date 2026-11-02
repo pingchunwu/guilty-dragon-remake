@@ -103,7 +103,7 @@ export function calcSteps(result: PhaseResult): CalcStep[] {
 /** Damage skills after the defense %: the dealer's 追加傷害 / 增幅傷害 and the target's 防護 / final-blow guard (null = none). */
 export function afterDefense(result: PhaseResult, dealer: SideId, taken: number): { from: number; tag: string } | null {
   const [w, l] = [result.sides[dealer], result.sides[foe(dealer)]];
-  const gap = result.kind === "normal" ? w.attack - l.attack : w.attack;
+  const gap = result.kind === "normal" || (w.ranOut && l.ranOut) ? w.attack - l.attack : w.attack;
   const from = Math.floor((gap * (100 - l.defense)) / 100);
   if (from === taken) return null;
   const names = [w, l]
@@ -187,9 +187,9 @@ export function playbackFrames(result: PhaseResult, cards: CardMap, rules?: Rule
 }
 
 /**
- * Rule 0.7.0-draft, in the OG clip's order with both sides at once: leader reveal
- * and weapon light-up, leader-time skills, each charge card (counts or blocks) with a
- * deck draw appearing on the same beat, each drawn card added, the leader added last, then the judgment and damage.
+ * Rule 0.7.0-draft, both sides at once: leader reveal and weapon light-up,
+ * leader-time skills, each charge card (counts or blocks), each deck draw
+ * (counts or blocks), the leader added last, then the judgment and damage.
  */
 function framesV07(result: PhaseResult, attackOf: (id: string) => number): Frame[] {
   const charges = (s: SideResult) => s.chain.filter((c, k) => k > 0 && c.from === "pick").length;
@@ -200,8 +200,8 @@ function framesV07(result: PhaseResult, attackOf: (id: string) => number): Frame
     const shown = 1 + charges(s) + Math.min(drawn, draws(s));
     const resolved = 1 + Math.min(charged, charges(s)) + Math.min(added, draws(s));
     const behind = s.chain.slice(1, resolved);
-    // 肅清 fires once all 4 spaces are blocked; until then purged cards still block.
-    const purgeFired = behind.filter((c) => !c.counted).length >= 4;
+    // 肅清 fires when a blocker would end the drawing; until then purged cards still block.
+    const purgeFired = behind.some((c) => c.from === "draw" && !c.counted) || behind.filter((c) => !c.counted).length >= 4;
     const row = s.chain.slice(0, shown).map((step, k): Chip => {
       const state: ChipState =
         k === 0 ? "leader" : k >= resolved ? "pending" : step.counted ? "counted" : step.purged && purgeFired ? "purged" : "blocked";
@@ -228,10 +228,9 @@ function framesV07(result: PhaseResult, attackOf: (id: string) => number): Frame
 
   const frames: Frame[] = [frame(0, 0, 0, false, false, false)];
   if (SIDES.some((id) => result.sides[id].skill)) frames.push(frame(0, 0, 0, false, true));
-  // Charge k is absorbed on the same beat as draw k appears; surplus draws keep coming on the next beats.
-  for (let c = 1; c <= Math.max(most(charges), most(draws)); c++) frames.push(frame(c, c, 0));
-  // Then the drawn cards are added into the total the same way.
-  for (let d = 1; d <= most(draws); d++) frames.push(frame(Infinity, Infinity, d));
+  for (let c = 1; c <= most(charges); c++) frames.push(frame(c, 0, 0));
+  // Each draw drops in and resolves on its own beat, so the next one only appears after a card joined.
+  for (let d = 1; d <= most(draws); d++) frames.push(frame(Infinity, d, d));
   frames.push(frame(Infinity, Infinity, Infinity, true));
   const settled = {} as Record<SideId, SideFrame>;
   for (const id of SIDES) {
@@ -419,8 +418,9 @@ export function AttackScene({ result, labels, hp, maxHp, onComplete }: SceneProp
         if (!result.sides.defender.ranOut) gsap.set(top, { autoAlpha: 0 });
         if (!result.sides.challenger.ranOut) gsap.set(bottom, { autoAlpha: 0 });
       }
-      // A final blow (deck-out) has no crash: each hand's total hits the other side directly.
-      const smaller = result.kind === "normal" ? Math.min(mine, theirs) : 0;
+      // A one-sided final blow has no crash: the hand's total hits the other side directly.
+      const crash = result.kind === "normal" || (result.sides.challenger.ranOut && result.sides.defender.ranOut);
+      const smaller = crash ? Math.min(mine, theirs) : 0;
       const count = { d: 0 };
       // Both numbers lose the same amount, so the smaller reaches 0 and the bigger keeps the remainder.
       const show = () => {
@@ -431,8 +431,8 @@ export function AttackScene({ result, labels, hp, maxHp, onComplete }: SceneProp
       const normal = result.kind === "normal";
       const S = result.sides;
       const calc = normal ? calcSteps(result) : [];
-      // Who deals damage: the winner, or on a final blow every side whose hit lands.
-      const dealers = normal ? (winner ? [winner] : []) : SIDES.filter((id) => taken(foe(id)) > 0);
+      // Who deals damage: the winner of the crash, or the one side landing its final blow.
+      const dealers = crash ? (winner ? [winner] : []) : SIDES.filter((id) => taken(foe(id)) > 0);
       const defend = dealers.length > 0;
       const extras = dealers.map((w) => afterDefense(result, w, taken(foe(w))));
       const extra = extras.some(Boolean);
@@ -454,23 +454,22 @@ export function AttackScene({ result, labels, hp, maxHp, onComplete }: SceneProp
         .from([top, bottom], { autoAlpha: 0, scale: 1.5, duration: 0.25 }, 0.3)
         .addLabel("rush", rushAt)
         .to([topTag, botTag], { autoAlpha: 0, duration: 0.12 }, "rush")
-        // Only a normal round crashes; on a final blow the two numbers stay apart.
-        .to(normal ? top : [], { y: -28, duration: 0.17, ease: "power3.in" }, "rush")
-        .to(normal ? bottom : [], { y: 28, duration: 0.17, ease: "power3.in" }, "rush")
+        .to(crash ? top : [], { y: -28, duration: 0.17, ease: "power3.in" }, "rush")
+        .to(crash ? bottom : [], { y: 28, duration: 0.17, ease: "power3.in" }, "rush")
         .addLabel("impact", ">")
         .to(q(".scene-flash"), { autoAlpha: 0.9, duration: 0.05 }, "impact")
         .to(q(".scene-flash"), { autoAlpha: 0, duration: 0.25 }, ">")
-        .to(normal ? q(".scene-stage") : [], { keyframes: { x: [-12, 10, -7, 5, -2, 0] }, duration: 0.4, ease: "none" }, "impact")
-        .to(normal ? [top, bottom] : [], { scale: 1.3, duration: 0.08, yoyo: true, repeat: 1 }, "impact")
+        .to(crash ? q(".scene-stage") : [], { keyframes: { x: [-12, 10, -7, 5, -2, 0] }, duration: 0.4, ease: "none" }, "impact")
+        .to(crash ? [top, bottom] : [], { scale: 1.3, duration: 0.08, yoyo: true, repeat: 1 }, "impact")
         .to(count, { d: smaller, duration: 1, ease: "power1.inOut", onUpdate: show }, "impact+=0.05")
         .addLabel("shatter", ">")
         // The smaller number (both on a tie) bursts apart; the remainder fades as the banner lands.
-        .to(normal && mine <= theirs ? bottom : [], { scale: 1.9, rotation: 14, autoAlpha: 0, duration: 0.25 }, "shatter")
-        .to(normal && theirs <= mine ? top : [], { scale: 1.9, rotation: -14, autoAlpha: 0, duration: 0.25 }, "shatter")
+        .to(crash && mine <= theirs ? bottom : [], { scale: 1.9, rotation: 14, autoAlpha: 0, duration: 0.25 }, "shatter")
+        .to(crash && theirs <= mine ? top : [], { scale: 1.9, rotation: -14, autoAlpha: 0, duration: 0.25 }, "shatter")
         .addLabel("banner", "shatter+=0.1")
         .addLabel("defense", `banner+=${STEP}`)
         .addLabel("hit", `banner+=${defend ? STEP * (extra ? 3 : 2) : STEP}`)
-        .to(normal ? (mine > theirs ? bottom : theirs > mine ? top : []) : [top, bottom], { scale: 0.6, autoAlpha: 0, duration: 0.25 }, defend ? "hit" : "shatter+=0.15")
+        .to(crash ? (mine > theirs ? bottom : theirs > mine ? top : []) : [top, bottom], { scale: 0.6, autoAlpha: 0, duration: 0.25 }, defend ? "hit" : "shatter+=0.15")
         .from(q(".scene-banner"), { xPercent: -110, duration: 0.3 }, "banner")
         .fromTo(q(".scene-flash"), { autoAlpha: 0.85 }, { autoAlpha: 0, duration: 0.3 }, "hit")
         .from(q(".scene-damage"), { scale: 2.6, autoAlpha: 0, duration: 0.3, ease: "back.out(2)" }, "hit");
@@ -492,7 +491,7 @@ export function AttackScene({ result, labels, hp, maxHp, onComplete }: SceneProp
       dealers.forEach((w, k) => {
         const target = foe(w);
         const wTag = nums[w][1];
-        const d = { v: normal ? Math.abs(mine - theirs) : S[w].attack };
+        const d = { v: crash ? Math.abs(mine - theirs) : S[w].attack };
         const defStep = (o: number, text: string, to: number) =>
           tl.current!
             .add(() => void (wTag.textContent = text), `defense+=${o}`)
@@ -550,7 +549,7 @@ export function AttackScene({ result, labels, hp, maxHp, onComplete }: SceneProp
           <span className="scene-num">{startOf(result, "challenger")}</span>
         </div>
         <div className="scene-banner">
-          {hurt.length === 0 && !winner ? "勢均力敵" : result.kind === "deck_out" ? (hurt.length > 1 ? "雙方最終一擊" : "最終一擊") : `${labels[winner!]}的攻擊`}
+          {hurt.length === 0 && !winner ? "勢均力敵" : result.kind === "deck_out" ? "最終一擊" : `${labels[winner!]}的攻擊`}
         </div>
         <div className="scene-damage">
           {hurt.length ? hurt.map((id) => <span key={id}>{`−${taken(id)}`}</span>) : "沒有傷害"}

@@ -407,13 +407,10 @@ export function Duel(props: Props) {
   // Playback cards get their own keys and flip ids, so the next phase's picks never reuse a merged
   // element, and the same card on both sides (practice uses one collection) never shares an id.
   const slotKey = (card: string) => (frame ? `${last!.phase}-${card}` : card);
-  const hurt = last ? (["defender", "challenger"] as const).filter((id) => (last.damageTaken?.[id] ?? (last.winner && last.winner !== id ? last.damage : 0)) > 0) : [];
   const outcome = last
-    ? last.kind === "deck_out" && hurt.length > 1
-      ? `雙方最終一擊：${hurt.map((id) => `${labels[id]}受到 ${last.damageTaken![id]} 傷害`).join("，")}`
-      : last.winner
-        ? `${labels[last.winner]}${last.kind === "deck_out" ? "最終一擊" : "攻擊"}，造成 ${last.damage} 傷害`
-        : "攻擊相同，沒有傷害"
+    ? last.winner
+      ? `${labels[last.winner]}${last.kind === "deck_out" ? "最終一擊" : "攻擊"}，造成 ${last.damage} 傷害`
+      : "攻擊相同，沒有傷害"
     : null;
 
   const banner = replaying ? (
