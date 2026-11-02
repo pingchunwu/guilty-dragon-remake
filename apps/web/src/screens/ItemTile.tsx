@@ -10,7 +10,7 @@ interface Props {
 }
 
 export function ItemTile({ item, owned, onClick, badge, selected }: Props) {
-  const className = `card ${isWeapon(item.kind) ? `card-${item.kind}` : "item-armor"}${selected ? " card-selected" : ""}`;
+  const className = `card item-tile ${isWeapon(item.kind) ? `card-${item.kind}` : "item-armor"}${selected ? " card-selected" : ""}`;
   const body = (
     <>
       <span className="card-type">{ITEM_KIND_LABEL[item.kind]}</span>

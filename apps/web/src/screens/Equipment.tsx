@@ -52,7 +52,7 @@ export function Equipment({ content: { items }, service, state, onState }: Props
             <ItemTile item={current} owned={state.items[current.id]} onClick={() => setOpen(open === kind ? null : kind)} />
           ) : (
             <button type="button" className="card card-empty" onClick={() => setOpen(open === kind ? null : kind)}>
-              ＋
+              +
             </button>
           )}
         </div>

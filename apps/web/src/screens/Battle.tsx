@@ -82,6 +82,8 @@ export function Battle({ content, state: player, onActive }: Props) {
           <p className="muted small">
             用你的進攻牌組挑戰你自己的防守牌組，對手由 AI 出牌。練習不保存、沒有獎勵。
           </p>
+          <details className="rules-fold">
+            <summary>規則</summary>
           <ul className="small rules">
             <li>雙方 HP {RULES.startingHp}，手牌 {RULES.handSize} 張；沒出的牌留在手上，每階段補回 {RULES.handSize} 張。</li>
             <li>先選領導卡（手牌顯示 DRAW，上場後只顯示 POW），再選 {RULES.maxSelected - 1} 張任意顏色的充能卡，選滿就出牌；領導卡選了就不能收回，充能卡選滿前可以點已選的卡收回。</li>
@@ -92,6 +94,7 @@ export function Battle({ content, state: player, onActive }: Props) {
             <li>攻擊較高的一方造成「（攻擊差）×（100%－對方防禦%）」傷害；相同則無傷害。</li>
             <li>牌庫抽完時自動發動最終一擊：用手牌總和＋三把武器攻擊（計算防禦），雙方同時最終一擊時雙方都會受傷，之後洗牌重置。</li>
           </ul>
+          </details>
           <button type="button" className="primary" onClick={start}>
             開始練習對戰
           </button>

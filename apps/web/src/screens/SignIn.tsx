@@ -43,13 +43,13 @@ export function SignIn({ client, onGuest }: Props) {
     setMessage(null);
     const { error } = await client.auth.verifyOtp({ email, token: code.trim(), type: "email" });
     setBusy(false);
-    if (error) setMessage("驗證碼錯誤或已過期。");
+    if (error) setMessage("驗證碼錯誤或已過期");
   }
 
   return (
     <section className="panel stack">
       <h2>登入</h2>
-      {!client && <p className="muted">此版本未設定 Supabase，只能以訪客身分試玩。</p>}
+      {!client && <p className="muted">此版本未設定 Supabase，只能以訪客身分試玩</p>}
       {client && step === "email" && (
         <form className="stack" onSubmit={sendCode}>
           <label className="field">
@@ -106,7 +106,7 @@ export function SignIn({ client, onGuest }: Props) {
       <button type="button" onClick={onGuest}>
         以訪客身分試玩
       </button>
-      <p className="muted small">訪客進度不會保存，重新整理後就會消失。</p>
+      <p className="muted small">訪客進度不會保存，重新整理後就會消失</p>
     </section>
   );
 }

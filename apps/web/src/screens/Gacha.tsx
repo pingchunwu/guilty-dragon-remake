@@ -4,6 +4,7 @@ import type { Content } from "../game/content";
 import { GameError, type GameService, type PlayerState } from "../game/types";
 import { errorText } from "../game/text";
 import { GachaReveal } from "./GachaReveal";
+import { SealRing } from "./SealRing";
 
 type Kind = "card" | "item";
 const KIND_LABEL: Record<Kind, string> = { card: "卡片", item: "裝備" };
@@ -67,18 +68,33 @@ export function Gacha({ content: { cards, items }, service, state, onState }: Pr
           </button>
         ))}
       </div>
-      <div className="panel stack">
-        <div className="row between">
-          <span>抽卡券</span>
-          <strong className="big">{state.tickets}</strong>
+      <div className="gacha-vault">
+        <div className="gacha-mark">
+          <SealRing size={160} />
+          <div className="gacha-count">
+            <strong>{state.tickets}</strong>
+            <span>抽卡券</span>
+          </div>
         </div>
-        <p className="muted small">
-          每天（台北時間）獲得 1 張，可累積；卡片和裝備共用。1 張券進行 10 抽；每抽到重複的就升 1 級（卡片升的是技能等級，上限依技能；裝備每級 +10%，上限 Lv {ITEM_MAX_LEVEL}）。
-        </p>
-        <button type="button" className="primary" disabled={busy || (state.tickets < 1 && !pendingKey)} onClick={draw}>
-          {busy ? "抽卡中…" : `${pendingKey ? "重試" : ""}${KIND_LABEL[kind]}十連抽${pendingKey ? "" : "（消耗 1 張）"}`}
-        </button>
-        {error && <p className="error">{error}</p>}
+        <div className="gacha-foot">
+          <details className="gacha-rules">
+            <summary>規則</summary>
+            <p>
+              每天（台北時間）獲得 1 張，可累積；卡片和裝備共用。1 張券進行 10 抽；每抽到重複的就升 1 級（卡片升的是技能等級，上限依技能；裝備每級 +10%，上限 Lv {ITEM_MAX_LEVEL}）。
+            </p>
+          </details>
+          {error && <p className="error">{error}</p>}
+          <button type="button" className="primary gacha-draw" disabled={busy || (state.tickets < 1 && !pendingKey)} onClick={draw}>
+            {busy ? (
+              "抽卡中…"
+            ) : (
+              <>
+                {pendingKey ? "重試" : ""}
+                {KIND_LABEL[kind]}十連抽{!pendingKey && <small>消耗 1 張</small>}
+              </>
+            )}
+          </button>
+        </div>
       </div>
       {results && revealing && (
         <GachaReveal
