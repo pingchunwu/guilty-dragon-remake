@@ -20,7 +20,7 @@ import {
 import { TYPE_LABEL, skillEffectText } from "../game/text";
 import { BattleCard } from "./BattleCard";
 import { CountUp, FAMILY_ICON, HpBar, SkillBursts, SkillTag, familyOf, reducedMotion, type CardMap, type SideLabels } from "./BattleParts";
-import { AttackScene, BEAT_MS, Pips, playbackFrames, type Chip } from "./Playback";
+import { AttackScene, BEAT_MS, Pips, hpTaken, playbackFrames, type Chip } from "./Playback";
 
 gsap.registerPlugin(Flip);
 
@@ -192,6 +192,9 @@ export function Duel(props: Props) {
 
   // Skill banners stay until the phase's HP has been paid (the attack scene ends, then the bars count).
   const [settling, setSettling] = useState(false);
+  // The attack scene already showed the HP drop, so the bars are at the new value when it fades, with no second animation.
+  const [hpShown, setHpShown] = useState(false);
+  const barHp = (id: SideId) => (replaying && hpShown ? Math.max(0, hp[id] - hpTaken(last!, id)) : hp[id]);
   // Set while rendering (not in an effect), so the hand never gets a frame of room between replay and settle.
   const [wasReplaying, setWasReplaying] = useState(false);
   if (wasReplaying !== replaying) {
@@ -200,7 +203,10 @@ export function Duel(props: Props) {
   }
   useEffect(() => {
     if (!settling) return;
-    const timer = window.setTimeout(() => setSettling(false), HP_SETTLE_MS);
+    const timer = window.setTimeout(() => {
+      setSettling(false);
+      setHpShown(false);
+    }, HP_SETTLE_MS);
     return () => window.clearTimeout(timer);
   }, [settling]);
   const firstSkill = frames.findIndex((f) => f.skills);
@@ -388,15 +394,15 @@ export function Duel(props: Props) {
         drawn: false,
         fresh: false,
       }));
-  // OG queue: a counted card merges into the weapon on its beat and leaves the row after, so the row
-  // never outgrows leader + spaces; once the judgment starts, the blocked cards clear away too.
+  // OG queue: a counted card merges into the weapon on its beat and leaves the row after (a purged card
+  // goes the same way), while blocked cards hold their space; once the judgment starts, they clear away too.
   // A deck-out shows every card it adds up.
   const prev = replaying && play.beat > 0 ? frames[play.beat - 1] : undefined;
   const gone = (id: SideId, chip: Chip) =>
     !!frame &&
     last!.kind !== "deck_out" &&
     chip.state !== "leader" &&
-    (settled || (chip.state === "counted" && prev?.sides[id].row.find((c) => c.card === chip.card)?.state === "counted"));
+    (settled || ((chip.state === "counted" || chip.state === "purged") && prev?.sides[id].row.find((c) => c.card === chip.card)?.state === chip.state));
   // Power the capsule gained on this beat (the weapon, each charge card, the leader last), shown as +N.
   const addOf = (id: SideId) =>
     frame && prev && frame.stage === "chain" ? Math.max(0, frame.sides[id].sum - prev.sides[id].sum) : 0;
@@ -461,7 +467,7 @@ export function Duel(props: Props) {
         <span className="mini-pile" aria-label={`${labels.defender}的牌庫 ${drawPile.defender}`}>
           {drawPile.defender}
         </span>
-        <HpBar label={labels.defender} hp={hp.defender} equipment={equipment.defender} rules={rules} />
+        <HpBar label={labels.defender} hp={barHp("defender")} equipment={equipment.defender} rules={rules} instant={hpShown} />
       </div>
       <div className="duel-opp-row">
         {frame && (
@@ -543,7 +549,7 @@ export function Duel(props: Props) {
         )}
       </div>
 
-      <HpBar label={labels.challenger} hp={hp.challenger} equipment={equipment.challenger} rules={rules} />
+      <HpBar label={labels.challenger} hp={barHp("challenger")} equipment={equipment.challenger} rules={rules} instant={hpShown} />
 
       {props.children ? (
         <div className="duel-end">{props.children}</div>
@@ -617,7 +623,14 @@ export function Duel(props: Props) {
       )}
 
       {replaying && !play.reveal && play.beat >= end && play.scene && (
-        <AttackScene result={last!} labels={labels} hp={hp} maxHp={rules.startingHp} onComplete={() => setPlay((p) => ({ ...p, scene: false }))} />
+        <AttackScene
+          result={last!}
+          labels={labels}
+          hp={hp}
+          maxHp={rules.startingHp}
+          onHpShown={() => setHpShown(true)}
+          onComplete={() => setPlay((p) => ({ ...p, scene: false }))}
+        />
       )}
     </div>
   );

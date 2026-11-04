@@ -98,7 +98,7 @@ export function ResultScreen({ won, stats, children }: { won: boolean; stats: st
 }
 
 /** Counts up (or down) to `value`; React renders only the first value, so the tween owns the text after that. */
-export function CountUp({ value, className, tint }: { value: number; className?: string; tint?: boolean }) {
+export function CountUp({ value, className, tint, instant }: { value: number; className?: string; tint?: boolean; instant?: boolean }) {
   const ref = useRef<HTMLSpanElement>(null);
   const [first] = useState(value);
   const shown = useRef(value);
@@ -108,6 +108,11 @@ export function CountUp({ value, className, tint }: { value: number; className?:
       if (shown.current === value) return;
       // Kill, not revert: reverting rewinds the old count and writes its start value back for a frame.
       count.current?.kill();
+      if (instant) {
+        shown.current = value;
+        if (ref.current) ref.current.textContent = String(value);
+        return;
+      }
       const n = { v: shown.current };
       const motion = !reducedMotion();
       // HP: flash green when it rises (heal) and red when it falls (HP paid, direct damage, a hit).
@@ -139,9 +144,11 @@ interface HpBarProps {
   hp: number;
   equipment: Equipment;
   rules: RuleConfig;
+  /** Take a new HP value at once, without the count and the bar's slide. */
+  instant?: boolean;
 }
 
-export function HpBar({ label, hp, equipment, rules }: HpBarProps) {
+export function HpBar({ label, hp, equipment, rules, instant = false }: HpBarProps) {
   const pct = Math.round((hp / rules.startingHp) * 100);
   return (
     <div className="stack hp">
@@ -155,11 +162,11 @@ export function HpBar({ label, hp, equipment, rules }: HpBarProps) {
           </span>
         </span>
         <span className="nowrap">
-          <CountUp value={hp} tint /> /{rules.startingHp}
+          <CountUp value={hp} tint instant={instant} /> /{rules.startingHp}
         </span>
       </div>
       <div className="hp-track">
-        <div className="hp-fill" style={{ transform: `scaleX(${pct / 100})` }} />
+        <div className="hp-fill" style={{ transform: `scaleX(${pct / 100})`, ...(instant && { transition: "none" }) }} />
       </div>
     </div>
   );
