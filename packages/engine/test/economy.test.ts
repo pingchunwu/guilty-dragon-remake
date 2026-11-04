@@ -8,6 +8,7 @@ import {
   createRng,
   daysBetween,
   drawTen,
+  SSR_PITY,
   taipeiDate,
   validateDeck,
 } from "../src";
@@ -61,6 +62,48 @@ describe("drawTen", () => {
     const pool = { id: "t", entries: [{ id: "x", weight: 0 }, { id: "y", weight: 3 }] };
     const { results } = drawTen({}, pool, createRng([7, 7, 7, 7]));
     expect(new Set(results.map((r) => r.id))).toEqual(new Set(["y"]));
+  });
+});
+
+describe("drawTen guarantees", () => {
+  const rarities = { n: "N", r: "R", sr: "SR", ssr: "SSR" } as const;
+  const rarityOf = (id: string) => rarities[id as keyof typeof rarities];
+  const pool = { id: "t", entries: [{ id: "n", weight: 1000 }, { id: "sr", weight: 1 }, { id: "ssr", weight: 1 }] };
+  const onlyLow = { id: "t", entries: [{ id: "n", weight: 1 }, { id: "r", weight: 1 }] };
+  const best = (id: string) => id === "sr" || id === "ssr";
+
+  it("gives ten pulls with no SR or better an SR or better on the last one", () => {
+    let floored = 0;
+    for (let seed = 0; seed < 50; seed++) {
+      const { results } = drawTen({}, pool, createRng([seed, 2, 3, 4]), undefined, { rarityOf, pity: 0 });
+      expect(results.some((r) => best(r.id))).toBe(true);
+      if (best(results[9]!.id) && !results.slice(0, 9).some((r) => best(r.id))) floored++;
+    }
+    expect(floored).toBeGreaterThan(0);
+  });
+
+  it("forces SSR on the pity pull, resets, and counts on from there", () => {
+    const { results, pity } = drawTen({}, pool, createRng([1, 2, 3, 4]), undefined, { rarityOf, pity: SSR_PITY - 1 });
+    expect(results[0]!.id).toBe("ssr");
+    // Nine more pulls, unless one of them was another SSR.
+    expect(pity).toBeLessThanOrEqual(9);
+    const lastSsr = results.map((r) => r.id).lastIndexOf("ssr");
+    expect(pity).toBe(9 - lastSsr);
+  });
+
+  it("counts pulls without an SSR", () => {
+    expect(drawTen({}, onlyLow, createRng([1, 2, 3, 4]), undefined, { rarityOf, pity: 5 }).pity).toBe(15);
+  });
+
+  it("draws normally when the pool has no guaranteed rarity", () => {
+    const { results } = drawTen({}, onlyLow, createRng([1, 2, 3, 4]), undefined, { rarityOf, pity: SSR_PITY - 1 });
+    expect(results).toHaveLength(10);
+  });
+
+  it("leaves draws without a guarantee alone", () => {
+    const plain = drawTen({}, pool, createRng([1, 2, 3, 4]));
+    expect(plain.pity).toBe(0);
+    expect(plain.results.every((r) => r.id === "n")).toBe(true);
   });
 });
 

@@ -1,9 +1,11 @@
-import type { Collection, Deck, DeckError, Loadout, LoadoutError, PullResult } from "@gdr/engine";
+import type { Collection, Deck, DeckError, Loadout, LoadoutError, PullResult, Rarity } from "@gdr/engine";
 
 export type DeckKind = "attack" | "defense";
 
 export interface PlayerState {
   tickets: number;
+  /** Card pulls since the last SSR or UR. */
+  pity: number;
   cards: Collection;
   decks: Record<DeckKind, Deck>;
   items: Collection;
@@ -27,6 +29,8 @@ export interface GameService {
   drawTen(idempotencyKey: string): Promise<DrawOutcome>;
   /** Ten pulls from the item pool for one ticket; keys must differ from card draws. */
   drawItems(idempotencyKey: string): Promise<DrawOutcome>;
+  /** Total draw weight per rarity in the active card pool. */
+  rarityWeights(): Promise<Partial<Record<Rarity, number>>>;
   saveDeck(kind: DeckKind, deck: Deck): Promise<{ ok: boolean; errors: DeckError[] }>;
   saveLoadout(loadout: Loadout): Promise<{ ok: boolean; errors: LoadoutError[] }>;
 }

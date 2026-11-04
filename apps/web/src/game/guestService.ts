@@ -12,6 +12,7 @@ import {
   validateLoadout,
   type Collection,
   type Pool,
+  type Rarity,
 } from "@gdr/engine";
 import type { Content } from "./content";
 import { GameError, type GameService, type PlayerState } from "./types";
@@ -32,6 +33,7 @@ export function createGuestService({ cards, items }: Content): GameService {
   let state: PlayerState = {
     // shortcut: guests get 100 tickets for testing the gacha; switch back to STARTING_TICKETS before launch.
     tickets: 100,
+    pity: 0,
     cards: collection,
     decks: { attack: PLACEHOLDER_DEFAULT_DECK, defense: PLACEHOLDER_DEFAULT_DECK },
     items: Object.fromEntries(
@@ -50,12 +52,13 @@ export function createGuestService({ cards, items }: Content): GameService {
       const card = cards.get(id);
       return field === "items" ? ITEM_MAX_LEVEL : card ? cardMaxLevel(card) : 1;
     };
-    const drawn = drawTen(state[field], pool, createRng(randomSeed()), maxLevel);
+    const guarantee = field === "cards" ? { rarityOf: (id: string) => cards.get(id)?.rarity, pity: state.pity } : undefined;
+    const drawn = drawTen(state[field], pool, createRng(randomSeed()), maxLevel, guarantee);
     const now = new Date().toISOString();
     const stamped = Object.fromEntries(
       Object.entries(drawn.collection).map(([id, c]) => [id, { ...c, obtainedAt: state[field][id]?.obtainedAt ?? now }]),
     );
-    state = { ...state, tickets: state.tickets - 1, [field]: stamped };
+    state = { ...state, tickets: state.tickets - 1, pity: guarantee ? drawn.pity : state.pity, [field]: stamped };
     draws.set(key, drawn.results);
     return { results: drawn.results, state };
   }
@@ -69,6 +72,14 @@ export function createGuestService({ cards, items }: Content): GameService {
     },
     async drawItems(key) {
       return draw(key, PLACEHOLDER_ITEM_POOL, "items");
+    },
+    async rarityWeights() {
+      const weights: Partial<Record<Rarity, number>> = {};
+      for (const { id, weight } of PLACEHOLDER_POOL.entries) {
+        const rarity = cards.get(id)?.rarity;
+        if (rarity) weights[rarity] = (weights[rarity] ?? 0) + weight;
+      }
+      return weights;
     },
     async saveDeck(kind, deck) {
       const errors = validateDeck(deck, cards, RULES_V0, new Set(Object.keys(state.cards)));

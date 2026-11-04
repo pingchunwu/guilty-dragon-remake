@@ -4,11 +4,17 @@ import type { CardDefinition, ItemDefinition, PullResult } from "@gdr/engine";
 import { DeckCard } from "./DeckCard";
 import { ItemTile } from "./ItemTile";
 import { GachaCutIn } from "./GachaCutIn";
-import { omenOf } from "./gachaOmen";
+import { omenOf, type Omen } from "./gachaOmen";
 import { reducedMotion } from "./BattleParts";
 
 // Code-split: three.js only loads for the gacha (Gacha.tsx preloads the chunk on mount).
-const GachaSeal3D = lazy(() => import("./GachaSeal3D").then((m) => ({ default: m.GachaSeal3D })));
+// A chunk gone after a deploy must not cost the reveal the player just paid for: skip to the flip.
+const GachaSeal3D = lazy(() => import("./GachaSeal3D").then((m) => ({ default: m.GachaSeal3D })).catch(() => ({ default: SkipSeal })));
+
+function SkipSeal({ onDone }: { omen: Omen; onDone: () => void }) {
+  useEffect(onDone, [onDone]);
+  return <></>;
+}
 
 type Kind = "card" | "item";
 type Stage = "seal" | "flip" | "summary";
