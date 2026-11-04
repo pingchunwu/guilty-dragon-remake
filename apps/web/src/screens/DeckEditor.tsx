@@ -51,8 +51,14 @@ export function DeckEditor({ content: { cards }, service, state, onState }: Prop
   const [query, setQuery] = useState<CardQuery>(DEFAULT_CARD_QUERY);
   const pickerRef = useRef<HTMLDivElement>(null);
 
+  // Where the page was when the picker opened: closing it goes back there.
+  const scrollBack = useRef<number | null>(null);
   useEffect(() => {
     if (selected) pickerRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    else if (scrollBack.current !== null) {
+      window.scrollTo({ top: scrollBack.current, behavior: "smooth" });
+      scrollBack.current = null;
+    }
   }, [selected]);
 
   const owned = useMemo(() => new Set(Object.keys(state.cards)), [state.cards]);
@@ -61,6 +67,7 @@ export function DeckEditor({ content: { cards }, service, state, onState }: Prop
   const dirty = JSON.stringify(draft) !== JSON.stringify(state.decks[kind]);
 
   function toggle(slot: DeckSlot, index: number) {
+    if (!selected) scrollBack.current = window.scrollY;
     setSelected(selected?.slot === slot && selected.index === index ? null : { slot, index });
     setMessage(null);
   }

@@ -188,26 +188,33 @@ export function playbackFrames(result: PhaseResult, cards: CardMap, rules?: Rule
 
 /**
  * Rule 0.7.0-draft, both sides at once: leader reveal and weapon light-up,
- * leader-time skills, each charge card (counts or blocks), each deck draw
- * (counts or blocks), the leader added last, then the judgment and damage.
+ * leader-time skills, each card behind the leader in queue order (counts or blocks),
+ * the leader added last, then the judgment and damage. A draw arrives on the beat
+ * a card joins the total, then waits at the end of the queue for its own beat.
  */
 function framesV07(result: PhaseResult, attackOf: (id: string) => number): Frame[] {
   const charges = (s: SideResult) => s.chain.filter((c, k) => k > 0 && c.from === "pick").length;
   const draws = (s: SideResult) => s.chain.filter((c) => c.from === "draw").length;
-  const most = (count: (s: SideResult) => number) => Math.max(0, ...SIDES.map((id) => count(result.sides[id])));
+  // 肅清 fires when a blocker would end the drawing; until then purged cards still block.
+  const purgeFired = (behind: SideResult["chain"]) => behind.some((c) => c.from === "draw" && !c.counted) || behind.filter((c) => !c.counted).length >= 4;
+  /** Draws in the row after `step` cards resolved: one per card that joined or was purged away. */
+  const drawnAt = (s: SideResult, step: number) => {
+    const behind = s.chain.slice(1, 1 + step);
+    const earned = behind.filter((c) => c.counted || (c.purged && purgeFired(behind))).length;
+    return Math.min(draws(s), Math.max(earned, step - charges(s)));
+  };
 
-  const at = (s: SideResult, charged: number, drawn: number, added: number, leaderIn: boolean, skillsIn: boolean): SideFrame => {
-    const shown = 1 + charges(s) + Math.min(drawn, draws(s));
-    const resolved = 1 + Math.min(charged, charges(s)) + Math.min(added, draws(s));
+  const at = (s: SideResult, step: number, leaderIn: boolean, skillsIn: boolean): SideFrame => {
+    const shown = 1 + charges(s) + drawnAt(s, step);
+    const resolved = 1 + step;
     const behind = s.chain.slice(1, resolved);
-    // 肅清 fires when a blocker would end the drawing; until then purged cards still block.
-    const purgeFired = behind.some((c) => c.from === "draw" && !c.counted) || behind.filter((c) => !c.counted).length >= 4;
-    const row = s.chain.slice(0, shown).map((step, k): Chip => {
+    const firstNew = 1 + charges(s) + drawnAt(s, step - 1);
+    const row = s.chain.slice(0, shown).map((c, k): Chip => {
       const state: ChipState =
-        k === 0 ? "leader" : k >= resolved ? "pending" : step.counted ? "counted" : step.purged && purgeFired ? "purged" : "blocked";
-      // The card resolving on this beat: a draw drops in; the leader flashes as it joins the total.
-      const fresh = k === 0 ? leaderIn : step.from === "draw" && k === shown - 1 && drawn <= draws(s);
-      return { card: step.card, state, drawn: step.from === "draw", fresh };
+        k === 0 ? "leader" : k >= resolved ? "pending" : c.counted ? "counted" : c.purged && purgeFired(behind) ? "purged" : "blocked";
+      // A draw flies in as it arrives; the leader flashes as it joins the total.
+      const fresh = k === 0 ? leaderIn : k >= firstNew;
+      return { card: c.card, state, drawn: c.from === "draw", fresh };
     });
     const counted = behind.filter((c) => c.counted);
     return {
@@ -217,21 +224,20 @@ function framesV07(result: PhaseResult, attackOf: (id: string) => number): Frame
     };
   };
   // The first frame is the leader reveal; the weapon shows its skill-boosted power from the skill beat on.
-  const frame = (charged: number, drawn: number, added: number, leaderIn = false, skills = false, skillsIn = true): Frame => ({
+  const frame = (step: number, leaderIn = false, skills = false, skillsIn = true): Frame => ({
     stage: "chain",
     sides: {
-      challenger: at(result.sides.challenger, charged, drawn, added, leaderIn, skillsIn),
-      defender: at(result.sides.defender, charged, drawn, added, leaderIn, skillsIn),
+      challenger: at(result.sides.challenger, step, leaderIn, skillsIn),
+      defender: at(result.sides.defender, step, leaderIn, skillsIn),
     },
     skills,
   });
 
-  const frames: Frame[] = [frame(0, 0, 0, false, false, false)];
-  if (SIDES.some((id) => result.sides[id].skill)) frames.push(frame(0, 0, 0, false, true));
-  for (let c = 1; c <= most(charges); c++) frames.push(frame(c, 0, 0));
-  // Each draw drops in and resolves on its own beat, so the next one only appears after a card joined.
-  for (let d = 1; d <= most(draws); d++) frames.push(frame(Infinity, d, d));
-  frames.push(frame(Infinity, Infinity, Infinity, true));
+  const frames: Frame[] = [frame(0, false, false, false)];
+  if (SIDES.some((id) => result.sides[id].skill)) frames.push(frame(0, false, true));
+  const steps = Math.max(0, ...SIDES.map((id) => result.sides[id].chain.length - 1));
+  for (let t = 1; t <= steps; t++) frames.push(frame(t));
+  frames.push(frame(Infinity, true));
   const settled = {} as Record<SideId, SideFrame>;
   for (const id of SIDES) {
     const last = frames[frames.length - 1]!.sides[id];
@@ -383,7 +389,14 @@ interface SceneProps {
   /** HP going into the damage (after skills) and the full bar. */
   hp: Record<SideId, number>;
   maxHp: number;
+  /** The scene has shown the HP drop and is about to fade, uncovering the duel's HP bars. */
+  onHpShown: () => void;
   onComplete: () => void;
+}
+
+/** HP a side loses in the phase; results stored before damageTaken existed only had the winner's damage. */
+export function hpTaken(result: PhaseResult, id: SideId) {
+  return result.damageTaken?.[id] ?? (result.winner && result.winner !== id ? result.damage : 0);
 }
 
 /**
@@ -393,15 +406,13 @@ interface SceneProps {
  * and the damage number (the engine's, after defense) land, and a blade streak cuts the
  * loser's HP as the bar drops. A tie zeroes both with no slash. Tap to skip.
  */
-export function AttackScene({ result, labels, hp, maxHp, onComplete }: SceneProps) {
+export function AttackScene({ result, labels, hp, maxHp, onHpShown, onComplete }: SceneProps) {
   const root = useRef<HTMLDivElement>(null);
   const tl = useRef<gsap.core.Timeline | null>(null);
   const { winner } = result;
-  const loser = winner && foe(winner);
   const mine = result.sides.challenger.attack;
   const theirs = result.sides.defender.attack;
-  // HP each side loses; results stored before damageTaken existed only had the winner's damage.
-  const taken = (id: SideId) => result.damageTaken?.[id] ?? (loser === id ? result.damage : 0);
+  const taken = (id: SideId) => hpTaken(result, id);
   const hurt = SIDES.filter((id) => taken(id) > 0);
   useGSAP(
     (_, contextSafe) => {
@@ -515,7 +526,7 @@ export function AttackScene({ result, labels, hp, maxHp, onComplete }: SceneProp
           .to(cut, { autoAlpha: 0, duration: 0.2 }, "hit+=0.6");
         if (i === 0) tl.current!.to(q(".scene-stage"), { keyframes: { x: [-12, 10, -7, 5, -2, 0] }, duration: 0.4, ease: "none" }, "hit+=0.3");
       });
-      tl.current.to(root.current, { autoAlpha: 0, duration: 0.25 }, ">0.3");
+      tl.current.add(contextSafe!(onHpShown), ">0.3").to(root.current, { autoAlpha: 0, duration: 0.25 }, "<");
     },
     { scope: root },
   );

@@ -94,12 +94,13 @@ describe("playbackFrames, rule 0.7.0-draft", () => {
     expect(frames.map((f) => f.stage)).toEqual([...Array(9).fill("chain"), "total", "damage"]);
     expect(frames.map((f) => !!f.skills)).toEqual([false, true, ...Array(9).fill(false)]);
     expect(row(0)).toEqual(["L:leader", "h1:pending", "m1:pending", "h2:pending", "m2:pending"]);
-    // Charges resolve with nothing drawn yet; then each draw drops in and resolves on its own beat.
-    expect(row(2)).toEqual(["L:leader", "h1:counted", "m1:pending", "h2:pending", "m2:pending"]);
-    expect(row(3)).toEqual(["L:leader", "h1:counted", "m1:blocked", "h2:pending", "m2:pending"]);
-    expect(row(5)).toEqual(["L:leader", "h1:counted", "m1:blocked", "h2:counted", "m2:blocked"]);
-    expect(row(6).slice(-1)).toEqual(["d1:counted*"]);
-    expect(row(7).slice(-2)).toEqual(["d1:counted", "d2:blocked*"]);
+    // A draw arrives on the beat a card joins the total, then waits in the queue for its own beat.
+    expect(row(2)).toEqual(["L:leader", "h1:counted", "m1:pending", "h2:pending", "m2:pending", "d1:pending*"]);
+    expect(row(3)).toEqual(["L:leader", "h1:counted", "m1:blocked", "h2:pending", "m2:pending", "d1:pending"]);
+    expect(row(4).slice(-3)).toEqual(["m2:pending", "d1:pending", "d2:pending*"]);
+    expect(row(5).slice(-3)).toEqual(["m2:blocked", "d1:pending", "d2:pending"]);
+    expect(row(6).slice(-2)).toEqual(["d1:counted", "d2:pending"]);
+    expect(row(7).slice(-2)).toEqual(["d1:counted", "d2:blocked"]);
     expect(row(8)[0]).toBe("L:leader*");
     expect(frames[10]!.sides.challenger.row.some((c) => c.fresh)).toBe(false);
   });
@@ -171,7 +172,7 @@ describe("AttackScene inputs, rule 0.7.0-draft", () => {
   const labels = { challenger: "我", defender: "敵" };
   const html = (r: PhaseResult) =>
     renderToStaticMarkup(
-      createElement(AttackScene, { result: r, labels, hp: { challenger: 100_000, defender: 100_000 }, maxHp: 100_000, onComplete: () => {} }),
+      createElement(AttackScene, { result: r, labels, hp: { challenger: 100_000, defender: 100_000 }, maxHp: 100_000, onHpShown: () => {}, onComplete: () => {} }),
     );
 
   it("a colour-advantage round steps from the combo total to the engine's attack", () => {

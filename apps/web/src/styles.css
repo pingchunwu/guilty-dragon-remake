@@ -1075,7 +1075,9 @@ p.error {
 /* Leader + 4 spaces: the queue never holds more, so five cards always fit beside the pile. */
 .charge-slot {
   position: relative;
-  flex: 0 0 min(18cqw, calc((64cqw - 8px) / 4));
+  /* Shrinks only for the beat a merging card and the card drawn with it are both in the row. */
+  flex: 0 1 min(18cqw, calc((64cqw - 8px) / 4));
+  min-width: 0;
 }
 
 .charge-slot:last-child {
@@ -1088,7 +1090,8 @@ p.error {
 
 /* The phase opens on both leaders and their skills (Duel.tsx REVEAL_MS). */
 .reveal {
-  position: absolute;
+  /* The whole screen, not the duel's box: the leader's ring reaches past that box's left edge. */
+  position: fixed;
   inset: 0;
   /* Above the charge slots (z-index up to 20), or they paint over the leaders. */
   z-index: 25;
@@ -1097,7 +1100,6 @@ p.error {
   justify-items: center;
   gap: 16px;
   padding: 16px;
-  border-radius: 12px;
   background: color-mix(in srgb, var(--bg) 90%, transparent);
   cursor: pointer;
 }
@@ -1259,7 +1261,7 @@ p.error {
 }
 
 .bcard-blocked {
-  filter: grayscale(0.7) brightness(0.7);
+  filter: grayscale(1) brightness(0.7);
 }
 
 .bcard-pending {
