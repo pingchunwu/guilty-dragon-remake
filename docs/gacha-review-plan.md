@@ -49,8 +49,9 @@ Applies to card draws only. Items are equal weight and have no rarity.
 
 Why these values:
 
-- 300 only catches the unlucky 7%, so SSR supply barely moves: about 1 per 106 pulls instead of 1 per 114.
-- The floor adds about 3 points to the SR-or-better rate, from 10.7% to about 13.9%.
+- 300 only catches the unlucky 7%. On its own it moves SSR supply little.
+- Corrected 2026-11-04: the floor pull can land on an SSR (8.2% of floor pulls), so the two rules together give about 1 SSR per 83 pulls instead of 1 per 114, roughly 38% more. This review first said 1 per 106, which left the floor out. Simulated: 44 SSRs in a year of daily tickets. See `docs/gacha-economy-events-plan.md`.
+- The floor raises the SR-or-better rate from 10.7% to about 14.3% (first stated as 13.9%).
 
 If a pool has no card of the guaranteed rarity, the pull falls back to the whole pool.
 

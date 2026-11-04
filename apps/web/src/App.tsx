@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { RULES_V07, taipeiDate } from "@gdr/engine";
+import { RULES_V07, taipeiDate, type LoginBonus as Bonus } from "@gdr/engine";
 import { loadContent, type Content } from "./game/content";
 import { createGuestService } from "./game/guestService";
 import { createPvpService } from "./game/pvp";
@@ -12,6 +12,7 @@ import { CardToast } from "./screens/CardTile";
 import { DeckEditor } from "./screens/DeckEditor";
 import { Equipment } from "./screens/Equipment";
 import { Gacha } from "./screens/Gacha";
+import { LoginBonus } from "./screens/LoginBonus";
 import { Player } from "./screens/Player";
 import { Pvp } from "./screens/Pvp";
 import { SealRing } from "./screens/SealRing";
@@ -30,6 +31,11 @@ export function App() {
   const [authReady, setAuthReady] = useState(!supabase);
   const [service, setService] = useState<GameService | null>(null);
   const [state, setState] = useState<PlayerState | null>(null);
+  const [bonus, setBonus] = useState<Bonus | null>(null);
+  const applySync = useCallback((next: PlayerState) => {
+    setState(next);
+    if (next.loginBonus) setBonus(next.loginBonus);
+  }, []);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("battle");
   const [deckView, setDeckView] = useState<"deck" | "equipment">("deck");
@@ -83,18 +89,18 @@ export function App() {
     setLoadError(null);
     setState(null);
     try {
-      setState(await svc.sync());
+      applySync(await svc.sync());
     } catch (e) {
       setLoadError(errorText(e instanceof GameError ? e.code : "UNKNOWN"));
     }
-  }, []);
+  }, [applySync]);
 
   useEffect(() => {
     if (service) void load(service);
     else setState(null);
   }, [service, load]);
 
-  // Daily tickets accrue when the server syncs, so an app left open syncs again once the Taipei day changes.
+  // The login bonus is claimed when the server syncs, so an app left open syncs again once the Taipei day changes.
   const syncedDay = useRef(taipeiDate(new Date()));
   useEffect(() => {
     if (!service) return;
@@ -104,7 +110,7 @@ export function App() {
       if (document.hidden || today === syncedDay.current) return;
       syncedDay.current = today;
       service.sync().then(
-        (next) => live && setState(next),
+        (next) => live && applySync(next),
         () => void (syncedDay.current = ""),
       );
     };
@@ -114,11 +120,12 @@ export function App() {
       live = false;
       document.removeEventListener("visibilitychange", check);
     };
-  }, [service, tab]);
+  }, [service, tab, applySync]);
 
   async function signOut() {
     if (service?.mode === "account") await supabase?.auth.signOut();
     setService(null);
+    setBonus(null);
     setTab("battle");
   }
 
@@ -202,6 +209,8 @@ export function App() {
           )}
         </>
       )}
+      {/* Waits for a battle to end: a friend battle's clock is running. */}
+      {bonus && !inBattle && <LoginBonus bonus={bonus} onClose={() => setBonus(null)} />}
       <CardToast />
     </div>
   );

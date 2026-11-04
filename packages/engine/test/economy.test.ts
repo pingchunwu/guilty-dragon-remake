@@ -6,7 +6,6 @@ import {
   RULES_V0,
   applyPull,
   createRng,
-  daysBetween,
   drawTen,
   SSR_PITY,
   taipeiDate,
@@ -113,9 +112,4 @@ describe("Taipei dates", () => {
     expect(taipeiDate(new Date("2026-10-25T16:00:00Z"))).toBe("2026-10-26");
   });
 
-  it("counts whole days between dates", () => {
-    expect(daysBetween("2026-10-25", "2026-10-25")).toBe(0);
-    expect(daysBetween("2026-10-25", "2026-10-28")).toBe(3);
-    expect(daysBetween("2026-10-28", "2026-10-25")).toBe(0);
-  });
 });

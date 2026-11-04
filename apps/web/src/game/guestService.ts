@@ -4,10 +4,12 @@ import {
   PLACEHOLDER_POOL,
   PLACEHOLDER_STARTER_LOADOUT,
   ITEM_MAX_LEVEL,
+  LOGIN_BONUS_PANEL,
   RULES_V0,
   cardMaxLevel,
   createRng,
   drawTen,
+  taipeiDate,
   validateDeck,
   validateLoadout,
   type Collection,
@@ -33,6 +35,7 @@ export function createGuestService({ cards, items }: Content): GameService {
   let state: PlayerState = {
     // shortcut: guests get 100 tickets for testing the gacha; switch back to STARTING_TICKETS before launch.
     tickets: 100,
+    itemTickets: 100,
     pity: 0,
     cards: collection,
     decks: { attack: PLACEHOLDER_DEFAULT_DECK, defense: PLACEHOLDER_DEFAULT_DECK },
@@ -43,11 +46,14 @@ export function createGuestService({ cards, items }: Content): GameService {
     ),
     loadout: PLACEHOLDER_STARTER_LOADOUT,
   };
+  let lastLogin: string | null = null;
+  let loginChecks = 0;
   const draws = new Map<string, ReturnType<typeof drawTen>["results"]>();
   function draw(key: string, pool: Pool, field: "cards" | "items") {
     const replay = draws.get(key);
     if (replay) return { results: replay, state };
-    if (state.tickets < 1) throw new GameError("INSUFFICIENT_TICKETS");
+    const tickets = field === "cards" ? "tickets" : "itemTickets";
+    if (state[tickets] < 1) throw new GameError("INSUFFICIENT_TICKETS");
     const maxLevel = (id: string) => {
       const card = cards.get(id);
       return field === "items" ? ITEM_MAX_LEVEL : card ? cardMaxLevel(card) : 1;
@@ -58,14 +64,20 @@ export function createGuestService({ cards, items }: Content): GameService {
     const stamped = Object.fromEntries(
       Object.entries(drawn.collection).map(([id, c]) => [id, { ...c, obtainedAt: state[field][id]?.obtainedAt ?? now }]),
     );
-    state = { ...state, tickets: state.tickets - 1, pity: guarantee ? drawn.pity : state.pity, [field]: stamped };
+    state = { ...state, [tickets]: state[tickets] - 1, pity: guarantee ? drawn.pity : state.pity, [field]: stamped };
     draws.set(key, drawn.results);
     return { results: drawn.results, state };
   }
   return {
     mode: "guest",
     async sync() {
-      return state;
+      const today = taipeiDate(new Date());
+      if (lastLogin === today) return state;
+      lastLogin = today;
+      const slot = loginChecks++ % LOGIN_BONUS_PANEL.length;
+      const { kind, count } = LOGIN_BONUS_PANEL[slot]!;
+      state = kind === "card" ? { ...state, tickets: state.tickets + count } : { ...state, itemTickets: state.itemTickets + count };
+      return { ...state, loginBonus: { panel: LOGIN_BONUS_PANEL, checked: slot + 1 } };
     },
     async drawTen(key) {
       return draw(key, PLACEHOLDER_POOL, "cards");

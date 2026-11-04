@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import {
+  LOGIN_BONUS_PANEL,
   PLACEHOLDER_CARDS,
   PLACEHOLDER_DEFAULT_DECK,
   PLACEHOLDER_ITEMS,
@@ -24,6 +25,7 @@ const UNOWNED_CARD = PLACEHOLDER_CARDS.filter((c) => c.type === "magic").at(-1)!
 const sync = (uid: string) => rpc(uid, "public.sync_player()");
 const draw = (uid: string, key: string) => rpc(uid, "public.draw_ten($1)", [key]);
 const drawItems = (uid: string, key: string) => rpc(uid, "public.draw_items_ten($1)", [key]);
+const giveItemTicket = (uid: string) => db.exec(`update public.players set item_tickets = 1 where id = '${uid}'`);
 const saveLoadout = (uid: string, l: Loadout) => rpc(uid, "public.save_loadout($1::jsonb)", [JSON.stringify(l)]);
 const saveDeck = (uid: string, kind: string, deck: Deck) =>
   rpc(uid, "public.save_deck($1::public.deck_kind, $2::jsonb)", [kind, JSON.stringify(deck)]);
@@ -42,25 +44,60 @@ describe("auth", () => {
 describe("sync_player", () => {
   it("grants the default deck and starting tickets exactly once", async () => {
     const first = await sync(ALICE);
-    expect(first.tickets).toBe(1);
+    expect(first.tickets).toBe(2); // the starting ticket plus the first login slot
+    expect(first.itemTickets).toBe(0);
     expect(Object.keys(first.cards)).toHaveLength(32);
     expect(first.decks).toEqual({ attack: PLACEHOLDER_DEFAULT_DECK, defense: PLACEHOLDER_DEFAULT_DECK });
 
-    const second = await sync(ALICE);
-    expect(second).toEqual(first);
+    const { loginBonus, ...rest } = first;
+    expect(loginBonus).toBeDefined();
+    expect(await sync(ALICE)).toEqual(rest);
   });
 
-  it("accrues one ticket per missed Taipei day", async () => {
+  const nextDay = () => db.exec(`update public.players set last_login_date = last_login_date - 3 where id = '${ALICE}'`);
+
+  it("checks one slot on the first login of a day and none on later logins", async () => {
+    const first = await sync(ALICE);
+    expect(first.loginBonus).toEqual({ panel: LOGIN_BONUS_PANEL, checked: 1 });
+    const again = await sync(ALICE);
+    expect(again.loginBonus).toBeUndefined();
+    expect(again.tickets).toBe(first.tickets);
+  });
+
+  it("walks the panel one login at a time, skipping missed days, and restarts it after the last slot", async () => {
+    const start = await sync(ALICE);
+    let tickets = start.tickets;
+    let itemTickets = start.itemTickets;
+    for (let i = 1; i < LOGIN_BONUS_PANEL.length; i++) {
+      await nextDay();
+      const next = await sync(ALICE);
+      const item = LOGIN_BONUS_PANEL[i]!;
+      tickets += item.kind === "card" ? item.count : 0;
+      itemTickets += item.kind === "item" ? item.count : 0;
+      expect(next).toMatchObject({ tickets, itemTickets, loginBonus: { checked: i + 1 } });
+    }
+    await nextDay();
+    expect((await sync(ALICE)).loginBonus.checked).toBe(1);
+  });
+
+  it("gives no back pay for missed days", async () => {
+    const start = await sync(ALICE);
+    await db.exec(`update public.players set last_login_date = last_login_date - 30 where id = '${ALICE}'`);
+    const next = await sync(ALICE);
+    expect(next.tickets + next.itemTickets).toBe(start.tickets + start.itemTickets + 1);
+  });
+
+  it("keeps the database panel in step with the engine", async () => {
     await sync(ALICE);
-    await db.exec(`update public.players set last_ticket_date = last_ticket_date - 3 where id = '${ALICE}'`);
-    expect((await sync(ALICE)).tickets).toBe(4);
-    expect((await sync(ALICE)).tickets).toBe(4);
+    const { rows } = await db.query<{ value: unknown }>("select value from public.game_config where key = 'login_bonus_panel'");
+    expect(rows[0]!.value).toEqual(LOGIN_BONUS_PANEL);
   });
 });
 
 describe("draw_ten", () => {
   it("spends one ticket for ten results and replays the same key without charging", async () => {
     await sync(ALICE);
+    await db.exec(`update public.players set tickets = 1 where id = '${ALICE}'`);
     const first = await draw(ALICE, "key-00000001");
     expect(first.results).toHaveLength(10);
     expect(first.state.tickets).toBe(0);
@@ -127,6 +164,7 @@ describe("draw_ten", () => {
 
   it("does not touch pity on item draws", async () => {
     await sync(ALICE);
+    await giveItemTicket(ALICE);
     await db.exec(`update public.players set card_pity = 7 where id = '${ALICE}'`);
     expect((await drawItems(ALICE, "key-00000001")).state.pity).toBe(7);
   });
@@ -143,6 +181,7 @@ describe("draw_ten", () => {
 
   it("caps item levels at 10", async () => {
     await sync(ALICE);
+    await giveItemTicket(ALICE);
     await db.exec(`update public.item_pool_entries set weight = case when item_id = 'ph-weapon-heavy-01' then 1 else 0 end;
                    update public.player_items set level = 9 where item_id = 'ph-weapon-heavy-01'`);
     const { state } = await drawItems(ALICE, "key-00000002");
@@ -180,10 +219,13 @@ describe("equipment", () => {
   });
 
   it("draws ten items for one ticket and keeps card and item keys apart", async () => {
-    await sync(ALICE);
+    const { tickets } = await sync(ALICE);
+    await expect(drawItems(ALICE, "key-00000009")).rejects.toThrow(/INSUFFICIENT_TICKETS/);
+    await giveItemTicket(ALICE);
     const first = await drawItems(ALICE, "key-00000001");
     expect(first.results).toHaveLength(10);
-    expect(first.state.tickets).toBe(0);
+    expect(first.state.itemTickets).toBe(0);
+    expect(first.state.tickets).toBe(tickets);
     for (const r of first.results) expect(first.state.items[r.id]).toBeDefined();
     await expect(draw(ALICE, "key-00000001")).rejects.toThrow(/IDEMPOTENCY_KEY_REUSED/);
   });
