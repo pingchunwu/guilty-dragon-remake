@@ -2,6 +2,8 @@ import { useEffect, useRef } from "react";
 import {
   ACESFilmicToneMapping,
   AdditiveBlending,
+  BufferAttribute,
+  BufferGeometry,
   CanvasTexture,
   CatmullRomCurve3,
   Color,
@@ -21,12 +23,15 @@ import {
   Vector3,
   type Object3D,
   type Texture,
+  type WebGLRenderTarget,
 } from "three";
 import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
 import { SMAAPass } from "three/examples/jsm/postprocessing/SMAAPass.js";
 import { ShaderPass } from "three/examples/jsm/postprocessing/ShaderPass.js";
+import { FullScreenQuad, Pass } from "three/examples/jsm/postprocessing/Pass.js";
+import { CopyShader } from "three/examples/jsm/shaders/CopyShader.js";
 import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
 import { gsap } from "gsap";
 import { reducedMotion } from "./BattleParts";
@@ -400,71 +405,236 @@ const VIOLET = "#c9b6ff";
 const GOLD = "#ffd34d";
 const LABEL_TOL = 0.05;
 
-// screen-space fake-out for SSR/UR: the picture tears apart (uGlitch), cuts to black and a crack of light opens (uCrack), then a flash (uFlash)
+// screen-space fake-out for SSR/UR: the picture loses its signal like an old TV until only snow is left
 const GLITCH_SHADER = {
   uniforms: {
     tDiffuse: { value: null },
     uGlitch: { value: 0 },
-    uCrack: { value: 0 },
-    uFlash: { value: 0 },
     uTime: { value: 0 },
-    uAspect: { value: 1 },
   },
   vertexShader: `varying vec2 vUv;
 void main(){ vUv = uv; gl_Position = vec4(position.xy, 0., 1.); }`,
-  fragmentShader: `uniform sampler2D tDiffuse; uniform float uGlitch; uniform float uCrack; uniform float uFlash; uniform float uTime; uniform float uAspect;
+  fragmentShader: `uniform sampler2D tDiffuse; uniform float uGlitch; uniform float uTime;
 varying vec2 vUv;
 float rnd(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
 void main(){
   float g = uGlitch;
-  float st = floor(uTime * 20.);
+  float st = floor(uTime * 30.);
   vec2 uv = vUv;
-  // torn bands: fewer, taller and further apart as it worsens
-  float row = floor(uv.y * mix(36., 9., g));
-  float torn = step(1. - g * .8, rnd(vec2(row, st)));
-  uv.x = fract(uv.x + torn * (rnd(vec2(row + .5, st)) - .5) * g * .55);
-  // corrupted blocks copy from somewhere else
-  vec2 cell = floor(vec2(uv.x * 14., uv.y * 22.));
-  float bad = step(1. - g * g * .16, rnd(cell + st));
-  uv = mix(uv, fract(uv + vec2(rnd(cell + 3.), rnd(cell + 7.))), bad);
-  float s = (.003 + .03 * g * g) * step(.0001, g);
-  vec3 col = vec3(texture2D(tDiffuse, uv + vec2(s, 0.)).r, texture2D(tDiffuse, uv).g, texture2D(tDiffuse, uv - vec2(s, 0.)).b);
+  vec3 col;
   if (g > 0.) {
-    col = mix(col, col.brg * vec3(1.6, .7, 1.3), torn * .8);
-    col += bad * vec3(rnd(cell), rnd(cell + 1.), rnd(cell + 2.)) * .35;
-    col *= 1. - .35 * g * step(mod(gl_FragCoord.y, 4.), 1.);
-    float flick = rnd(vec2(st, 5.));
-    col *= flick > 1. - g * .3 ? .12 : 1.;
+    // horizontal sync slips: the whole picture bends, and each scanline jitters on its own
+    float line = floor(vUv.y * 260.);
+    uv.x += sin(vUv.y * 14. + uTime * 26.) * .014 * g + (rnd(vec2(line, st)) - .5) * .03 * g * g;
+    // a tracking band crawls up the screen, shearing whatever it passes
+    float band = fract(vUv.y + uTime * .9);
+    float shear = smoothstep(.14, 0., band);
+    uv.x += shear * shear * .22 * g;
+    // vertical hold lets go: the picture starts rolling, faster as the signal dies
+    float roll = g * g * g * 2.6;
+    uv.y = fract(uv.y + roll);
+    uv.x = fract(uv.x);
+    vec3 pic = texture2D(tDiffuse, uv).rgb;
+    // weak signal loses colour first, then brightness
+    pic = mix(pic, vec3(dot(pic, vec3(.3, .59, .11))), smoothstep(.1, .6, g));
+    pic *= 1. - smoothstep(.5, .97, g);
+    // the dark hum bar at the seam of the roll
+    pic *= 1. - .85 * smoothstep(.1, 0., abs(fract(vUv.y - roll) - .5)) * step(.02, roll);
+    // snow: grainy static, stretched a little sideways like a real tube
+    vec2 grain = floor(gl_FragCoord.xy / vec2(3., 2.));
+    float snow = rnd(grain + st * 7.13);
+    float amount = mix(.1, 1.15, smoothstep(.25, .92, g));
+    col = pic + vec3(snow * snow) * amount * (.75 + shear * .6);
+    // bright dropout streaks where the tape or antenna hiccups
+    float rowN = floor(vUv.y * 90.);
+    col += step(.985 - g * .03, rnd(vec2(rowN, st))) * vec3(.9) * rnd(vec2(grain.x * .02, rowN));
+    col *= .86 + .14 * sin(gl_FragCoord.y * 1.57);
+  } else {
+    col = texture2D(tDiffuse, uv).rgb;
   }
-  if (uCrack > 0.) {
-    // the black cut lands first, then the jagged split widens from the centre
-    col *= 1. - smoothstep(0., .05, uCrack);
-    float e = clamp((uCrack - .1) / .9, 0., 1.);
-    float y9 = vUv.y * 9.;
-    float i = floor(y9);
-    float side = step(.5, vUv.x) * 17.;
-    float jag = mix(rnd(vec2(i, side)), rnd(vec2(i + 1., side)), fract(y9)) - .5;
-    float w = .002 + e * e * .62 + jag * (.012 + .05 * e);
-    float d = abs(vUv.x - .5);
-    vec2 p = (vUv - .5) * vec2(uAspect, 1.);
-    float r = length(p);
-    // hairline fractures running out from the centre, reaching further as it opens
-    float a = (atan(p.y, p.x) / 6.2831853 + .5) * 16.;
-    float sec = floor(a);
-    float off = fract(a) - .5 - (rnd(vec2(sec, 2.)) - .5) * .6 + sin(r * 26. + sec) * .07;
-    float frac = step(abs(off) * r * .39, .0016) * step(r, (.08 + rnd(vec2(sec, 4.)) * .55) * smoothstep(0., .5, e));
-    float rim = exp(-max(d - w, 0.) * 34.) * step(.001, e);
-    col += vec3(1., .78, .42) * (rim * 2.5 + frac * 6.) * step(.001, e);
-    col = mix(col, vec3(20.), step(d, w) * step(.001, e));
-  }
-  col += vec3(20.) * uFlash * uFlash;
   gl_FragColor = vec4(col, 1.);
 }`,
 };
 
+// the screen as a pane of clear glass: each shard bends what is behind it and catches reflections as it tilts
+const SHARD_VERT = `attribute vec2 aPane; attribute float aEdge; attribute vec2 aSide;
+varying vec2 vPane; varying float vEdge; varying vec3 vN; varying vec3 vSide; varying vec3 vView;
+void main(){
+  vPane = aPane;
+  vEdge = aEdge;
+  vN = normalMatrix * normal;
+  vSide = normalMatrix * vec3(aSide, 0.);
+  vec4 mv = modelViewMatrix * vec4(position, 1.);
+  vView = -mv.xyz;
+  gl_Position = projectionMatrix * mv;
+}`;
+const SHARD_FRAG = `uniform sampler2D tScene; uniform vec2 uRes; uniform vec2 uHit; uniform float uAspect; uniform float uReach;
+varying vec2 vPane; varying float vEdge; varying vec3 vN; varying vec3 vSide; varying vec3 vView;
+void main(){
+  vec3 n = normalize(vN);
+  vec3 v = normalize(vView);
+  if (dot(n, v) < 0.) n = -n;
+  // ground chamfer along the cut: the surface really turns there, so light and refraction do the drawing, not a stroke
+  float reach = step(length((vPane - uHit) * vec2(uAspect, 1.)), uReach);
+  float chamfer = smoothstep(max(.0045, fwidth(vEdge) * 1.6), 0., vEdge) * reach; // never under a pixel or so, or the hairline breaks into dashes
+  n = normalize(n + vSide * chamfer * 1.1);
+  float tilt = 1. - abs(n.z);
+  // looking through: the tilt bends the view, and splits it slightly into colours
+  vec2 s = gl_FragCoord.xy / uRes;
+  vec2 bend = n.xy * (.03 + .2 * tilt);
+  vec3 behind = vec3(texture2D(tScene, s + bend * 1.08).r, texture2D(tScene, s + bend).g, texture2D(tScene, s + bend * .92).b);
+  vec3 col = behind * 1.08;
+  // reflection: a warm room above and one hard window, sliding across the surface as it turns
+  vec3 r = reflect(-v, n);
+  float fresnel = .05 + .95 * pow(1. - abs(dot(n, v)), 4.);
+  vec3 room = mix(vec3(.05, .07, .12), vec3(1.3, 1., .62), smoothstep(-.2, .9, r.y));
+  col += room * fresnel;
+  col += vec3(1., .96, .88) * pow(max(dot(r, normalize(vec3(.35, .55, .76))), 0.), 90.) * 7. * step(.001, tilt);
+  // the chamfer faces the light on one side of a piece and away from it on the other
+  float lit = dot(n, normalize(vec3(.35, .55, .76)));
+  col += vec3(.95, .9, .8) * chamfer * max(lit - .6, 0.) * 2.2;
+  col *= 1. - chamfer * max(.5 - lit, 0.) * 1.3;
+  gl_FragColor = vec4(col, 1.);
+}`;
+
+const SHARD_THICKNESS = 0.018;
+
+/** Radial glass break around one hit point, as a composer pass over the scene. Coordinates: the pane is y -1..1, x -aspect..aspect. */
+function makeShatter(aspect: number) {
+  const hit = new Vector2(0.1 * aspect, 0.12);
+  const material = new ShaderMaterial({
+    uniforms: {
+      tScene: { value: null },
+      uRes: { value: new Vector2(1, 1) },
+      uHit: { value: new Vector2(hit.x / aspect / 2 + 0.5, hit.y / 2 + 0.5) },
+      uAspect: { value: aspect },
+      uReach: { value: 0 },
+    },
+    vertexShader: SHARD_VERT,
+    fragmentShader: SHARD_FRAG,
+    side: DoubleSide,
+  });
+  const scene = new Scene();
+  const shards: { mesh: Mesh; x: number; y: number; delay: number; vx: number; vy: number; vz: number; axis: Vector3; spin: number }[] = [];
+  const addShard = (pts: Vector2[]) => {
+    const c = pts.reduce((sum, p) => sum.add(p), new Vector2()).divideScalar(pts.length);
+    const pos: number[] = [];
+    const pane: number[] = [];
+    const edge: number[] = [];
+    const side: number[] = [];
+    const normal: number[] = [];
+    const push = (p: Vector2, z: number, e: number, n: [number, number, number], s: Vector2 | null) => {
+      pos.push(p.x - c.x, p.y - c.y, z);
+      pane.push(p.x / aspect / 2 + 0.5, p.y / 2 + 0.5);
+      edge.push(e);
+      normal.push(...n);
+      side.push(s?.x ?? 0, s?.y ?? 0);
+    };
+    pts.forEach((p, i) => {
+      const q = pts[(i + 1) % pts.length]!;
+      const along = q.clone().sub(p);
+      const out = new Vector2(along.y, -along.x).normalize();
+      if (out.dot(p.clone().sub(c)) < 0) out.negate();
+      const wall: [number, number, number] = [out.x, out.y, 0];
+      // front: aEdge is the true distance to the cut edge, its height at the centre and 0 along the edge
+      push(c, 0, Math.abs(along.cross(c.clone().sub(p))) / along.length(), [0, 0, 1], out);
+      push(p, 0, 0, [0, 0, 1], out);
+      push(q, 0, 0, [0, 0, 1], out);
+      // back face and the side wall that give the piece its thickness
+      push(c, -SHARD_THICKNESS, 1, [0, 0, -1], null);
+      push(p, -SHARD_THICKNESS, 1, [0, 0, -1], null);
+      push(q, -SHARD_THICKNESS, 1, [0, 0, -1], null);
+      push(p, 0, 1, wall, null);
+      push(q, 0, 1, wall, null);
+      push(q, -SHARD_THICKNESS, 1, wall, null);
+      push(p, 0, 1, wall, null);
+      push(q, -SHARD_THICKNESS, 1, wall, null);
+      push(p, -SHARD_THICKNESS, 1, wall, null);
+    });
+    const geo = new BufferGeometry();
+    geo.setAttribute("position", new BufferAttribute(new Float32Array(pos), 3));
+    geo.setAttribute("aPane", new BufferAttribute(new Float32Array(pane), 2));
+    geo.setAttribute("aEdge", new BufferAttribute(new Float32Array(edge), 1));
+    geo.setAttribute("aSide", new BufferAttribute(new Float32Array(side), 2));
+    geo.setAttribute("normal", new BufferAttribute(new Float32Array(normal), 3));
+    const mesh = new Mesh(geo, material);
+    mesh.position.set(c.x, c.y, 0);
+    scene.add(mesh);
+    const out = c.clone().sub(hit);
+    const dist = out.length();
+    out.normalize();
+    shards.push({
+      mesh,
+      x: c.x,
+      y: c.y,
+      delay: dist * 0.16 + Math.random() * 0.1, // the pieces around the hit let go first
+      vx: out.x * (0.12 + Math.random() * 0.4),
+      vy: out.y * (0.1 + Math.random() * 0.3) + 0.12,
+      vz: 0.25 + Math.random() * 0.95,
+      axis: new Vector3(Math.random() - 0.5, Math.random() - 0.5, (Math.random() - 0.5) * 0.5).normalize(),
+      spin: (Math.random() < 0.5 ? -1 : 1) * (1.4 + Math.random() * 3.4),
+    });
+  };
+  // long splinters near the hit, wider plates further out; neighbours share corners so the pieces fit back together
+  const SPOKES = 13;
+  const far = Math.hypot(Math.max(aspect, 1) + 0.2, 1.2) * 1.5;
+  const radii = [0.07, 0.2, 0.42, 0.78, 1.3, far];
+  const grid = radii.map((r0, ring) =>
+    Array.from({ length: SPOKES }, (_, j) => {
+      const a = ((j + (ring === radii.length - 1 ? 0 : (Math.random() - 0.5) * 0.45)) / SPOKES) * TAU;
+      const r = r0 * (ring === radii.length - 1 ? 1 : 0.84 + Math.random() * 0.32);
+      return new Vector2(hit.x + Math.cos(a) * r, hit.y + Math.sin(a) * r);
+    }),
+  );
+  for (let j = 0; j < SPOKES; j++) {
+    const k = (j + 1) % SPOKES;
+    addShard([hit.clone(), grid[0]![j]!, grid[0]![k]!]);
+    for (let ring = 0; ring < radii.length - 1; ring++) {
+      const [a, b, c, d] = [grid[ring]![j]!, grid[ring + 1]![j]!, grid[ring + 1]![k]!, grid[ring]![k]!];
+      if (Math.random() < 0.6) {
+        addShard([a, b, c]);
+        addShard([a, c, d]);
+      } else addShard([a, b, c, d]);
+    }
+  }
+  const camera = new PerspectiveCamera(40, aspect, 0.1, 20);
+  camera.position.z = 1 / Math.tan((20 * Math.PI) / 180); // the pane at z 0 exactly fills the view
+
+  const copy = new FullScreenQuad(new ShaderMaterial(CopyShader));
+  const copyU = (copy.material as ShaderMaterial).uniforms;
+  class ShatterPass extends Pass {
+    setSize(w: number, h: number) {
+      material.uniforms.uRes!.value.set(w, h);
+    }
+    render(renderer: WebGLRenderer, writeBuffer: WebGLRenderTarget, readBuffer: WebGLRenderTarget) {
+      copyU.tDiffuse!.value = readBuffer.texture;
+      material.uniforms.tScene!.value = readBuffer.texture;
+      renderer.setRenderTarget(writeBuffer);
+      copy.render(renderer);
+      const auto = renderer.autoClear;
+      renderer.autoClear = false;
+      renderer.clearDepth();
+      renderer.render(scene, camera);
+      renderer.autoClear = auto;
+    }
+  }
+  const pass = new ShatterPass();
+  return {
+    pass,
+    reach: material.uniforms.uReach!,
+    fall: (t: number) => {
+      for (const s of shards) {
+        const l = Math.max(0, t - s.delay);
+        s.mesh.position.set(s.x + s.vx * l, s.y + s.vy * l - 1.7 * l * l, s.vz * l);
+        s.mesh.setRotationFromAxisAngle(s.axis, s.spin * l);
+      }
+    },
+  };
+}
+
 /**
  * Gacha omen in 3D. Phases (seconds): seal 0-2.4 (final swell at 3.0 when nothing good); if good, breakthrough 2.4-3.8 then
- * the SR look 3.8-5.0 and its final swell. SSR/UR play that same swell, then glitch 5.7-6.65, crack 6.65-7.1, gold 7.1-10.3
+ * the SR look 3.8-5.0 and its final swell. SSR/UR play that same swell, then signal loss 5.7-6.95, the screen cracks at 6.95 and falls away as glass over gold 7.11-10.31
  * (UR: gold 2s, a stalled beat, then a prismatic break). Tap skips to the next phase; tapping in the final phase ends it.
  * Reduced motion or no WebGL ends immediately.
  */
@@ -694,11 +864,14 @@ void main(){
     composer.addPass(new RenderPass(scene, camera));
     const bloom = new UnrealBloomPass(new Vector2(1, 1), 0.45, 0.35, 0.55);
     composer.addPass(bloom);
+    // shortcut: the shards are cut for the aspect at the start, so turning the phone during the fall misaligns them; re-cut on resize if that shows
+    const shatter = gold ? makeShatter((el.clientWidth || 1) / (el.clientHeight || 1)) : null;
+    if (shatter) composer.addPass(shatter.pass);
     composer.addPass(new SMAAPass());
     const glitch = new ShaderPass(GLITCH_SHADER);
     composer.addPass(glitch);
     composer.addPass(new OutputPass());
-    const glitchU = glitch.uniforms as Record<"uGlitch" | "uCrack" | "uFlash" | "uTime" | "uAspect", { value: number }>;
+    const glitchU = glitch.uniforms as Record<"uGlitch" | "uTime", { value: number }>;
 
     let bloomScale = 1;
     const resize = () => {
@@ -720,6 +893,7 @@ void main(){
     composer.render();
     late.forEach((o) => (o.visible = false));
     glitch.enabled = false;
+    if (shatter) shatter.pass.enabled = false;
 
     /* ---------- timeline ---------- */
     const slow = { v: 1 }; // global time scale for the UR held breath
@@ -736,8 +910,9 @@ void main(){
     const GOOD = BREAK + 1.4;
     const SR_FINAL = GOOD + 1.2;
     const GLITCH = SR_FINAL + 0.7; // SSR/UR: breaks on the beat the SR ending has swelled to white and would fade out
-    const CRACK = GLITCH + 0.95;
-    const SPELL = CRACK + 0.45;
+    const CRACK = GLITCH + 1.25;
+    const SPELL = CRACK + 0.16; // the cracked pane holds for a beat before it falls
+    const falling = { t: 0 };
     const GOLD_END = SPELL + 2.0; // UR: gold look, then held breath, then the spectrum
     const URBREAK = GOLD_END + 0.9;
     const FINAL = !good ? SEAL + 0.6 : ur ? URBREAK + 2.8 : gold ? SPELL + 3.2 : SR_FINAL;
@@ -789,17 +964,17 @@ void main(){
         tl.set(renderer, { toneMappingExposure: 0.9 }, GLITCH);
         tl.set(glitch, { enabled: true }, GLITCH);
         tl.set(slow, { v: 0.03 }, GLITCH); // the seal freezes while the picture falls apart
-        tl.set(glitchU.uGlitch, { value: 0.3 }, GLITCH);
-        tl.to(glitchU.uGlitch, { value: 1, duration: CRACK - GLITCH, ease: "power1.in" }, GLITCH);
-        tl.to(glitchU.uCrack, { value: 1, duration: SPELL - CRACK, ease: "none" }, CRACK);
-        tl.set(glitchU.uGlitch, { value: 0 }, CRACK + 0.04);
-        tierTo(GOLD, 0.01, CRACK + 0.04); // swapped behind the black cut
+        tl.set(glitchU.uGlitch, { value: 0.12 }, GLITCH);
+        tl.to(glitchU.uGlitch, { value: 1, duration: CRACK - GLITCH - 0.15, ease: "sine.in" }, GLITCH); // holds on pure snow before the cut
+        // the pane covers the whole screen from here, so the look behind it can change unseen
+        tl.set(glitch, { enabled: false }, CRACK);
+        tl.set(shatter!.pass, { enabled: true }, CRACK);
+        tl.to(shatter!.reach, { value: 2, duration: SPELL - CRACK, ease: "power2.out" }, CRACK);
+        tierTo(GOLD, 0.01, CRACK);
         const t0 = SPELL;
         tl.set(slow, { v: 1 }, t0);
-        tl.set(glitchU.uCrack, { value: 0 }, t0);
-        tl.set(glitchU.uFlash, { value: 1 }, t0);
-        tl.to(glitchU.uFlash, { value: 0, duration: 0.5, ease: "power1.out" }, t0);
-        tl.set(glitch, { enabled: false }, t0 + 0.5);
+        tl.to(falling, { t: 2.2, duration: 2.2, ease: "none" }, t0);
+        tl.set(shatter!.pass, { enabled: false }, t0 + 2.2);
         tl.to(pillar.scale, { y: 11.5, duration: 2.0, ease: "sine.inOut" }, t0);
         tl.to(pillarMat.uniforms.uAlpha!, { value: 0.5, duration: 1.5, ease: "sine.out" }, t0);
         tl.to(cam, { look: 5.2, dist: 1.7, elev: 30, duration: ur ? 2.0 : 2.2, ease: "sine.inOut" }, t0);
@@ -890,7 +1065,7 @@ void main(){
       hue.value = spin * 0.08;
       applyTier();
       glitchU.uTime.value = now / 1000;
-      glitchU.uAspect.value = camera.aspect;
+      if (shatter?.pass.enabled) shatter.fall(falling.t);
       pillarMat.uniforms.uTime!.value = spin;
       spinners.forEach((r, i) => {
         r.mesh.rotation.z += r.speed * sdt;
