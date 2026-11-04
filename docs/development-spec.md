@@ -291,9 +291,9 @@ Source: [ユニット早見表](https://wikiwiki.jp/guildra/%E3%83%A6%E3%83%8B%E
 Product decisions (asked 2026-10-26):
 
 - **Finding opponents:** any registered player can be challenged. Players can also add friends by friend code (8 characters, one-directional); friends are listed first.
-- **Names:** a player's shown name defaults to their account email and can be changed in the game (1–20 characters; clearing it goes back to the email). Consequence: every player can see other players' emails until they set a name.
+- **Names:** a player's shown name defaults to 玩家 plus their friend code and can be changed in the game (1–20 characters; clearing it goes back to the default). **Changed 2026-11-04:** it used to default to the account email, which showed every player's email to every other player.
 - **Rewards:** none. A battle only produces a win/loss record.
-- **Open battles:** one unfinished battle per challenger. Abandoning is a loss: the player cannot leave the battle screen (tabs and sign-out are hidden) except by surrendering, and not acting for 60 seconds in a phase is a loss by timeout. Reloading returns to the battle.
+- **Open battles:** one unfinished battle per challenger. Abandoning is a loss: the player cannot leave the battle screen (tabs and sign-out are hidden) except by surrendering, and not acting for 90 seconds in a phase is a loss by timeout. **Changed 2026-11-04 from 60 s:** the turn starts when the phase is recorded, so it includes the replay (up to about 27 s), and the clock is hidden during the replay. Reloading returns to the battle.
 - **Defender:** no notification; the PvP screen lists finished battles for both the challenger and the defender (who, win/loss, phase, end reason, HP).
 
 Implementation:
@@ -393,7 +393,7 @@ Product decisions added after the 2026-10-25 review (not engine-blocking, but ne
 - **Collection sizing:** first-pool card count (must be well above 32), the 32 distinct cards in the default deck, and whether one card may sit in both the attack and defense decks.
 - **New-player state:** starting ticket count; whether the default deck becomes both attack and defense deck; whether a player with no saved defense deck can be challenged.
 - ~~**Battle rewards**~~ — decided 2026-10-26: no rewards; defenders see a history list, no notification (see §6b).
-- ~~**Abandon, expiry, and rerolls**~~ — decided 2026-10-26: one unfinished battle at a time; surrender is a loss; 60 s without acting is a loss by timeout (see §6b).
+- ~~**Abandon, expiry, and rerolls**~~ — decided 2026-10-26: one unfinished battle at a time; surrender is a loss; running out the turn clock (90 s since 2026-11-04) is a loss by timeout (see §6b).
 - **Guest play:** which deck a guest uses, who they fight, and whether the engine runs in the browser (engine shipped as a shared package) or through unauthenticated API routes (needs abuse/usage limits).
 
 The original-game sources summarized in the product research are community-maintained and may describe older versions. Preserve source URLs, dates/version, and confidence notes when adding rule data.

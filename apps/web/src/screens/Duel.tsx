@@ -26,8 +26,21 @@ gsap.registerPlugin(Flip);
 
 /** How long the phase opens on both leaders and their skills (requested 2026-10-28). */
 const REVEAL_MS = 3000;
-/** Pause before a deck-out final blow resolves on its own, so its banner can be read. */
-const FINAL_BLOW_MS = 1200;
+/** A deck-out final blow resolves on its own this long after the hand starts dealing, so the hand can be seen (the deal takes about 1.1 s). */
+const FINAL_BLOW_MS = 1800;
+/** Fast playback (remembered per browser): reveal length, beat length and attack scene speed. */
+const FAST_KEY = "gdr.fastPlayback";
+const FAST_REVEAL_MS = 1000;
+const FAST_BEAT_MS = BEAT_MS / 2;
+const FAST_SCENE_SPEED = 2.5;
+
+function readFast(): boolean {
+  try {
+    return window.localStorage.getItem(FAST_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
 /** The leader preview flies into your leader slot in this long. */
 const REVEAL_EXIT_S = 0.4;
 /** How long the skill banners stay after the HP bars start moving (CountUp's 0.4 s + settle). */
@@ -141,10 +154,20 @@ export function Duel(props: Props) {
   const replaying = animate && !!last;
   const frame = replaying ? frames[play.beat] : undefined;
 
+  const [fast, setFast] = useState(readFast);
+  const toggleFast = () => {
+    setFast(!fast);
+    try {
+      window.localStorage.setItem(FAST_KEY, fast ? "0" : "1");
+    } catch {
+      // Not remembered in this browser; the choice still holds for this battle.
+    }
+  };
+
   useEffect(() => {
     if (!replaying) return;
     if (play.reveal) {
-      const timer = window.setTimeout(endReveal, REVEAL_MS);
+      const timer = window.setTimeout(endReveal, fast ? FAST_REVEAL_MS : REVEAL_MS);
       return () => window.clearTimeout(timer);
     }
     if (play.beat < end) {
@@ -152,11 +175,11 @@ export function Duel(props: Props) {
         // Where the row cards sit now, so the queue can slide left once a merged card leaves it.
         if (root.current && !reducedMotion()) shiftFrom.current = Flip.getState(root.current.querySelectorAll(".charge-slot, .opp-slot"));
         setPlay((p) => ({ ...p, beat: p.beat + 1 }));
-      }, BEAT_MS);
+      }, fast ? FAST_BEAT_MS : BEAT_MS);
       return () => window.clearTimeout(timer);
     }
     if (!play.scene) onDone();
-  }, [replaying, play, end, onDone]);
+  }, [replaying, play, end, onDone, fast]);
   // Heals, HP paid and direct damage land on the skill beat.
   const skillBeat = replaying && !play.reveal && !!frames[play.beat]?.skills;
   useEffect(() => {
@@ -167,6 +190,22 @@ export function Duel(props: Props) {
     leaving.current = null;
     setPlay((p) => ({ ...p, reveal: false, beat: end, scene: false }));
   };
+  // GSAP stops in a hidden tab while the PvP clock runs on, so a replay there jumps to its end.
+  useEffect(() => {
+    if (!replaying) return;
+    const skipIfHidden = () => {
+      if (document.hidden) skip();
+    };
+    skipIfHidden();
+    document.addEventListener("visibilitychange", skipIfHidden);
+    return () => document.removeEventListener("visibilitychange", skipIfHidden);
+  }, [replaying]);
+
+  // During a replay the pile shows where the phase began, less the draws so far; the refill lands when it ends.
+  const pileAtStart = useRef(drawPile);
+  if (!replaying) pileAtStart.current = drawPile;
+  const pileOf = (id: SideId) =>
+    frame ? Math.max(0, pileAtStart.current[id] - frame.sides[id].row.filter((c) => c.drawn).length) : drawPile[id];
 
   // The leader preview ends by flying into your leader slot (a fade when there is none to land on).
   const leaving = useRef<gsap.core.Timeline | null>(null);
@@ -352,10 +391,10 @@ export function Duel(props: Props) {
 
   // When the deck runs out, the final blow is performed on its own (OG: it triggers automatically).
   useEffect(() => {
-    if (kind !== "deck_out" || busy || replaying || props.children) return;
+    if (kind !== "deck_out" || busy || replaying || settling || !dealt || props.children) return;
     const timer = window.setTimeout(() => onPlay(null), FINAL_BLOW_MS);
     return () => window.clearTimeout(timer);
-  }, [kind, busy, replaying, phase, props.children]);
+  }, [kind, busy, replaying, settling, dealt, phase, props.children]);
 
   // A failed send (PvP error) releases the picks.
   useEffect(() => {
@@ -424,9 +463,14 @@ export function Duel(props: Props) {
       <span>
         第 {last!.phase} 階段{last!.kind === "deck_out" && " · 最終一擊"}
       </span>
-      <button type="button" className="link" onClick={skip}>
-        略過
-      </button>
+      <span className="row nowrap">
+        <button type="button" className="link" onClick={toggleFast}>
+          {fast ? "一般速度" : "快速"}
+        </button>
+        <button type="button" className="link" onClick={skip}>
+          略過
+        </button>
+      </span>
     </div>
   ) : kind === "deck_out" ? (
     <div className="prompt-banner prompt-final">牌庫耗盡，最終一擊</div>
@@ -464,8 +508,8 @@ export function Duel(props: Props) {
   return (
     <div className="duel" ref={root}>
       <div className="duel-opp">
-        <span className="mini-pile" aria-label={`${labels.defender}的牌庫 ${drawPile.defender}`}>
-          {drawPile.defender}
+        <span className="mini-pile" aria-label={`${labels.defender}的牌庫 ${pileOf("defender")}`}>
+          {pileOf("defender")}
         </span>
         <HpBar label={labels.defender} hp={barHp("defender")} equipment={equipment.defender} rules={rules} instant={hpShown} />
       </div>
@@ -521,8 +565,8 @@ export function Duel(props: Props) {
               </span>
             ))}
           </div>
-          <span className="deck-pile my-pile" aria-label={`牌庫 ${drawPile.challenger}`}>
-            {drawPile.challenger}
+          <span className="deck-pile my-pile" aria-label={`牌庫 ${pileOf("challenger")}`}>
+            {pileOf("challenger")}
           </span>
         </div>
         {preview && leaderSkill && !replaying && !settling && (
@@ -628,6 +672,7 @@ export function Duel(props: Props) {
           labels={labels}
           hp={hp}
           maxHp={rules.startingHp}
+          speed={fast ? FAST_SCENE_SPEED : 1}
           onHpShown={() => setHpShown(true)}
           onComplete={() => setPlay((p) => ({ ...p, scene: false }))}
         />

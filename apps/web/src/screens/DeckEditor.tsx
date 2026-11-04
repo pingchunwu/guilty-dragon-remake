@@ -42,9 +42,11 @@ interface Props {
 
 export function DeckEditor({ content: { cards }, service, state, onState }: Props) {
   const cardName = (id: string) => cards.get(id)?.name ?? id;
-  // Only the attack deck is edited for now; the defense deck keeps its saved value.
-  const kind: DeckKind = "attack";
-  const [draft, setDraft] = useState<Deck>(state.decks.attack);
+  const [kind, setKind] = useState<DeckKind>("attack");
+  // One draft per deck, so switching keeps unsaved edits.
+  const [drafts, setDrafts] = useState<Record<DeckKind, Deck>>(state.decks);
+  const draft = drafts[kind];
+  const setDraft = (deck: Deck) => setDrafts((d) => ({ ...d, [kind]: deck }));
   const [selected, setSelected] = useState<Selection | null>(null);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -104,7 +106,25 @@ export function DeckEditor({ content: { cards }, service, state, onState }: Prop
   return (
     <section className="stack deck-page">
       <h2>牌組</h2>
-      <p className="muted small">點一張卡可替換或移除，點空位可加入卡片</p>
+      <div className="chips">
+        {(["attack", "defense"] as const).map((k) => (
+          <button
+            key={k}
+            type="button"
+            className={kind === k ? "chip active" : "chip"}
+            onClick={() => {
+              setKind(k);
+              setSelected(null);
+              setMessage(null);
+            }}
+          >
+            {k === "attack" ? "進攻牌組" : "防守牌組"}
+          </button>
+        ))}
+      </div>
+      <p className="muted small">
+        {kind === "attack" ? "挑戰別人時使用。" : "別人挑戰你時，由 AI 用這副牌出牌。"}點一張卡可替換或移除，點空位可加入卡片
+      </p>
 
       {DECK_SLOTS.map((slot) => {
         const ids = draft[slot];

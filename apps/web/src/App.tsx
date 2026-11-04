@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { RULES_V07 } from "@gdr/engine";
+import { RULES_V07, taipeiDate } from "@gdr/engine";
 import { loadContent, type Content } from "./game/content";
 import { createGuestService } from "./game/guestService";
 import { createPvpService } from "./game/pvp";
@@ -94,6 +94,28 @@ export function App() {
     else setState(null);
   }, [service, load]);
 
+  // Daily tickets accrue when the server syncs, so an app left open syncs again once the Taipei day changes.
+  const syncedDay = useRef(taipeiDate(new Date()));
+  useEffect(() => {
+    if (!service) return;
+    let live = true;
+    const check = () => {
+      const today = taipeiDate(new Date());
+      if (document.hidden || today === syncedDay.current) return;
+      syncedDay.current = today;
+      service.sync().then(
+        (next) => live && setState(next),
+        () => void (syncedDay.current = ""),
+      );
+    };
+    check();
+    document.addEventListener("visibilitychange", check);
+    return () => {
+      live = false;
+      document.removeEventListener("visibilitychange", check);
+    };
+  }, [service, tab]);
+
   async function signOut() {
     if (service?.mode === "account") await supabase?.auth.signOut();
     setService(null);
@@ -122,7 +144,7 @@ export function App() {
       {authReady && content && !service && !userId && (
         <SignIn client={supabase} onGuest={() => setService(createGuestService(content))} />
       )}
-      {!service && <p className="dev-note">開發版 · 規則 {RULES_V07.ruleVersion} · 卡片為佔位內容</p>}
+      {!service && <p className="dev-note">開發版 · 規則 {RULES_V07.ruleVersion}</p>}
 
       {service && content && (
         <>
@@ -137,7 +159,8 @@ export function App() {
           {!state && !loadError && <p className="muted">載入玩家資料…</p>}
           {state && (
             <main>
-              {tab === "deck" && (
+              {/* Kept mounted so leaving the tab keeps unsaved drafts. */}
+              <div hidden={tab !== "deck"}>
                 <div className="stack">
                   <div className="chips">
                     {(["deck", "equipment"] as const).map((v) => (
@@ -146,7 +169,6 @@ export function App() {
                       </button>
                     ))}
                   </div>
-                  {/* Both stay mounted so switching keeps unsaved drafts. */}
                   <div hidden={deckView !== "deck"}>
                     <DeckEditor content={content} service={service} state={state} onState={setState} />
                   </div>
@@ -154,13 +176,14 @@ export function App() {
                     <Equipment content={content} service={service} state={state} onState={setState} />
                   </div>
                 </div>
-              )}
+              </div>
               {/* Kept mounted so switching tabs doesn't lose a battle in progress. */}
               <div hidden={tab !== "battle"}>
-                <div hidden={practice}>{pvp && <Pvp pvp={pvp} state={state} onBattle={onPvpBattle} />}</div>
                 <div hidden={pvpBattle.shown}>
                   <Battle content={content} state={state} onActive={setPractice} />
                 </div>
+                {/* A friend battle wins over practice: it can come back from the server after practice has started, and its clock is running. */}
+                <div hidden={practice && !pvpBattle.shown}>{pvp && <Pvp pvp={pvp} state={state} onBattle={onPvpBattle} />}</div>
               </div>
               {tab === "gacha" && <Gacha content={content} service={service} state={state} onState={setState} />}
               {tab === "player" && (

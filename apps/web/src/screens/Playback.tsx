@@ -71,7 +71,7 @@ export interface CalcStep {
 
 /**
  * The 0.7.0 calculation before the crash, in the engine's order, one step per entry:
- * weapon-power skills (only if one changed a weapon), × combo, then colour (相剋 / 天秤 / 凌駕 / 不調) and other skill bonuses.
+ * weapon-power skills (only if one changed a weapon), colour (相剋 / 天秤 / 凌駕 / 不調), × combo, then other skill bonuses.
  */
 export function calcSteps(result: PhaseResult): CalcStep[] {
   const S = result.sides;
@@ -87,16 +87,18 @@ export function calcSteps(result: PhaseResult): CalcStep[] {
       }),
     });
   }
-  const afterCombo = both((id) => Math.floor(preOf(result, id) * S[id].combo));
-  steps.push({ to: afterCombo, tag: both((id) => `COMBO ×${+S[id].combo.toFixed(2)}`) });
+  // Same rounding as the engine: floor(floor(total × colour) × combo).
+  const afterColour = both((id) => Math.floor((preOf(result, id) * Math.round(S[id].advantageMultiplier * 1000)) / 1000));
+  const afterCombo = both((id) => Math.floor((afterColour[id] * Math.round(S[id].combo * 1000)) / 1000));
   const colour = both((id) => {
     const k = liveSkill(S[id]);
     const name = k?.effect.kind === "element" ? k.name : "";
-    if (S[id].advantage) return `${name || "相剋"} ×${S[id].advantageMultiplier}`;
-    if (name) return name;
-    return S[id].attack !== afterCombo[id] ? `${k?.name ?? "技能"} ${signed(S[id].attack - afterCombo[id])}` : "";
+    return S[id].advantage ? `${name || "相剋"} ×${S[id].advantageMultiplier}` : name;
   });
-  if (SIDES.some((id) => colour[id])) steps.push({ to: both((id) => S[id].attack), tag: colour });
+  if (SIDES.some((id) => colour[id])) steps.push({ to: afterColour, tag: colour });
+  steps.push({ to: afterCombo, tag: both((id) => `COMBO ×${+S[id].combo.toFixed(2)}`) });
+  const bonus = both((id) => (S[id].attack !== afterCombo[id] ? `${liveSkill(S[id])?.name ?? "技能"} ${signed(S[id].attack - afterCombo[id])}` : ""));
+  if (SIDES.some((id) => bonus[id])) steps.push({ to: both((id) => S[id].attack), tag: bonus });
   return steps;
 }
 
@@ -389,6 +391,8 @@ interface SceneProps {
   /** HP going into the damage (after skills) and the full bar. */
   hp: Record<SideId, number>;
   maxHp: number;
+  /** Timeline speed; fast playback raises it. */
+  speed?: number;
   /** The scene has shown the HP drop and is about to fade, uncovering the duel's HP bars. */
   onHpShown: () => void;
   onComplete: () => void;
@@ -406,7 +410,7 @@ export function hpTaken(result: PhaseResult, id: SideId) {
  * and the damage number (the engine's, after defense) land, and a blade streak cuts the
  * loser's HP as the bar drops. A tie zeroes both with no slash. Tap to skip.
  */
-export function AttackScene({ result, labels, hp, maxHp, onHpShown, onComplete }: SceneProps) {
+export function AttackScene({ result, labels, hp, maxHp, speed = 1, onHpShown, onComplete }: SceneProps) {
   const root = useRef<HTMLDivElement>(null);
   const tl = useRef<gsap.core.Timeline | null>(null);
   const { winner } = result;
@@ -438,7 +442,7 @@ export function AttackScene({ result, labels, hp, maxHp, onHpShown, onComplete }
         topNum.textContent = String(theirs - Math.round(count.d));
         botNum.textContent = String(mine - Math.round(count.d));
       };
-      // Round calculation: (cards + weapon) → × combo → × colour / skills (= engine attack) → crash → × (100 − defense)%.
+      // Round calculation: (cards + weapon) → × colour → × combo → other skill bonuses (= engine attack) → crash → × (100 − defense)%.
       const normal = result.kind === "normal";
       const S = result.sides;
       const calc = normal ? calcSteps(result) : [];
@@ -530,6 +534,7 @@ export function AttackScene({ result, labels, hp, maxHp, onHpShown, onComplete }
     },
     { scope: root },
   );
+  useEffect(() => void tl.current?.timeScale(speed), [speed]);
 
   const bar = (id: SideId, pos: "top" | "bottom") => (
     <div className={`scene-bar scene-bar-${pos} scene-side-${id}${winner === id ? " scene-bar-won" : ""}`}>

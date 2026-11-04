@@ -150,8 +150,17 @@ describe("calculation steps from skills", () => {
   it("adds a colour step for 天秤 even though nobody's number changes", () => {
     const steps = calcSteps(round({ skill: use("balance-art") }, {}));
     expect(steps).toHaveLength(2);
-    expect(steps[1]!.tag.challenger.length).toBeGreaterThan(0);
-    expect(steps[1]!.tag.defender).toBe("");
+    expect(steps[0]!.tag.challenger.length).toBeGreaterThan(0);
+    expect(steps[0]!.tag.defender).toBe("");
+  });
+
+  it("runs colour, then combo, then other bonuses, with the engine's rounding", () => {
+    const r = round({ combo: 1.3, advantage: true, advantageMultiplier: 1.2, attack: 244 }, {});
+    const steps = calcSteps(r);
+    expect(steps.map((s) => s.tag.challenger.split(" ")[0])).toEqual(["相剋", "COMBO", "技能"]);
+    // 150 × 1.2 = 180, × 1.3 = 234, + 10 bonus = 244.
+    expect(steps.map((s) => s.to.challenger)).toEqual([180, 234, 244]);
+    expect(calcSteps(round({ combo: 1.3, advantage: true, advantageMultiplier: 1.2, attack: 234 }, {}))).toHaveLength(2);
   });
 
   it("adds a damage-skill step after the defense step only when the skill changed the damage", () => {
