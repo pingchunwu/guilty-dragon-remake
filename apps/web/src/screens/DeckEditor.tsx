@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   DECK_SLOTS,
+  RARITIES,
   RULES_V0,
   validateDeck,
   type Deck,
@@ -8,6 +9,7 @@ import {
   type DeckSlot,
 } from "@gdr/engine";
 import type { Content } from "../game/content";
+import { DEFAULT_CARD_QUERY, queryCards, type CardQuery, type CardSort } from "../game/cardQuery";
 import { GameError, type DeckKind, type GameService, type PlayerState } from "../game/types";
 import { SLOT_LABEL, deckErrorText, errorText } from "../game/text";
 import { DeckCard } from "./DeckCard";
@@ -19,6 +21,11 @@ const SLOT_HINT: Record<DeckSlot, string> = {
   magic: "只能放魔裝",
   free: "可放任何類型",
 };
+
+const SORT_LABEL: Record<CardSort, string> = { rarity: "稀有度", obtained: "取得時間", attack: "攻擊", draw: "抽牌" };
+const OBTAINED_DAYS = [1, 7, 30];
+const MIN_ATTACKS = [500, 1000, 1500, 2000];
+const DRAWS = [0, 1, 2, 3, 4, 5, 6];
 
 /** A position being edited: a filled card, or an empty spot when index >= slot length. */
 interface Selection {
@@ -41,6 +48,7 @@ export function DeckEditor({ content: { cards }, service, state, onState }: Prop
   const [selected, setSelected] = useState<Selection | null>(null);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [query, setQuery] = useState<CardQuery>(DEFAULT_CARD_QUERY);
   const pickerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -96,9 +104,10 @@ export function DeckEditor({ content: { cards }, service, state, onState }: Prop
         const empties = Math.max(0, RULES_V0.slotSize - ids.length);
         const editing = selected?.slot === slot ? selected : null;
         const current = editing ? ids[editing.index] : undefined;
-        const candidates = editing
+        const eligible = editing
           ? [...cards.values()].filter((c) => owned.has(c.id) && !inDeck.has(c.id) && (slot === "free" || c.type === slot))
           : [];
+        const candidates = queryCards(eligible, state.cards, query);
 
         return (
           <div key={slot} className={`panel slot${editing ? " slot-active" : ""}`}>
@@ -157,10 +166,17 @@ export function DeckEditor({ content: { cards }, service, state, onState }: Prop
                     </button>
                   </div>
                 </div>
-                {candidates.length === 0 ? (
+                {eligible.length === 0 ? (
                   <p className="muted small">沒有其他可放進這欄的卡，抽卡可取得更多卡片</p>
                 ) : (
-                  <Candidates key={slot} cards={candidates} owned={state.cards} onPick={apply} />
+                  <>
+                    <PickerControls query={query} onChange={setQuery} />
+                    {candidates.length === 0 ? (
+                      <p className="muted small">沒有符合篩選條件的卡</p>
+                    ) : (
+                      <Candidates key={`${slot}-${JSON.stringify(query)}`} cards={candidates} owned={state.cards} onPick={apply} />
+                    )}
+                  </>
                 )}
               </div>
             )}
@@ -195,6 +211,76 @@ export function DeckEditor({ content: { cards }, service, state, onState }: Prop
         </div>
       </div>
     </section>
+  );
+}
+
+/** Sort and filter menus for the picker. */
+function PickerControls({ query, onChange }: { query: CardQuery; onChange: (q: CardQuery) => void }) {
+  const set = (patch: Partial<CardQuery>) => onChange({ ...query, ...patch });
+  const byTime = query.sort === "obtained";
+  return (
+    <div className="picker-controls small">
+      <label>
+        排序
+        <select value={query.sort} onChange={(e) => set({ sort: e.target.value as CardSort })}>
+          {(Object.keys(SORT_LABEL) as CardSort[]).map((s) => (
+            <option key={s} value={s}>
+              {SORT_LABEL[s]}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label>
+        順序
+        <button type="button" onClick={() => set({ descending: !query.descending })}>
+          {query.descending ? (byTime ? "新到舊" : "高到低") : byTime ? "舊到新" : "低到高"}
+        </button>
+      </label>
+      <label>
+        稀有度
+        <select value={query.rarity} onChange={(e) => set({ rarity: e.target.value as CardQuery["rarity"] })}>
+          <option value="all">全部</option>
+          {[...RARITIES].reverse().map((r) => (
+            <option key={r} value={r}>
+              {r}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label>
+        取得時間
+        <select value={query.obtainedDays} onChange={(e) => set({ obtainedDays: Number(e.target.value) })}>
+          <option value={0}>全部</option>
+          {OBTAINED_DAYS.map((d) => (
+            <option key={d} value={d}>
+              {d} 天內
+            </option>
+          ))}
+        </select>
+      </label>
+      <label>
+        攻擊
+        <select value={query.minAttack} onChange={(e) => set({ minAttack: Number(e.target.value) })}>
+          <option value={0}>全部</option>
+          {MIN_ATTACKS.map((a) => (
+            <option key={a} value={a}>
+              {a} 以上
+            </option>
+          ))}
+        </select>
+      </label>
+      <label>
+        抽牌
+        <select value={query.draw} onChange={(e) => set({ draw: Number(e.target.value) })}>
+          <option value={-1}>全部</option>
+          {DRAWS.map((d) => (
+            <option key={d} value={d}>
+              {d}
+            </option>
+          ))}
+        </select>
+      </label>
+    </div>
   );
 }
 
