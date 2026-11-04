@@ -378,7 +378,7 @@ Resolve these before locking battle-engine behavior or pool data:
 - Full trigger ordering and all skill values/targets/limits, with source confidence recorded card by card. A provisional order and the original values are implemented (see §6a).
 - Final Blow behavior and whether/when a non-tie Final Blow resets a deck; available community sources are incomplete. Any temporary rule must be explicitly marked as a new-game decision and versioned.
 - HP/score tie-breakers and deterministic defender-AI tie-break order. Initial defender strategy is versioned maximum current-phase attack value.
-- Pool odds, guarantees and any multi-pool schedule. Rarity tiers and level caps were decided 2026-10-26 (see §1, §6a).
+- Pool odds and any multi-pool schedule. Guarantees are provisional (2026-11-04, `docs/gacha-review-plan.md`): a card ten-pull with no SR or better turns its tenth pull into SR or better, and the 300th pull since the last SSR or UR is SSR or better; balance them with the real odds. Rarity tiers and level caps were decided 2026-10-26 (see §1, §6a).
 - Email sign-in flow. **Provisional implementation:** an email code (OTP; length set in Supabase, currently 8 digits) as the main path, because a link opened from email lands in the browser, not an installed PWA. The same email also carries a sign-in link, which the app accepts. Custom SMTP (Resend) is configured; a verified sending domain is still needed before friends can receive codes.
 - ~~Whether to use NestJS on Vercel~~ — decided 2026-10-25: Supabase only (see §2).
 

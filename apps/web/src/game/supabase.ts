@@ -41,6 +41,7 @@ export function createAccountService(client: SupabaseClient): GameService {
     sync: () => call<PlayerState>(client, "sync_player"),
     drawTen: (idempotencyKey) => call(client, "draw_ten", { p_idempotency_key: idempotencyKey }),
     drawItems: (idempotencyKey) => call(client, "draw_items_ten", { p_idempotency_key: idempotencyKey }),
+    rarityWeights: () => call(client, "gacha_rates"),
     saveDeck: (kind, deck) => call(client, "save_deck", { p_kind: kind, p_slots: deck }),
     saveLoadout: (l) => call(client, "save_loadout", { p_loadout: l }),
   };

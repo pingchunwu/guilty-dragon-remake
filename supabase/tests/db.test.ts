@@ -100,6 +100,47 @@ describe("draw_ten", () => {
     expect(state.cards[card.id]).toMatchObject({ level: 10, shards: 0 });
   });
 
+  const ofRarity = (...rarities: string[]) => PLACEHOLDER_CARDS.filter((c) => rarities.includes(c.rarity)).map((c) => c.id);
+  const rarityById = new Map(PLACEHOLDER_CARDS.map((c) => [c.id, c.rarity]));
+
+  it("turns the tenth pull into SR or better when the first nine had none", async () => {
+    await sync(ALICE);
+    // Nearly all weight on one N card, so the first nine are that card.
+    const n = ofRarity("N")[0]!;
+    await db.exec(`update public.pool_entries set weight = case when card_id = '${n}' then 1000000 else 1 end`);
+    const { results } = await draw(ALICE, "key-00000001");
+    expect(["SR", "SSR", "UR"]).toContain(rarityById.get(results[9].id));
+  });
+
+  it("counts pity, forces SSR on the 300th pull, and resets", async () => {
+    await sync(ALICE);
+    const n = ofRarity("N")[0]!;
+    await db.exec(`update public.pool_entries set weight = case when card_id = '${n}' then 1000000 else 1 end;
+                   update public.players set card_pity = 299, tickets = 2 where id = '${ALICE}'`);
+    const first = await draw(ALICE, "key-00000001");
+    expect(["SSR", "UR"]).toContain(rarityById.get(first.results[0].id));
+    const again = await draw(ALICE, "key-00000001");
+    expect(again.state.pity).toBe(first.state.pity);
+    expect(first.state.pity).toBeLessThanOrEqual(9);
+    expect((await sync(ALICE)).pity).toBe(first.state.pity);
+  });
+
+  it("does not touch pity on item draws", async () => {
+    await sync(ALICE);
+    await db.exec(`update public.players set card_pity = 7 where id = '${ALICE}'`);
+    expect((await drawItems(ALICE, "key-00000001")).state.pity).toBe(7);
+  });
+
+  it("reports the active pool's weight per rarity", async () => {
+    await sync(ALICE);
+    const expected: Record<string, number> = {};
+    for (const { id, weight } of PLACEHOLDER_POOL.entries) {
+      const r = rarityById.get(id)!;
+      expected[r] = (expected[r] ?? 0) + weight;
+    }
+    expect(await rpc(ALICE, "public.gacha_rates()")).toEqual(expected);
+  });
+
   it("caps item levels at 10", async () => {
     await sync(ALICE);
     await db.exec(`update public.item_pool_entries set weight = case when item_id = 'ph-weapon-heavy-01' then 1 else 0 end;

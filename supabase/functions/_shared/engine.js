@@ -979,6 +979,9 @@ var PLACEHOLDER_ITEM_POOL = {
 var DRAWS_PER_TICKET = 10;
 var TICKET_TIME_ZONE = "Asia/Taipei";
 var STARTING_TICKETS = 1;
+var SSR_PITY = 300;
+var SR_OR_BETTER = ["SR", "SSR", "UR"];
+var SSR_OR_BETTER = ["SSR", "UR"];
 var levelsOf = (collection) => Object.fromEntries(Object.entries(collection).map(([id, owned]) => [id, owned.level]));
 function applyPull(collection, id, maxLevel = Number.POSITIVE_INFINITY) {
   const owned = collection[id];
@@ -1008,16 +1011,29 @@ function pickFromPool(pool, rng) {
   }
   throw new Error("unreachable: roll exceeded total weight");
 }
-function drawTen(collection, pool, rng, maxLevelOf = () => Number.POSITIVE_INFINITY) {
+function drawTen(collection, pool, rng, maxLevelOf = () => Number.POSITIVE_INFINITY, guarantee) {
   const results = [];
   let current = collection;
+  let pity = guarantee?.pity ?? 0;
+  let srSeen = false;
   for (let i = 0; i < DRAWS_PER_TICKET; i++) {
-    const id = pickFromPool(pool, rng);
+    let from = pool;
+    if (guarantee) {
+      const tier = pity + 1 >= SSR_PITY ? SSR_OR_BETTER : i === DRAWS_PER_TICKET - 1 && !srSeen ? SR_OR_BETTER : null;
+      const entries = tier ? pool.entries.filter((e) => e.weight > 0 && tier.includes(guarantee.rarityOf(e.id))) : [];
+      if (entries.length > 0) from = { ...pool, entries };
+    }
+    const id = pickFromPool(from, rng);
+    if (guarantee) {
+      const rarity = guarantee.rarityOf(id);
+      srSeen ||= SR_OR_BETTER.includes(rarity);
+      pity = SSR_OR_BETTER.includes(rarity) ? 0 : pity + 1;
+    }
     const applied = applyPull(current, id, maxLevelOf(id));
     current = applied.collection;
     results.push(applied.result);
   }
-  return { collection: current, results };
+  return { collection: current, results, pity };
 }
 function taipeiDate(now) {
   return new Date(now.getTime() + 8 * 60 * 60 * 1e3).toISOString().slice(0, 10);
@@ -1575,6 +1591,7 @@ export {
   SIDES,
   SKILLS,
   SKILL_BY_ID,
+  SSR_PITY,
   STARTING_TICKETS,
   TICKET_TIME_ZONE,
   WEAPON_KINDS,
