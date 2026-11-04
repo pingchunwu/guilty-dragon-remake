@@ -26,6 +26,7 @@ import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
 import { SMAAPass } from "three/examples/jsm/postprocessing/SMAAPass.js";
+import { ShaderPass } from "three/examples/jsm/postprocessing/ShaderPass.js";
 import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
 import { gsap } from "gsap";
 import { reducedMotion } from "./BattleParts";
@@ -399,10 +400,73 @@ const VIOLET = "#c9b6ff";
 const GOLD = "#ffd34d";
 const LABEL_TOL = 0.05;
 
+// screen-space fake-out for SSR/UR: the picture tears apart (uGlitch), cuts to black and a crack of light opens (uCrack), then a flash (uFlash)
+const GLITCH_SHADER = {
+  uniforms: {
+    tDiffuse: { value: null },
+    uGlitch: { value: 0 },
+    uCrack: { value: 0 },
+    uFlash: { value: 0 },
+    uTime: { value: 0 },
+    uAspect: { value: 1 },
+  },
+  vertexShader: `varying vec2 vUv;
+void main(){ vUv = uv; gl_Position = vec4(position.xy, 0., 1.); }`,
+  fragmentShader: `uniform sampler2D tDiffuse; uniform float uGlitch; uniform float uCrack; uniform float uFlash; uniform float uTime; uniform float uAspect;
+varying vec2 vUv;
+float rnd(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
+void main(){
+  float g = uGlitch;
+  float st = floor(uTime * 20.);
+  vec2 uv = vUv;
+  // torn bands: fewer, taller and further apart as it worsens
+  float row = floor(uv.y * mix(36., 9., g));
+  float torn = step(1. - g * .8, rnd(vec2(row, st)));
+  uv.x = fract(uv.x + torn * (rnd(vec2(row + .5, st)) - .5) * g * .55);
+  // corrupted blocks copy from somewhere else
+  vec2 cell = floor(vec2(uv.x * 14., uv.y * 22.));
+  float bad = step(1. - g * g * .16, rnd(cell + st));
+  uv = mix(uv, fract(uv + vec2(rnd(cell + 3.), rnd(cell + 7.))), bad);
+  float s = (.003 + .03 * g * g) * step(.0001, g);
+  vec3 col = vec3(texture2D(tDiffuse, uv + vec2(s, 0.)).r, texture2D(tDiffuse, uv).g, texture2D(tDiffuse, uv - vec2(s, 0.)).b);
+  if (g > 0.) {
+    col = mix(col, col.brg * vec3(1.6, .7, 1.3), torn * .8);
+    col += bad * vec3(rnd(cell), rnd(cell + 1.), rnd(cell + 2.)) * .35;
+    col *= 1. - .35 * g * step(mod(gl_FragCoord.y, 4.), 1.);
+    float flick = rnd(vec2(st, 5.));
+    col *= flick > 1. - g * .3 ? .12 : 1.;
+  }
+  if (uCrack > 0.) {
+    // the black cut lands first, then the jagged split widens from the centre
+    col *= 1. - smoothstep(0., .05, uCrack);
+    float e = clamp((uCrack - .1) / .9, 0., 1.);
+    float y9 = vUv.y * 9.;
+    float i = floor(y9);
+    float side = step(.5, vUv.x) * 17.;
+    float jag = mix(rnd(vec2(i, side)), rnd(vec2(i + 1., side)), fract(y9)) - .5;
+    float w = .002 + e * e * .62 + jag * (.012 + .05 * e);
+    float d = abs(vUv.x - .5);
+    vec2 p = (vUv - .5) * vec2(uAspect, 1.);
+    float r = length(p);
+    // hairline fractures running out from the centre, reaching further as it opens
+    float a = (atan(p.y, p.x) / 6.2831853 + .5) * 16.;
+    float sec = floor(a);
+    float off = fract(a) - .5 - (rnd(vec2(sec, 2.)) - .5) * .6 + sin(r * 26. + sec) * .07;
+    float frac = step(abs(off) * r * .39, .0016) * step(r, (.08 + rnd(vec2(sec, 4.)) * .55) * smoothstep(0., .5, e));
+    float rim = exp(-max(d - w, 0.) * 34.) * step(.001, e);
+    col += vec3(1., .78, .42) * (rim * 2.5 + frac * 6.) * step(.001, e);
+    col = mix(col, vec3(20.), step(d, w) * step(.001, e));
+  }
+  col += vec3(20.) * uFlash * uFlash;
+  gl_FragColor = vec4(col, 1.);
+}`,
+};
+
 /**
- * Gacha omen in 3D (UR: SSR gold, a stalled beat, then a prismatic break ~10s). Phases (seconds): seal 0-2.4; if good, breakthrough 2.4-3.8 then
- * SR 3.8-5.0 / SSR 3.8-7.0; final swell 1s (at 3.0 when nothing good). Tap skips to the next
- * phase; tapping in the final phase ends it. Reduced motion or no WebGL ends immediately.
+ * Gacha omen in 3D. Phases (seconds): seal 0-2.4 (final swell at 3.0 when nothing good); if good, breakthrough 2.4-3.8 then
+ * the SR look 3.8-5.0 and its final swell. SSR/UR play that same swell, then glitch 5.7-6.65, crack 6.65-7.1, gold 7.1-10.3
+ * (UR: gold 2s, a stalled beat, then a prismatic break). Tap skips to the next phase; tapping in the final phase ends it.
+ * Reduced motion or no WebGL ends immediately.
  */
 export function GachaSeal3D({ omen, onDone }: { omen: Omen; onDone: () => void }) {
   const host = useRef<HTMLDivElement>(null);
@@ -424,7 +488,7 @@ export function GachaSeal3D({ omen, onDone }: { omen: Omen; onDone: () => void }
       done.current();
       return;
     }
-    const { good, tier, tease } = omenRef.current;
+    const { good, tier } = omenRef.current;
     const ur = tier === "UR";
     const gold = tier === "SSR" || ur; // UR first plays the full gold look
     renderer.toneMapping = ACESFilmicToneMapping;
@@ -485,7 +549,7 @@ export function GachaSeal3D({ omen, onDone }: { omen: Omen; onDone: () => void }
     };
     // paint everything before the timeline exists so painting never eats the reveal
     const rings = LAYERS.map(makeRing);
-    const crown = tier === "SR" || (tier === "SSR" && tease) ? makeRing(CROWN) : null;
+    const crown = good ? makeRing(CROWN) : null;
     const giant = gold ? makeRing(GIANT) : null;
     const giant2 = ur ? makeRing(GIANT2) : null;
     const extra = [crown, giant, giant2].filter((x) => x !== null);
@@ -631,7 +695,10 @@ void main(){
     const bloom = new UnrealBloomPass(new Vector2(1, 1), 0.45, 0.35, 0.55);
     composer.addPass(bloom);
     composer.addPass(new SMAAPass());
+    const glitch = new ShaderPass(GLITCH_SHADER);
+    composer.addPass(glitch);
     composer.addPass(new OutputPass());
+    const glitchU = glitch.uniforms as Record<"uGlitch" | "uCrack" | "uFlash" | "uTime" | "uAspect", { value: number }>;
 
     let bloomScale = 1;
     const resize = () => {
@@ -652,6 +719,7 @@ void main(){
     late.forEach((o) => (o.visible = true));
     composer.render();
     late.forEach((o) => (o.visible = false));
+    glitch.enabled = false;
 
     /* ---------- timeline ---------- */
     const slow = { v: 1 }; // global time scale for the UR held breath
@@ -666,9 +734,13 @@ void main(){
     const SEAL = 2.4;
     const BREAK = SEAL;
     const GOOD = BREAK + 1.4;
-    const GOLD_END = GOOD + 2.0; // UR: gold look, then held breath, then the spectrum
+    const SR_FINAL = GOOD + 1.2;
+    const GLITCH = SR_FINAL + 0.7; // SSR/UR: breaks on the beat the SR ending has swelled to white and would fade out
+    const CRACK = GLITCH + 0.95;
+    const SPELL = CRACK + 0.45;
+    const GOLD_END = SPELL + 2.0; // UR: gold look, then held breath, then the spectrum
     const URBREAK = GOLD_END + 0.9;
-    const FINAL = !good ? SEAL + 0.6 : ur ? URBREAK + 2.8 : gold ? GOOD + 3.2 : GOOD + 1.2;
+    const FINAL = !good ? SEAL + 0.6 : ur ? URBREAK + 2.8 : gold ? SPELL + 3.2 : SR_FINAL;
     tl.addLabel("seal", 0).addLabel("final", FINAL);
     const marks = [FINAL];
     const show = (o: Object3D, at: number) => tl.set(o, { visible: true }, at);
@@ -698,7 +770,7 @@ void main(){
       tl.to(pillar.scale, { y: 7.5, duration: 1.4, ease: "power2.inOut" }, BREAK);
       tl.to(cam, { look: 3, dist: 1.15, elev: 32, duration: 1.4, ease: "sine.inOut" }, BREAK);
 
-      // 3. how good: silver-violet crown for SR; SSR (after the SR tease) goes gold
+      // 3. how good: silver-violet crown for everyone; SSR and UR then break out of it into gold
       if (crown) {
         show(crown.mesh, GOOD);
         tierTo(VIOLET, 0.9, GOOD);
@@ -708,8 +780,26 @@ void main(){
         tl.to(cam, { look: 4.2, dist: 1.3, duration: 1.2, ease: "sine.inOut" }, GOOD);
       }
       if (gold && giant) {
-        const t0 = GOOD + (tease && !ur ? 1.0 : 0);
-        tierTo(GOLD, 1.0, t0);
+        // the same swell the SR look ends on, then the glitch instead of its fade-out
+        tl.addLabel("glitch", GLITCH).addLabel("spell", SPELL);
+        marks.push(SR_FINAL, GLITCH, SPELL);
+        tl.to(bloom, { strength: 2.6, duration: 0.7, ease: "power2.in" }, SR_FINAL);
+        tl.to(renderer, { toneMappingExposure: 2.8, duration: 0.7, ease: "power2.in" }, SR_FINAL);
+        tl.set(bloom, { strength: 0.45 }, GLITCH);
+        tl.set(renderer, { toneMappingExposure: 0.9 }, GLITCH);
+        tl.set(glitch, { enabled: true }, GLITCH);
+        tl.set(slow, { v: 0.03 }, GLITCH); // the seal freezes while the picture falls apart
+        tl.set(glitchU.uGlitch, { value: 0.3 }, GLITCH);
+        tl.to(glitchU.uGlitch, { value: 1, duration: CRACK - GLITCH, ease: "power1.in" }, GLITCH);
+        tl.to(glitchU.uCrack, { value: 1, duration: SPELL - CRACK, ease: "none" }, CRACK);
+        tl.set(glitchU.uGlitch, { value: 0 }, CRACK + 0.04);
+        tierTo(GOLD, 0.01, CRACK + 0.04); // swapped behind the black cut
+        const t0 = SPELL;
+        tl.set(slow, { v: 1 }, t0);
+        tl.set(glitchU.uCrack, { value: 0 }, t0);
+        tl.set(glitchU.uFlash, { value: 1 }, t0);
+        tl.to(glitchU.uFlash, { value: 0, duration: 0.5, ease: "power1.out" }, t0);
+        tl.set(glitch, { enabled: false }, t0 + 0.5);
         tl.to(pillar.scale, { y: 11.5, duration: 2.0, ease: "sine.inOut" }, t0);
         tl.to(pillarMat.uniforms.uAlpha!, { value: 0.5, duration: 1.5, ease: "sine.out" }, t0);
         tl.to(cam, { look: 5.2, dist: 1.7, elev: 30, duration: ur ? 2.0 : 2.2, ease: "sine.inOut" }, t0);
@@ -799,6 +889,8 @@ void main(){
       spin += sdt;
       hue.value = spin * 0.08;
       applyTier();
+      glitchU.uTime.value = now / 1000;
+      glitchU.uAspect.value = camera.aspect;
       pillarMat.uniforms.uTime!.value = spin;
       spinners.forEach((r, i) => {
         r.mesh.rotation.z += r.speed * sdt;
