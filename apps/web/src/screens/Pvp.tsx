@@ -22,13 +22,15 @@ interface Props {
 /**
  * Friend PvP: challenge any player's saved defense deck, played by the
  * server's defender AI. Each phase goes to the `pvp` Edge Function. One
- * battle at a time; leaving only by surrender, and 60 s without acting loses.
+ * battle at a time; leaving only by surrender, and running out the turn clock loses.
  */
 export function Pvp({ pvp, state: player, onBattle }: Props) {
   const [lobby, setLobby] = useState<PvpLobby | null>(null);
   const [battle, setBattle] = useState<PvpBattle | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  // A battle that ended away from its screen (surrender, timeout) still gets the result screen.
+  const [ended, setEnded] = useState<PvpHistoryEntry | null>(null);
   const [busy, setBusy] = useState(false);
 
   const run = useCallback(async <T,>(fn: () => Promise<T>): Promise<T | undefined> => {
@@ -56,8 +58,9 @@ export function Pvp({ pvp, state: player, onBattle }: Props) {
       const current = battleRef.current;
       if (next.active) setBattle(next.active);
       else if (current?.status === "active") {
-        const ended = next.history.find((h) => h.id === current.id);
-        setNotice(ended ? endedText(ended) : (fallbackNotice ?? null));
+        const finished = next.history.find((h) => h.id === current.id);
+        setEnded(finished ?? null);
+        setNotice(finished ? null : (fallbackNotice ?? null));
         setBattle(null);
       }
     },
@@ -79,8 +82,9 @@ export function Pvp({ pvp, state: player, onBattle }: Props) {
     return () => window.removeEventListener("beforeunload", warn);
   }, [active]);
 
-  async function start(opponent: PvpPlayer) {
+  async function start(opponent: Pick<PvpPlayer, "id">) {
     setNotice(null);
+    setEnded(null);
     const view = await run(() => pvp.start(opponent.id));
     if (view) setBattle(view);
     else void refresh();
@@ -106,12 +110,13 @@ export function Pvp({ pvp, state: player, onBattle }: Props) {
     if (!next) return void refresh();
     setLobby(next);
     setBattle(null);
-    setNotice(next.history[0] ? endedText(next.history[0]) : null);
+    setEnded(next.history[0] ?? null);
   }
 
   if (battle) {
     return (
       <BattleView
+        key={battle.id}
         battle={battle}
         player={player}
         busy={busy}
@@ -123,6 +128,10 @@ export function Pvp({ pvp, state: player, onBattle }: Props) {
           setBattle(null);
           void refresh();
         }}
+        onRematch={() => {
+          setBattle(null);
+          void start(battle.opponent);
+        }}
       />
     );
   }
@@ -131,6 +140,16 @@ export function Pvp({ pvp, state: player, onBattle }: Props) {
     <section className="stack">
       <h2>好友對戰</h2>
       {notice && <p className="panel">{notice}</p>}
+      {ended && (
+        <ResultScreen won={ended.won} stats={`${END_REASON[ended.endReason]} · 共 ${ended.phase} 階段 · 你剩 ${ended.hp.challenger} HP · ${ended.opponent.name} 剩 ${ended.hp.defender} HP`}>
+          <button type="button" className="primary grow" disabled={busy} onClick={() => void start(ended.opponent)}>
+            再戰一次
+          </button>
+          <button type="button" className="grow" onClick={() => setEnded(null)}>
+            返回
+          </button>
+        </ResultScreen>
+      )}
       {error && <p className="error">{error}</p>}
       {!lobby ? (
         <p className="muted">{busy ? "載入對戰資料…" : ""}</p>
@@ -139,10 +158,6 @@ export function Pvp({ pvp, state: player, onBattle }: Props) {
       )}
     </section>
   );
-}
-
-function endedText(h: PvpHistoryEntry): string {
-  return `對 ${h.opponent.name} 的對戰結束：${h.won ? "勝利" : "落敗"}（${END_REASON[h.endReason]}）。`;
 }
 
 interface LobbyProps {
@@ -187,7 +202,7 @@ function Lobby({ lobby, busy, pvp, run, onLobby, onChallenge }: LobbyProps) {
       <div className="panel stack">
         <p className="muted small">
           用你的進攻牌組挑戰其他玩家的防守牌組，對手由伺服器 AI 出牌，結果由伺服器結算。一次只能進行一場；
-          對戰中不能離開，投降或 60 秒內沒有出牌都算落敗。沒有獎勵。
+          對戰中不能離開，投降或回合時間（90 秒，含動畫）內沒有出牌都算落敗。沒有獎勵。
         </p>
         {name === null ? (
           <div className="row between">
@@ -206,7 +221,7 @@ function Lobby({ lobby, busy, pvp, run, onLobby, onChallenge }: LobbyProps) {
               void update(() => pvp.setName(name), () => setName(null));
             }}
           >
-            <input className="grow" value={name} maxLength={20} placeholder="留空則顯示 email" onChange={(e) => setName(e.target.value)} />
+            <input className="grow" value={name} maxLength={20} placeholder="留空則顯示「玩家＋好友代碼」" onChange={(e) => setName(e.target.value)} />
             <button type="submit" className="primary" disabled={busy}>
               儲存
             </button>
@@ -285,11 +300,12 @@ interface BattleViewProps {
   onSurrender: () => void;
   onTimeout: () => void;
   onClose: () => void;
+  onRematch: () => void;
 }
 
 type Hp = Record<SideId, number>;
 
-function BattleView({ battle, player, busy, error, onPlay, onSurrender, onTimeout, onClose }: BattleViewProps) {
+function BattleView({ battle, player, busy, error, onPlay, onSurrender, onTimeout, onClose, onRematch }: BattleViewProps) {
   const cards = useMemo(() => new Map(Object.entries(battle.cards)), [battle.cards]);
   const labels: SideLabels = { challenger: "你", defender: battle.opponent.name };
   const rules = battle.ruleVersion === RULES_V07.ruleVersion ? RULES_V07 : RULES_V0;
@@ -315,7 +331,10 @@ function BattleView({ battle, player, busy, error, onPlay, onSurrender, onTimeou
       won={battle.status === "challenger_won"}
       stats={`${battle.endReason ? `${END_REASON[battle.endReason]} · ` : ""}共 ${battle.phase} 階段 · 你剩 ${battle.hp.challenger} HP · ${battle.opponent.name} 剩 ${battle.hp.defender} HP`}
     >
-      <button type="button" className="primary grow" onClick={onClose}>
+      <button type="button" className="primary grow" onClick={onRematch}>
+        再戰一次
+      </button>
+      <button type="button" className="grow" onClick={onClose}>
         返回
       </button>
     </ResultScreen>
@@ -326,13 +345,14 @@ function BattleView({ battle, player, busy, error, onPlay, onSurrender, onTimeou
       <div className="row between small">
         <strong className="one-line">
           挑戰 {battle.opponent.name}
-          {!over && ` · 第 ${battle.phase} 階段`}
+          {!(over && !replaying) && ` · 第 ${replaying && battle.last ? battle.last.phase : battle.phase} 階段`}
         </strong>
         {over ? (
-          <span className="muted">結束</span>
+          !replaying && <span className="muted">結束</span>
         ) : (
           <span className="row nowrap">
-            <strong className={remaining <= 10 ? "error" : ""}>剩 {Math.max(0, remaining)} 秒</strong>
+            {/* The turn allows for the replay, so the clock only shows once it is your move. */}
+            {!replaying && <strong className={remaining <= 10 ? "error" : ""}>剩 {Math.max(0, remaining)} 秒</strong>}
             <button type="button" className="link" disabled={busy} onClick={() => setAsking(true)}>
               投降
             </button>
@@ -438,8 +458,12 @@ function useCountdown(battle: PvpBattle, onExpired?: () => void): number {
   const expired = left < -GRACE_MS - 1000;
   const expiredRef = useRef(onExpired);
   expiredRef.current = onExpired;
+  // Keeps asking: one failed request must not leave the screen stuck on "time's up".
   useEffect(() => {
-    if (expired) expiredRef.current?.();
+    if (!expired) return;
+    expiredRef.current?.();
+    const timer = window.setInterval(() => expiredRef.current?.(), 5000);
+    return () => window.clearInterval(timer);
   }, [expired]);
   // `now` can lag a fresh response by one tick; never show more than the whole turn.
   return Math.min(Math.ceil(left / 1000), Math.round((deadline - Date.parse(battle.serverNow)) / 1000));

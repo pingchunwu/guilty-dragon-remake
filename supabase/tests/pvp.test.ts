@@ -53,11 +53,12 @@ beforeEach(async () => {
 });
 
 describe("names and friends", () => {
-  it("shows emails until a name is set and lists every other player", async () => {
+  it("never shows emails, and lists every other player", async () => {
     const first = await lobby(ALICE);
-    expect(first.me.name).toBe("alice@example.com");
+    expect(first.me.name).toBe(`玩家 ${first.me.friendCode}`);
     expect(first.me.friendCode).toMatch(/^[A-HJ-NP-Z2-9]{8}$/);
-    expect(first.players).toEqual([{ id: BOB, name: "bob@example.com", friend: false }]);
+    expect(first.players).toEqual([{ id: BOB, name: expect.stringMatching(/^玩家/), friend: false }]);
+    expect(JSON.stringify(first)).not.toContain("@example.com");
     expect(first.active).toBeNull();
     expect(first.history).toEqual([]);
     expect((await lobby(ALICE)).me.friendCode).toBe(first.me.friendCode);
@@ -65,19 +66,20 @@ describe("names and friends", () => {
     expect((await rpc(BOB, "public.pvp_set_name($1)", ["  龍騎士  "])).me.name).toBe("龍騎士");
     expect((await lobby(ALICE)).players[0].name).toBe("龍騎士");
     await expect(rpc(BOB, "public.pvp_set_name($1)", ["x".repeat(21)])).rejects.toThrow(/NAME_TOO_LONG/);
-    expect((await rpc(BOB, "public.pvp_set_name($1)", [""])).me.name).toBe("bob@example.com");
+    const cleared = await rpc(BOB, "public.pvp_set_name($1)", [""]);
+    expect(cleared.me.name).toBe(`玩家 ${cleared.me.friendCode}`);
   });
 
   it("adds friends by code and lists them first", async () => {
     await rpc(CAROL, "public.sync_player()");
     const bobCode = (await lobby(BOB)).me.friendCode;
-    expect((await lobby(ALICE)).players.map((p: any) => p.id)).toEqual([BOB, CAROL]);
+    expect((await lobby(ALICE)).players.map((p: any) => p.id).sort()).toEqual([BOB, CAROL].sort());
 
     await rpc(ALICE, "public.pvp_set_name($1)", ["Zed"]);
     await rpc(CAROL, "public.pvp_set_name($1)", ["Amy"]);
     const after = await rpc(ALICE, "public.pvp_add_friend($1)", [` ${bobCode.toLowerCase()} `]);
     expect(after.players).toEqual([
-      { id: BOB, name: "bob@example.com", friend: true },
+      { id: BOB, name: `玩家 ${bobCode}`, friend: true },
       { id: CAROL, name: "Amy", friend: false },
     ]);
     // One-directional.
@@ -98,7 +100,7 @@ describe("battles", () => {
   it("starts a battle and shows only what the challenger may see", async () => {
     const view = await start(ALICE, BOB);
     expect(view).toMatchObject({
-      opponent: { id: BOB, name: "bob@example.com" },
+      opponent: { id: BOB, name: expect.stringMatching(/^玩家 /) },
       status: "active",
       endReason: null,
       phase: 1,
@@ -116,7 +118,7 @@ describe("battles", () => {
     );
     expect(JSON.stringify(view)).not.toMatch(/rng|seed|discard/);
     for (const id of view.hand) expect(view.cards[id]).toEqual(cards.get(id));
-    expect(Date.parse(view.deadline) - Date.parse(view.serverNow)).toBe(60_000);
+    expect(Date.parse(view.deadline) - Date.parse(view.serverNow)).toBe(90_000);
     expect((await lobby(ALICE)).active).toEqual({ ...view, serverNow: expect.any(String) });
   });
 
