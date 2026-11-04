@@ -2610,3 +2610,63 @@ p.error {
 .weapon-row .muted.small {
   font-variant-numeric: tabular-nums;
 }
+
+/* Login bonus */
+.login-bonus {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  overflow-y: auto;
+  background: rgb(0 0 0 / 72%);
+}
+.login-bonus-box {
+  width: min(100%, 420px);
+  padding: 20px 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+}
+.login-bonus-box h2 {
+  margin: 0;
+  font-family: var(--serif);
+}
+.login-bonus-box p {
+  margin: 0;
+}
+.login-bonus-panel {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.login-bonus-panel li {
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: 4px;
+  padding: 8px 4px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  text-align: center;
+}
+.login-bonus-panel strong {
+  font-size: 13px;
+  font-weight: 500;
+}
+.login-bonus-panel .done {
+  color: var(--muted);
+}
+.login-bonus-panel .today {
+  border-color: var(--accent);
+  background: rgb(217 180 90 / 12%);
+}
+.login-bonus-check {
+  height: 20px;
+  color: var(--accent);
+  font-weight: 700;
+}

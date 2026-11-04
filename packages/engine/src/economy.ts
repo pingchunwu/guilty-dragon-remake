@@ -7,6 +7,28 @@ export const DRAWS_PER_TICKET = 10;
 export const TICKET_TIME_ZONE = "Asia/Taipei";
 /** PLACEHOLDER: starting ticket count is an open decision. */
 export const STARTING_TICKETS = 1;
+
+export interface LoginBonusItem {
+  kind: "card" | "item";
+  count: number;
+}
+
+/** One login's result: the whole panel and how many slots are checked, today's included. */
+export interface LoginBonus {
+  panel: readonly LoginBonusItem[];
+  checked: number;
+}
+
+/** PLACEHOLDER: the first login of each Taipei day checks the next slot; the panel restarts after the last. Keep in step with game_config. */
+export const LOGIN_BONUS_PANEL: readonly LoginBonusItem[] = [
+  { kind: "card", count: 1 },
+  { kind: "item", count: 1 },
+  { kind: "card", count: 1 },
+  { kind: "item", count: 1 },
+  { kind: "card", count: 1 },
+  { kind: "item", count: 1 },
+  { kind: "card", count: 1 },
+];
 /** PLACEHOLDER: this pull since the last SSR or UR is always SSR or better. */
 export const SSR_PITY = 300;
 
@@ -126,10 +148,4 @@ export function drawTen(
 /** Calendar date (YYYY-MM-DD) in Asia/Taipei, which has no daylight saving. */
 export function taipeiDate(now: Date): string {
   return new Date(now.getTime() + 8 * 60 * 60 * 1000).toISOString().slice(0, 10);
-}
-
-/** Whole Taipei calendar days between two YYYY-MM-DD dates (0 if `to` is not later). */
-export function daysBetween(from: string, to: string): number {
-  const ms = Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`);
-  return Math.max(0, Math.round(ms / 86_400_000));
 }

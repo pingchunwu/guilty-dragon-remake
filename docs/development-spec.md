@@ -23,7 +23,7 @@ This document captures the product and engineering decisions that future impleme
 - A deck has 32 cards in four 8-card slots: Heavy, Light, Magic, and Free.
 - Cards in a non-Free slot must match its type. A slot cannot contain duplicate copies of the same card name.
 - Each battle phase starts with eight cards in hand (see §6a).
-- One daily draw ticket is granted, tickets accumulate, and one ticket buys ten draws. The initial release has one pool.
+- Tickets come from the login bonus (decided 2026-11-04, replacing one ticket a day): the first login of each Asia/Taipei day checks the next slot of a 7-slot panel and grants its item, days need not be consecutive, and the panel restarts after the seventh. Cards and gear have separate tickets, tickets accumulate, and one ticket buys ten draws of its kind. The initial release has one pool.
 - A first-time signed-in player receives a default deck once.
 - Each duplicate raises that card (or item) one level (decided 2026-10-26; it took five shards before). A card's level is its skill level and stops at its skill's max level (1, 3, 5 or 10); items stop at level 10. Duplicates past the cap are kept as spare shards. Existing shards were converted into levels by migration `20261026000200`.
 - Consequence: a player owns at most one copy of each card, so every deck needs 32 distinct cards (at least 8 distinct cards of each constrained type). The duplicate-name slot rule cannot trigger under this model. The default deck and the first pool must be sized for this (pool size is **TBD**, see §7).
@@ -384,7 +384,7 @@ Resolve these before locking battle-engine behavior or pool data:
 
 Provisional placeholder values used by the first implementation (clearly marked in code and data; replace when decided):
 
-- Starting tickets: 1. Default deck: one 32-card placeholder deck saved as both the attack and defense deck.
+- Starting tickets: 1 card ticket, 0 gear tickets. Login bonus panel: card, gear, card, gear, card, gear, card, one ticket each. Default deck: one 32-card placeholder deck saved as both the attack and defense deck.
 - Pool (`pool-v1`): one placeholder card per skill (110 cards), draw weight per card by rarity: N 12, N+ 8, R 5, R+ 3, SR 2, SR+ 1.
 
 Product decisions added after the 2026-10-25 review (not engine-blocking, but needed before the matching delivery step):

@@ -1,9 +1,12 @@
-import type { Collection, Deck, DeckError, Loadout, LoadoutError, PullResult, Rarity } from "@gdr/engine";
+import type { Collection, Deck, DeckError, LoginBonus, Loadout, LoadoutError, PullResult, Rarity } from "@gdr/engine";
 
 export type DeckKind = "attack" | "defense";
 
 export interface PlayerState {
+  /** Card draw tickets. */
   tickets: number;
+  /** Gear draw tickets. */
+  itemTickets: number;
   /** Card pulls since the last SSR or UR. */
   pity: number;
   cards: Collection;
@@ -11,6 +14,8 @@ export interface PlayerState {
   items: Collection;
   /** One loadout for both attack and defense. */
   loadout: Loadout;
+  /** Only on the sync that made the day's first check. */
+  loginBonus?: LoginBonus;
 }
 
 export interface DrawOutcome {

@@ -66,6 +66,7 @@ export function Gacha({ content: { cards, items }, service, state, onState }: Pr
     service.rarityWeights().then(setWeights, () => {}); // the odds line just stays hidden
   }, [service]);
   const pendingKey = pendingKeys[kind];
+  const tickets = kind === "card" ? state.tickets : state.itemTickets;
 
   async function draw() {
     const key = pendingKey ?? crypto.randomUUID();
@@ -116,15 +117,15 @@ export function Gacha({ content: { cards, items }, service, state, onState }: Pr
         <div className="gacha-mark">
           <SealRing size={160} />
           <div className="gacha-count">
-            <strong>{state.tickets}</strong>
-            <span>抽卡券</span>
+            <strong>{tickets}</strong>
+            <span>{KIND_LABEL[kind]}券</span>
           </div>
         </div>
         <div className="gacha-foot">
           <details className="gacha-rules">
             <summary>規則</summary>
             <p>
-              每天（台北時間）獲得 1 張，可累積；卡片和裝備共用。1 張券進行 10 抽；每抽到重複的就升 1 級（卡片升的是技能等級，上限依技能；裝備每級 +10%，上限 Lv {ITEM_MAX_LEVEL}）。
+              每天（台北時間）第一次登入可領登入獎勵，抽卡券可累積；卡片和裝備各有自己的券。1 張券進行 10 抽；每抽到重複的就升 1 級（卡片升的是技能等級，上限依技能；裝備每級 +10%，上限 Lv {ITEM_MAX_LEVEL}）。
             </p>
             {kind === "card" ? (
               <>
@@ -136,9 +137,9 @@ export function Gacha({ content: { cards, items }, service, state, onState }: Pr
             )}
           </details>
           {kind === "card" && <p className="small">再抽 {SSR_PITY - state.pity} 抽內必得 SSR 以上</p>}
-          {state.tickets < 1 && !pendingKey && <p className="small">下一張券在台北時間午夜發放</p>}
+          {tickets < 1 && !pendingKey && <p className="small">每天第一次登入可領登入獎勵</p>}
           {error && <p className="error">{error}</p>}
-          <button type="button" className="primary gacha-draw" disabled={busy || (state.tickets < 1 && !pendingKey)} onClick={draw}>
+          <button type="button" className="primary gacha-draw" disabled={busy || (tickets < 1 && !pendingKey)} onClick={draw}>
             {busy ? (
               "抽卡中…"
             ) : (
@@ -158,7 +159,7 @@ export function Gacha({ content: { cards, items }, service, state, onState }: Pr
           items={items}
           onClose={() => setRevealing(false)}
           onAgain={
-            state.tickets >= 1 && !busy
+            tickets >= 1 && !busy
               ? () => {
                   setRevealing(false);
                   void draw();

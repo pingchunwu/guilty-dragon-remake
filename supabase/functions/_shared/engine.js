@@ -979,6 +979,15 @@ var PLACEHOLDER_ITEM_POOL = {
 var DRAWS_PER_TICKET = 10;
 var TICKET_TIME_ZONE = "Asia/Taipei";
 var STARTING_TICKETS = 1;
+var LOGIN_BONUS_PANEL = [
+  { kind: "card", count: 1 },
+  { kind: "item", count: 1 },
+  { kind: "card", count: 1 },
+  { kind: "item", count: 1 },
+  { kind: "card", count: 1 },
+  { kind: "item", count: 1 },
+  { kind: "card", count: 1 }
+];
 var SSR_PITY = 300;
 var SR_OR_BETTER = ["SR", "SSR", "UR"];
 var SSR_OR_BETTER = ["SSR", "UR"];
@@ -1037,10 +1046,6 @@ function drawTen(collection, pool, rng, maxLevelOf = () => Number.POSITIVE_INFIN
 }
 function taipeiDate(now) {
   return new Date(now.getTime() + 8 * 60 * 60 * 1e3).toISOString().slice(0, 10);
-}
-function daysBetween(from, to) {
-  const ms = Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`);
-  return Math.max(0, Math.round(ms / 864e5));
 }
 
 var NO_EQUIPMENT = Object.fromEntries(ITEM_KINDS.map((k) => [k, null]));
@@ -1577,6 +1582,7 @@ export {
   ITEM_KINDS,
   ITEM_LEVEL_PERCENT,
   ITEM_MAX_LEVEL,
+  LOGIN_BONUS_PANEL,
   NO_EQUIPMENT,
   PLACEHOLDER_CARDS,
   PLACEHOLDER_DEFAULT_DECK,
@@ -1602,7 +1608,6 @@ export {
   chargeTypes,
   clampSkillLevel,
   createRng,
-  daysBetween,
   deckCardIds,
   defenseOf,
   drawTen,
