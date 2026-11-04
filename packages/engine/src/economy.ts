@@ -11,6 +11,8 @@ export interface OwnedCard {
   level: number;
   /** Duplicates pulled after reaching the level cap. */
   shards: number;
+  /** ISO time the player first got it; absent on items. */
+  obtainedAt?: string;
 }
 
 /** Owned cards or items by ID. Items level up from duplicates the same way. */

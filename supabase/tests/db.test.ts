@@ -87,7 +87,7 @@ describe("draw_ten", () => {
     const { results, state } = await draw(ALICE, "key-00000001");
     expect(results.every((r: any) => r.id === card.id && !r.isNew)).toBe(true);
     expect(results.filter((r: any) => r.leveledUp)).toHaveLength(2);
-    expect(state.cards[card.id]).toEqual({ level: 3, shards: 8 });
+    expect(state.cards[card.id]).toMatchObject({ level: 3, shards: 8 });
   });
 
   it("adds new cards to the collection", async () => {
@@ -97,7 +97,7 @@ describe("draw_ten", () => {
     await db.exec(`update public.pool_entries set weight = case when card_id = '${card.id}' then 1 else 0 end`);
     const { results, state } = await draw(ALICE, "key-00000001");
     expect(results[0]).toEqual({ id: card.id, isNew: true, level: 1, shards: 0, leveledUp: false });
-    expect(state.cards[card.id]).toEqual({ level: 10, shards: 0 });
+    expect(state.cards[card.id]).toMatchObject({ level: 10, shards: 0 });
   });
 
   it("caps item levels at 10", async () => {

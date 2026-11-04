@@ -27,7 +27,7 @@ export function createGuestService({ cards, items }: Content): GameService {
   const collection: Collection = Object.fromEntries(
     Object.values(PLACEHOLDER_DEFAULT_DECK)
       .flat()
-      .map((id) => [id, { level: 1, shards: 0 }]),
+      .map((id) => [id, { level: 1, shards: 0, obtainedAt: new Date().toISOString() }]),
   );
   let state: PlayerState = {
     // shortcut: guests get 100 tickets for testing the gacha; switch back to STARTING_TICKETS before launch.
@@ -51,7 +51,11 @@ export function createGuestService({ cards, items }: Content): GameService {
       return field === "items" ? ITEM_MAX_LEVEL : card ? cardMaxLevel(card) : 1;
     };
     const drawn = drawTen(state[field], pool, createRng(randomSeed()), maxLevel);
-    state = { ...state, tickets: state.tickets - 1, [field]: drawn.collection };
+    const now = new Date().toISOString();
+    const stamped = Object.fromEntries(
+      Object.entries(drawn.collection).map(([id, c]) => [id, { ...c, obtainedAt: state[field][id]?.obtainedAt ?? now }]),
+    );
+    state = { ...state, tickets: state.tickets - 1, [field]: stamped };
     draws.set(key, drawn.results);
     return { results: drawn.results, state };
   }
